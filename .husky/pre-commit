@@ -1,0 +1,11 @@
+echo "--- Linting Client ---"
+cd client || { echo "Directory 'client' not found"; exit 1; }
+npm run lint || { echo "Client linting failed"; exit 1; }
+cd ..
+
+echo "--- Linting Server ---"
+cd server || { echo "Directory 'server' not found"; exit 1; }
+npm run lint || { echo "Server linting failed"; exit 1; }
+cd ..
+
+echo "All pre-commit checks passed!"
