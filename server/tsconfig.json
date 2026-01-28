@@ -20,6 +20,16 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@app/*": ["src/app/*"],
+      "@config/*": ["src/config/*"],
+      "@core/*": ["src/core/*"],
+      "@database/*": ["src/database/*"],
+      "@health/*": ["src/health/*"],
+      "@modules/*": ["src/modules/*"],
+      "@shared/*": ["src/shared/*"],
+      "@test/*": ["test/*"]
+    }
   }
 }

@@ -66,6 +66,16 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@app/(.*)$": "<rootDir>/app/$1",
+      "^@config/(.*)$": "<rootDir>/config/$1",
+      "^@core/(.*)$": "<rootDir>/core/$1",
+      "^@database/(.*)$": "<rootDir>/database/$1",
+      "^@health/(.*)$": "<rootDir>/health/$1",
+      "^@modules/(.*)$": "<rootDir>/modules/$1",
+      "^@shared/(.*)$": "<rootDir>/shared/$1",
+      "^@test/(.*)$": "<rootDir>/test/$1"
+    }
   }
 }
