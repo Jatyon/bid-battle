@@ -8,6 +8,7 @@ import { IConfigI18n } from '@config/interfaces/i18n-config.interface';
 import { IConfigFile } from '@config/interfaces/file-config.interface';
 import { IConfigApp } from '@config/interfaces/app-config.interface';
 import { IConfigJWT } from '@config/interfaces/jwt-config.interface';
+import { DatabaseType } from 'typeorm';
 
 @Injectable()
 export class AppConfigService {
@@ -29,7 +30,7 @@ export class AppConfigService {
 
   get database(): IDatabaseConfig {
     return {
-      type: this.configService.get<string>('DATABASE_TYPE', 'mysql'),
+      type: this.configService.get<DatabaseType>('DATABASE_TYPE', 'mysql'),
       host: this.configService.get<string>('DATABASE_HOST', 'localhost'),
       port: this.configService.get<number>('DATABASE_PORT', 3306),
       username: this.configService.get<string>('DATABASE_USER', 'root'),
