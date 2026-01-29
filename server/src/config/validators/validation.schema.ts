@@ -8,6 +8,8 @@ export const validationSchema = Joi.object({
   FRONTEND_HOST: Joi.string().required(),
   PORT: Joi.number().default(3000),
   TIMEOUT_MS: Joi.number().default(5000),
+  THROTTLE_TTL_MS: Joi.number().default(60000),
+  THROTTLE_LIMIT: Joi.number().default(10),
   CORS_ORIGIN: Joi.string().default('*'),
   EMAIL_VERIFICATION_EXPIRES_IN: Joi.number().default(15),
   RESET_PASSWORD_EXPIRES_IN: Joi.number().default(15),
@@ -48,10 +50,6 @@ export const validationSchema = Joi.object({
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.string().default(''),
   REDIS_TTL: Joi.number().default(300),
-
-  // Rate Limiting
-  THROTTLE_TTL: Joi.number().default(60),
-  THROTTLE_LIMIT: Joi.number().default(10),
 
   // STRIPE
   STRIPE_SECRET_KEY: Joi.string().required(),

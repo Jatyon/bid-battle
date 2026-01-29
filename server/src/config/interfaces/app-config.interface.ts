@@ -5,6 +5,8 @@ export interface IConfigApp {
   frontendHost: string;
   port: number;
   timeoutMs: number;
+  throttleTtlMs: number;
+  throttleLimit: number;
   corsOrigin: string;
   emailVerificationExpiresInMin: number;
   resetPasswordExpiresInMin: number;
