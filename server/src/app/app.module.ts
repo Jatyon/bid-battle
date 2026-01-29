@@ -7,6 +7,9 @@ import { AppService } from '@app/app.service';
 import { validationSchema } from '@config/validators/validation.schema';
 import { AppConfigService } from '@config/services/config.service';
 import { AppConfigModule } from '@config/config.module';
+import { I18nConfigProvider } from '@shared/providers/providers/i18n-config.provider';
+import { ProvidersModule } from '@shared/providers/providers.module';
+import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
 
 @Module({
   imports: [
@@ -17,6 +20,11 @@ import { AppConfigModule } from '@config/config.module';
         allowUnknown: true,
         abortEarly: true,
       },
+    }),
+    I18nModule.forRootAsync({
+      useClass: I18nConfigProvider,
+      loader: I18nJsonLoader,
+      resolvers: [AcceptLanguageResolver],
     }),
     ThrottlerModule.forRootAsync({
       imports: [AppConfigModule],
@@ -30,6 +38,9 @@ import { AppConfigModule } from '@config/config.module';
     }),
 
     AppConfigModule.forRoot(),
+
+    // Global
+    ProvidersModule,
   ],
   controllers: [AppController],
   providers: [
