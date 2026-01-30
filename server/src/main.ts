@@ -5,10 +5,12 @@ import { AppModule } from '@app/app.module';
 import { TransformInterceptor } from '@core/interceptors/transform.interceptor';
 import { LoggingInterceptor } from '@core/interceptors/logging.interceptor';
 import { TimeoutInterceptor } from '@core/interceptors/timeout.interceptor';
+import { HttpExceptionFilter } from '@core/filters/http-exception.filter';
 import { AppConfigService } from '@config/services/config.service';
 import { setupSecurity } from '@config/config/security.config';
 import { winstonConfig } from '@config/config/winston.config';
 import { WinstonModule } from 'nest-winston';
+import { I18nService } from 'nestjs-i18n';
 import compression from 'compression';
 import helmet from 'helmet';
 
@@ -46,6 +48,8 @@ async function bootstrap() {
       },
     }),
   );
+
+  app.useGlobalFilters(new HttpExceptionFilter(app.get(I18nService), configService));
 
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor(), new TimeoutInterceptor(configService.app.timeoutMs));
 

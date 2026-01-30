@@ -1,0 +1,19 @@
+{
+  "Generic Error": "An unexpected server error occurred. Please try again later.",
+  "Internal Server Error": "Internal Server Error.",
+  "Bad Request": "Bad Request.",
+  "Conflict": "Data Conflict.",
+  "Unauthorized": "Unauthorized. Please log in.",
+  "Forbidden": "You do not have permission to perform this action.",
+  "Not Found": "Resource not found.",
+  "Too Many Requests": "Too many requests",
+  "Method Not Allowed": "Method not allowed",
+  "Payload Too Large": "Payload too large",
+
+  "database_unique_constraint": "Record already exists",
+  "database_foreign_key": "Operation failed because this record is referenced by other data.",
+  "database_query_failed": "A database query error occurred.",
+
+  "validation_failed": "Validation failed.",
+  "timeout": "Request timed out."
+}
