@@ -1,6 +1,10 @@
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@app/app.module';
+import { TransformInterceptor } from '@core/interceptors/transform.interceptor';
+import { LoggingInterceptor } from '@core/interceptors/logging.interceptor';
+import { TimeoutInterceptor } from '@core/interceptors/timeout.interceptor';
 import { AppConfigService } from '@config/services/config.service';
 import { setupSecurity } from '@config/config/security.config';
 import { winstonConfig } from '@config/config/winston.config';
@@ -9,7 +13,7 @@ import compression from 'compression';
 import helmet from 'helmet';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: WinstonModule.createLogger(winstonConfig),
   });
 
@@ -17,6 +21,7 @@ async function bootstrap() {
 
   setupSecurity(app);
 
+  app.set('trust proxy', 1);
   app.use(helmet());
   app.enableCors({
     origin: configService.app.corsOrigin,
@@ -41,6 +46,8 @@ async function bootstrap() {
       },
     }),
   );
+
+  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor(), new TimeoutInterceptor(configService.app.timeoutMs));
 
   await app.listen(process.env.PORT ?? 3000);
 }
