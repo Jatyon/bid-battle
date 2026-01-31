@@ -9,6 +9,7 @@ import { AppConfigService } from '@config/services/config.service';
 import { AppConfigModule } from '@config/config.module';
 import { I18nConfigProvider } from '@shared/providers/providers/i18n-config.provider';
 import { ProvidersModule } from '@shared/providers/providers.module';
+import { HealthController } from '@health/controllers/health.controller';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
 
 @Module({
@@ -42,7 +43,7 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
     // Global
     ProvidersModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [
     AppService,
     {
