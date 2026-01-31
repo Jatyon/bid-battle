@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface Response<T> {
-  success: boolean;
   statusCode: number;
   data: T;
   timestamp: string;
@@ -34,7 +33,6 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
         }
 
         return {
-          success: true,
           statusCode: response.statusCode,
           ...meta,
           data: finalData as T,
