@@ -1,6 +1,7 @@
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
 import { APP_GUARD } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { AppController } from '@app/app.controller';
@@ -45,6 +46,17 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
           limit: config.app.throttleLimit,
         },
       ],
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [AppConfigService],
+      useFactory: (configService: AppConfigService) => ({
+        connection: {
+          host: configService.redis.host,
+          port: configService.redis.port,
+          password: configService.redis.password,
+        },
+      }),
     }),
 
     AppConfigModule.forRoot(),
