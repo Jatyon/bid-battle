@@ -9,6 +9,7 @@ export interface IDatabaseConfig {
   password: string;
   entities: string[];
   migrations: string[];
+  seeds: string[];
   migrationsRun: boolean;
   synchronize: boolean;
 }

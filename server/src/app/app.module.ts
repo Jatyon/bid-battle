@@ -1,3 +1,4 @@
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -21,6 +22,14 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
         allowUnknown: true,
         abortEarly: true,
       },
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [AppConfigModule],
+      inject: [AppConfigService],
+      useFactory: (configService: AppConfigService) =>
+        ({
+          ...configService.database,
+        }) as TypeOrmModuleOptions,
     }),
     I18nModule.forRootAsync({
       useClass: I18nConfigProvider,
