@@ -1,18 +1,18 @@
-import { AppConfigService } from '@config/services/config.service';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { WorkerHost, Processor } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
-import { IMailOptions } from '../interfaces/mail-options.interface';
-import { IMailOptionsTemplate } from '../interfaces/mail-options-template.interface';
-import { JobName } from '../enums/mail-job-name.enum';
+import { AppConfigService } from '@config/services/config.service';
+import { IMailOptionsTemplate } from '@modules/mail/interfaces/mail-options-template.interface';
+import { IMailOptions } from '@modules/mail/interfaces/mail-options.interface';
+import { JobName } from '@modules/mail/enums/mail-job-name.enum';
 import hbs from 'nodemailer-express-handlebars';
-import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import * as path from 'path';
 import { Job } from 'bullmq';
 
 @Injectable()
 @Processor('mail-queue')
-export class MailConsumerService extends WorkerHost {
+export class MailConsumerService extends WorkerHost implements OnModuleInit {
   private transporter: Transporter;
   private readonly logger = new Logger(MailConsumerService.name);
   private readonly fromEmail: string;
@@ -23,11 +23,13 @@ export class MailConsumerService extends WorkerHost {
     super();
     this.fromEmail = this.configService.mailer.from.address;
     this.appName = this.configService.app.name;
+  }
 
+  onModuleInit() {
     this.initializeTransporter();
   }
 
-  private async initializeTransporter() {
+  private initializeTransporter() {
     const smtpHost = this.configService.mailer.host;
     const smtpPort = this.configService.mailer.port;
     const smtpUser = this.configService.mailer.auth.user;
@@ -44,7 +46,8 @@ export class MailConsumerService extends WorkerHost {
     });
 
     this.transporter.verify((error) => {
-      error ? this.logger.error('SMTP connection error:', error) : this.logger.log('SMTP server is ready to send emails');
+      if (error) this.logger.error('SMTP connection error:', error);
+      else this.logger.log('SMTP server is ready to send emails');
     });
 
     const handlebarOptions = {
@@ -63,7 +66,7 @@ export class MailConsumerService extends WorkerHost {
   }
 
   async process(job: Job<IMailOptions>): Promise<any> {
-    switch (job.name) {
+    switch (job.name as JobName) {
       case JobName.CRITICAL_MAIL:
         await this.handleCriticalMail(job.data);
         break;
@@ -71,6 +74,9 @@ export class MailConsumerService extends WorkerHost {
       case JobName.BULK_MAIL:
         await this.handleBulkMail(job.data);
         break;
+
+      default:
+        this.logger.warn(`Unknown job name: ${job.name}`);
     }
   }
 
@@ -100,9 +106,9 @@ export class MailConsumerService extends WorkerHost {
         context: context,
       };
 
-      const info = await this.transporter.sendMail(mailOptions);
+      await this.transporter.sendMail(mailOptions);
 
-      this.logger.log(`Email sent to ${options.to}: ${info.messageId}`);
+      this.logger.log(`Email sent to ${options.to}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${options.to}: ${error}`);
       throw error;
