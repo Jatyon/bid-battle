@@ -1,5 +1,6 @@
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { MailerModule } from '@nestjs-modules/mailer';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { APP_GUARD } from '@nestjs/core';
@@ -9,6 +10,8 @@ import { AppService } from '@app/app.service';
 import { validationSchema } from '@config/validators/validation.schema';
 import { AppConfigService } from '@config/services/config.service';
 import { AppConfigModule } from '@config/config.module';
+import { MailModule } from '@modules/mail/mail.module';
+import { MailerConfigProvider } from '@shared/providers/mailer-config.provider';
 import { I18nConfigProvider } from '@shared/providers/i18n-config.provider';
 import { ProvidersModule } from '@shared/providers/providers.module';
 import { HealthController } from '@health/controllers/health.controller';
@@ -58,11 +61,15 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
         },
       }),
     }),
+    MailerModule.forRootAsync({
+      useClass: MailerConfigProvider,
+    }),
 
     AppConfigModule.forRoot(),
 
     // Global
     ProvidersModule,
+    MailModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
