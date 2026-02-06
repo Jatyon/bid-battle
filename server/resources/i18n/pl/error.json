@@ -1,0 +1,19 @@
+{
+  "Generic Error": "Wystąpił nieoczekiwany błąd serwera. Spróbuj ponownie później.",
+  "Internal Server Error": "Wewnętrzny błąd serwera.",
+  "Bad Request": "Nieprawidłowe żądanie.",
+  "Conflict": "Konflikt danych.",
+  "Unauthorized": "Brak dostępu. Zaloguj się.",
+  "Forbidden": "Brak uprawnień do wykonania tej akcji.",
+  "Not Found": "Zasób nie został znaleziony.",
+  "Too Many Requests": "Zbyt wiele żądań",
+  "Method Not Allowed": "Metoda niedozwolona",
+  "Payload Too Large": "Zbyt duża ładunek",
+
+  "database_unique_constraint": "Podany rekord już istnieje w bazie danych",
+  "database_foreign_key": "Nie można wykonać operacji, ponieważ ten rekord jest powiązany z innymi danymi.",
+  "database_query_failed": "Wystąpił błąd podczas przetwarzania zapytania do bazy danych.",
+
+  "validation_failed": "Błąd walidacji danych.",
+  "timeout": "Przekroczono limit czasu żądania."
+}
