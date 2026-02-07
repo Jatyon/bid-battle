@@ -1,0 +1,89 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+      MYSQL_DATABASE: ${DATABASE_NAME}
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - app-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    restart: always
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      NAME: ${NAME}
+      HOST: ${HOST}
+      FRONTEND_HOST: ${FRONTEND_HOST}
+      PORT: ${PORT}
+      TIMEOUT_MS: ${TIMEOUT_MS}
+      THROTTLE_TTL_MS: ${THROTTLE_TTL_MS}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      EMAIL_VERIFICATION_EXPIRES_IN: ${EMAIL_VERIFICATION_EXPIRES_IN}
+      RESET_PASSWORD_EXPIRES_IN: ${RESET_PASSWORD_EXPIRES_IN}
+
+      DATABASE_TYPE: mysql
+      DATABASE_HOST: mysql
+      DATABASE_PORT: 3306
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+
+      I18N_FALLBACK_LANGUAGE: ${I18N_FALLBACK_LANGUAGE}
+
+      AVATAR_MAX_SIZE_MB: ${AVATAR_MAX_SIZE_MB}
+
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_SALT: ${JWT_SALT}
+      JWT_SALT_OR_ROUNDS: ${JWT_SALT_OR_ROUNDS}
+
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_IGNORE_TLS: ${SMTP_IGNORE_TLS}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_TTL: ${REDIS_TTL}
+
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_CURRENCY: ${STRIPE_CURRENCY}
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-network
+
+volumes:
+  mysql_data_prod:
+  redis_data_prod:
+
+networks:
+  app-network:
+    driver: bridge

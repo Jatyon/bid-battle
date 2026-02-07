@@ -1,0 +1,23 @@
+node_modules/
+npm-debug.log
+
+dist/
+build/
+
+.git/
+.gitignore
+
+.env
+.env.*
+! .env.example
+npm-debug.log
+yarn-error.log
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+README.md
+Dockerfile*
+docker-compose*
