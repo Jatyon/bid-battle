@@ -10,6 +10,7 @@ import { AppService } from '@app/app.service';
 import { validationSchema } from '@config/validators/validation.schema';
 import { AppConfigService } from '@config/services/config.service';
 import { AppConfigModule } from '@config/config.module';
+import { UsersModule } from '@modules/users/users.module';
 import { MailModule } from '@modules/mail/mail.module';
 import { MailerConfigProvider } from '@shared/providers/mailer-config.provider';
 import { I18nConfigProvider } from '@shared/providers/i18n-config.provider';
@@ -70,6 +71,9 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
     // Global
     ProvidersModule,
     MailModule,
+
+    // Modules
+    UsersModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
