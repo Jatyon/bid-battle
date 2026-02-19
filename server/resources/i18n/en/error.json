@@ -15,5 +15,23 @@
   "database_query_failed": "A database query error occurred.",
 
   "validation_failed": "Validation failed.",
-  "timeout": "Request timed out."
+  "timeout": "Request timed out.",
+
+  "validation": {
+    "first_name_is_string": "First name must be a string",
+    "first_name_not_empty": "First name cannot be empty",
+    "last_name_is_string": "Last name must be a string",
+    "last_name_not_empty": "Last name cannot be empty",
+    "email_not_empty": "Email cannot be empty",
+    "email_must_be_email": "Email must be a valid email address",
+    "password_is_string": "Password must be a string",
+    "password_not_empty": "Password cannot be empty",
+    "password_too_weak": "Password must contain an uppercase letter, a lowercase letter, and a number or special character",
+    "password_at_least_8_characters": "Password must be at least 8 characters long",
+    "passwords_do_not_match": "Passwords do not match",
+    "currentPassword_is_string": "Current password must be a string",
+    "currentPassword_not_empty": "Current password cannot be empty",
+    "token_is_string": "Token must be a string",
+    "token_not_empty": "Token cannot be empty"
+  }
 }

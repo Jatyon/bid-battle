@@ -7,4 +7,8 @@ export class UserRepository extends Repository<User> {
   constructor(private dataSource: DataSource) {
     super(User, dataSource.createEntityManager());
   }
+
+  findOneWithPasswordByEmail(email: string): Promise<User | null> {
+    return this.createQueryBuilder('user').where('user.email = :email', { email }).addSelect('user.password').getOne();
+  }
 }

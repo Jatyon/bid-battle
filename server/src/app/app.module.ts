@@ -12,6 +12,7 @@ import { AppConfigService } from '@config/services/config.service';
 import { AppConfigModule } from '@config/config.module';
 import { UsersModule } from '@modules/users/users.module';
 import { MailModule } from '@modules/mail/mail.module';
+import { AuthModule } from '@modules/auth/auth.module';
 import { MailerConfigProvider } from '@shared/providers/mailer-config.provider';
 import { I18nConfigProvider } from '@shared/providers/i18n-config.provider';
 import { ProvidersModule } from '@shared/providers/providers.module';
@@ -73,6 +74,7 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
     MailModule,
 
     // Modules
+    AuthModule,
     UsersModule,
   ],
   controllers: [AppController, HealthController],

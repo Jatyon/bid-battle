@@ -15,5 +15,21 @@
   "database_query_failed": "Wystąpił błąd podczas przetwarzania zapytania do bazy danych.",
 
   "validation_failed": "Błąd walidacji danych.",
-  "timeout": "Przekroczono limit czasu żądania."
+  "timeout": "Przekroczono limit czasu żądania.",
+
+  "validation": {
+    "name_is_string": "Nazwa musi być ciągiem znaków",
+    "name_not_empty": "Nazwa nie może być pusta",
+    "email_not_empty": "Email nie może być pusty",
+    "email_must_be_email": "Email musi być poprawnym adresem email",
+    "password_is_string": "Hasło musi być ciągiem znaków",
+    "password_not_empty": "Hasło nie może być puste",
+    "password_too_weak": "Hasło musi zawierać wielką literę, małą literę i cyfrę/znak specjalny",
+    "password_at_least_8_characters": "Hasło musi mieć co najmniej 8 znaków",
+    "passwords_do_not_match": "Hasła nie są identyczne",
+    "currentPassword_is_string": "Aktualne hasło musi być ciągiem znaków",
+    "currentPassword_not_empty": "Aktualne hasło nie może być puste",
+    "token_is_string": "Token musi być ciągiem znaków",
+    "token_not_empty": "Token nie może być pusty"
+  }
 }
