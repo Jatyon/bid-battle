@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '@config/services/config.service';
 import { IAuthJwt } from '../interfaces/auth-jwt.interface';
 import { AuthStrategy } from '../enums/auth-strategy.enum';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../auth.service';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { I18nService } from 'nestjs-i18n';
 

@@ -3,11 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/services/config.service';
 import { UsersService } from '@modules/users/services/users.service';
 import { User } from '@modules/users/entities/user.entity';
-import { IAuthJwtPayload } from '../interfaces/auth-jwt-payload.interface';
-import { RefreshTokenDto } from '../interfaces/auth-refresh-token.dto';
-import { IAuthTokens } from '../interfaces/auth-tokens.model';
-import { AuthRegisterDto } from '../dto/auth-register.dto';
-import { AuthLoginDto } from '../dto/auth-login.dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
+import { IAuthJwtPayload, IAuthTokens } from './interfaces';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
 

@@ -1,11 +1,9 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { MessageResponse } from '@core/models/message-response.model';
 import { Public } from '@core/decorators/public.decorator';
-import { RefreshTokenDto } from '../interfaces/auth-refresh-token.dto';
-import { IAuthTokens } from '../interfaces/auth-tokens.model';
-import { AuthRegisterDto } from '../dto/auth-register.dto';
-import { AuthService } from '../services/auth.service';
-import { AuthLoginDto } from '../dto/auth-login.dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
+import { AuthService } from './auth.service';
+import { IAuthTokens } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
 @Controller('/auth')

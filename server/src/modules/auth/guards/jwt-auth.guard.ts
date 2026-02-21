@@ -3,7 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@core/decorators/public.decorator';
 import { User } from '@modules/users/entities/user.entity';
-import { AuthStrategy } from '../enums/auth-strategy.enum';
+import { AuthStrategy } from '../enums';
 import { Observable } from 'rxjs';
 
 @Injectable()
