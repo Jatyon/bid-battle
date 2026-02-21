@@ -63,7 +63,6 @@ export class AppConfigService {
       tokenLife: this.configService.get<number>('JWT_EXPIRES_IN', 3600),
       refreshTokenLife: this.configService.get<number>('JWT_REFRESH_EXPIRES_IN', 7 * 24 * 3600),
       secret: this.configService.get<string>('JWT_SECRET', 'defaultSecret'),
-      salt: this.configService.get<string>('JWT_SALT', 'defaultSalt'),
       saltOrRounds: this.configService.get<number>('JWT_SALT_OR_ROUNDS', 10),
     };
   }
