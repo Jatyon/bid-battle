@@ -1,9 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { WorkerHost, Processor } from '@nestjs/bullmq';
-import { AppConfigService } from '@config/services/config.service';
-import { IMailOptionsTemplate } from '@modules/mail/interfaces/mail-options-template.interface';
-import { IMailOptions } from '@modules/mail/interfaces/mail-options.interface';
-import { JobName } from '@modules/mail/enums/mail-job-name.enum';
+import { AppConfigService } from '@config/config.service';
+import { IMailOptions, IMailOptionsTemplate } from './interfaces';
+import { JobName } from './enums';
 import hbs from 'nodemailer-express-handlebars';
 import { Transporter } from 'nodemailer';
 import * as nodemailer from 'nodemailer';

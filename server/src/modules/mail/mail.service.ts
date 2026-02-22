@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { AppConfigService } from '@config/services/config.service';
-import { IMailOptions } from '@modules/mail/interfaces/mail-options.interface';
-import { IMailFooter } from '@modules/mail/interfaces/mail-footer.interface';
-import { JobName } from '@modules/mail/enums/mail-job-name.enum';
+import { AppConfigService } from '@config/config.service';
+import { IMailFooter, IMailOptions } from './interfaces';
+import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
 import { Job, Queue } from 'bullmq';
 

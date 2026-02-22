@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { MailTestController } from '@modules/mail/controllers/mail-test.controller';
-import { MailConsumerService } from '@modules/mail/services/mail-consumer.service';
-import { MailService } from '@modules/mail/services/mail.service';
+import { MailConsumerService } from './mail-consumer.service';
+import { MailTestController } from './mail-test.controller';
+import { MailService } from './mail.service';
 
 @Global()
 @Module({
