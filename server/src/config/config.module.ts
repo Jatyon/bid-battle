@@ -1,5 +1,5 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { AppConfigService } from './services/config.service';
+import { AppConfigService } from './config.service';
 
 @Module({})
 export class AppConfigModule {

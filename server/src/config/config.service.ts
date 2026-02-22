@@ -1,13 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
-import { IDatabaseConfig } from '@config/interfaces/database-config.interface';
-import { IConfigMailer } from '@config/interfaces/mailer-config.interface';
-import { IConfigStripe } from '@config/interfaces/stripe-config.interface';
-import { IConfigRedis } from '@config/interfaces/redis-config.interface';
-import { IConfigI18n } from '@config/interfaces/i18n-config.interface';
-import { IConfigFile } from '@config/interfaces/file-config.interface';
-import { IConfigApp } from '@config/interfaces/app-config.interface';
-import { IConfigJWT } from '@config/interfaces/jwt-config.interface';
+import { IConfigApp, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigStripe, IDatabaseConfig } from './interfaces';
 import { DatabaseType } from 'typeorm';
 
 @Injectable()

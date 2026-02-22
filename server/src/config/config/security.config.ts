@@ -1,5 +1,5 @@
 import { INestApplication, Logger } from '@nestjs/common';
-import { AppConfigService } from '@config/services/config.service';
+import { AppConfigService } from '@config/config.service';
 import helmet from 'helmet';
 
 export function setupSecurity(app: INestApplication) {

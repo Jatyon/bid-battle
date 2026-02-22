@@ -32,7 +32,6 @@ export const validationSchema = Joi.object({
   JWT_EXPIRES_IN: Joi.string().default('1d'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
   JWT_SECRET: Joi.string().required(),
-  JWT_SALT: Joi.string().required(),
   JWT_SALT_OR_ROUNDS: Joi.number().required(),
 
   // MAILER (SMTP)
