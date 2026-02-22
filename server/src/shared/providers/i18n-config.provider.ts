@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AppConfigService } from '@config/services/config.service';
+import { AppConfigService } from '@config/config.service';
 import { I18nOptionsFactory, I18nOptionsWithoutResolvers } from 'nestjs-i18n';
 
 @Injectable()
