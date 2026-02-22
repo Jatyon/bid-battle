@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiStandardResponse } from '@core/decorators/api-standard-response.decorator';
 import { Public } from '@core/decorators/public.decorator';
-import { HealthDto } from '@health/dtos/health.dto';
+import { HealthDto } from './dto';
 
 @Controller('health')
 export class HealthController {
