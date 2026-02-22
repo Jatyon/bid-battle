@@ -8,15 +8,15 @@ import { Module } from '@nestjs/common';
 import { AppController } from '@app/app.controller';
 import { AppService } from '@app/app.service';
 import { validationSchema } from '@config/validators/validation.schema';
-import { AppConfigService } from '@config/services/config.service';
+import { AppConfigService } from '@config/config.service';
 import { AppConfigModule } from '@config/config.module';
-import { UsersModule } from '@modules/users/users.module';
-import { MailModule } from '@modules/mail/mail.module';
-import { AuthModule } from '@modules/auth/auth.module';
+import { UsersModule } from '@modules/users';
+import { AuthModule } from '@modules/auth';
+import { MailModule } from '@modules/mail';
 import { MailerConfigProvider } from '@shared/providers/mailer-config.provider';
 import { I18nConfigProvider } from '@shared/providers/i18n-config.provider';
 import { ProvidersModule } from '@shared/providers/providers.module';
-import { HealthController } from '@health/controllers/health.controller';
+import { HealthController } from '@health/health.controller';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
 
 @Module({
