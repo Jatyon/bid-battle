@@ -15,8 +15,7 @@ import {
   ApiMethodNotAllowedResponse,
   ApiResponseOptions,
 } from '@nestjs/swagger';
-import { ErrorResponseDto } from '@core/dto/error-response.dto';
-import { ApiResponseDto } from '@core/dto/api-response.dto';
+import { ApiResponseDto, ErrorResponseDto } from '@core/dto';
 
 const createErrorSchema = (status: number, error: string, message: string | string[]): ApiResponseOptions => {
   return {

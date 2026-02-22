@@ -1,5 +1,5 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { AppConfigService } from '@config/services/config.service';
+import { AppConfigService } from '@config/config.service';
 import { I18nService, I18nContext } from 'nestjs-i18n';
 import { Request, Response } from 'express';
 import { QueryFailedError } from 'typeorm';
