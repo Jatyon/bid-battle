@@ -62,6 +62,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
+    "@golevelup/ts-jest": "^1.2.1",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
@@ -115,7 +116,7 @@
       "^@health/(.*)$": "<rootDir>/health/$1",
       "^@modules/(.*)$": "<rootDir>/modules/$1",
       "^@shared/(.*)$": "<rootDir>/shared/$1",
-      "^@test/(.*)$": "<rootDir>/test/$1"
+      "^@test/(.*)$": "<rootDir>/../test/$1"
     }
   }
 }
