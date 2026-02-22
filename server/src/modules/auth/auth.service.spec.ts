@@ -1,9 +1,8 @@
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { AppConfigService } from '@config/services/config.service';
-import { UsersService } from '@modules/users/services/users.service';
-import { User } from '@modules/users/entities/user.entity';
+import { AppConfigService } from '@config/config.service';
+import { User, UsersService } from '@modules/users';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
