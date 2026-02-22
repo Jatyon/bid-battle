@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { UserRepository } from '../repositories/users.repository';
-import { User } from '../entities/user.entity';
+import { UserRepository } from './repositories/users.repository';
+import { User } from './entities/user.entity';
 import { DeepPartial, FindOptionsWhere, UpdateResult } from 'typeorm';
 
 @Injectable()

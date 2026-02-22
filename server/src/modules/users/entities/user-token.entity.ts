@@ -1,5 +1,5 @@
 import { BaseEntity } from '../../../core/entities/base.entity';
-import { UserTokenEnum } from '../enums/user-token-type.enum';
+import { UserTokenEnum } from '../enums';
 import { User } from './user.entity';
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 

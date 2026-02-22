@@ -1,5 +1,5 @@
 import { BaseEntity } from '../../../core/entities/base.entity';
-import { SocialProviderEnum } from '../enums/social-provider.enum';
+import { SocialProviderEnum } from '../enums';
 import { User } from './user.entity';
 import { Entity, Column, ManyToOne, JoinColumn, Unique, Index } from 'typeorm';
 
