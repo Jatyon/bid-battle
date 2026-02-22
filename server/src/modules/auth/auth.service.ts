@@ -64,7 +64,7 @@ export class AuthService {
     let payload: IAuthJwtPayload;
 
     try {
-      payload = await this.jwtService.verify(refreshTokenDto.refreshToken);
+      payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken);
     } catch {
       throw new UnauthorizedException(i18n.t(`auth.errors.refresh_token_not_recognized`));
     }
