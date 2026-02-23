@@ -20,7 +20,7 @@ export class JwtAuthGuard extends AuthGuard(AuthStrategy.JWT) {
     return super.canActivate(context);
   }
 
-  handleRequest<TUser = User>(err: Error, user: TUser): TUser {
+  handleRequest<TUser = User>(err: any, user: TUser): TUser {
     if (err || !user) {
       throw (
         err ||
