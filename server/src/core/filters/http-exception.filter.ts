@@ -36,6 +36,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let message: string | string[] = 'Internal Server Error';
     let errorKey = 'error.Internal Server Error';
     let translationArgs: Record<string, any> = {};
+    let errorStack: string | undefined = undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -50,16 +51,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
         else message = res.message || res.error || message;
 
         if (res.args) translationArgs = res.args;
-
         errorKey = res.error ? `error.${res.error}` : errorKey;
       }
     } else if (exception instanceof QueryFailedError) {
       const dbException = exception as QueryFailedError & { driverError?: IMySqlDriverError };
       const driverError = dbException.driverError;
-
       const errno = driverError?.errno;
       const code = driverError?.code;
 
+      errorStack = exception.stack;
       if (errno === 1062 || code === 'ER_DUP_ENTRY') {
         status = HttpStatus.CONFLICT;
         message = 'error.database_unique_constraint';
@@ -69,16 +69,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = 'error.database_foreign_key';
         errorKey = 'error.Bad Request';
       } else {
-        status = HttpStatus.BAD_REQUEST;
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
         message = 'error.database_query_failed';
-        errorKey = 'error.Bad Request';
+        errorKey = 'error.Internal Server Error';
       }
-
-      this.logger.error(`Database MySQL Error [${errno || code}]: ${exception.message}`, exception.stack);
     } else if (exception instanceof Error) {
-      this.logger.error(`Generic Error: ${exception.message}`, exception.stack);
+      errorStack = exception.stack;
       message = 'error.Generic Error';
     }
+
     let translatedMessage: string | string[];
 
     if (Array.isArray(message)) {
@@ -98,8 +97,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message: translatedMessage,
     };
 
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) this.logger.error(`Critical Exception: ${JSON.stringify(errorResponse)}`);
-    else this.logger.warn(`Handled Exception: ${JSON.stringify(errorResponse)}`);
+    const logMessage = `Path: ${request.url} | Method: ${request.method} | Response: ${JSON.stringify(errorResponse)}`;
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) this.logger.error(logMessage, errorStack);
+    else this.logger.warn(logMessage);
 
     response.status(status).json(errorResponse);
   }
