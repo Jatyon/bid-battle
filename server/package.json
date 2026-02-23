@@ -117,6 +117,27 @@
       "^@modules/(.*)$": "<rootDir>/modules/$1",
       "^@shared/(.*)$": "<rootDir>/shared/$1",
       "^@test/(.*)$": "<rootDir>/../test/$1"
-    }
+    },
+    "coveragePathIgnorePatterns": [
+      "node_modules",
+      ".entity.ts",
+      ".module.ts",
+      ".dto.ts",
+      ".enum.ts",
+      ".interface.ts",
+      ".type.ts",
+      ".model.ts",
+      ".constant.ts",
+      ".schema.ts",
+      ".provider.ts",
+      "index.ts",
+      ".config.ts",
+      "main.ts",
+      "data-source.ts",
+      ".mock.ts",
+      "src/core/decorators/api-standard-response.decorator.ts",
+      "src/database/migrations",
+      "src/database/seeds"
+    ]
   }
 }
