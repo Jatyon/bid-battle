@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
-import { IMailFooter, IMailOptions } from './interfaces';
+import { IMailContext, IMailFooter, IMailOptions } from './interfaces';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
 import { Job, Queue } from 'bullmq';
@@ -26,27 +26,29 @@ export class MailService {
 
     const footerTranslations = this.getFooterTranslations(lang);
 
+    const context: IMailContext = {
+      appName: this.appName,
+      appUrl: this.appUrl,
+      footer: footerTranslations,
+    };
+
     await this.sendCriticalEmail({
       to: email,
       subject,
       template: `./${lang}/test`,
-      context: {
-        appName: this.appName,
-        appUrl: this.appUrl,
-        footer: footerTranslations,
-      },
+      context,
     });
 
     this.logger.log(`Test email to ${email} has been added to queue`);
   }
 
-  getFooterTranslations(lang: string): IMailFooter {
+  private getFooterTranslations(lang: string): IMailFooter {
     return {
       rights: this.i18n.t('mail.footer.rights', { lang }),
     };
   }
 
-  async sendCriticalEmail(payload: IMailOptions): Promise<Job<IMailOptions>> {
+  private sendCriticalEmail(payload: IMailOptions): Promise<Job<IMailOptions>> {
     return this.mailQueue.add(JobName.CRITICAL_MAIL, payload, {
       priority: 1,
       attempts: 3,
@@ -55,7 +57,7 @@ export class MailService {
     });
   }
 
-  async sendBulkEmail(payload: IMailOptions): Promise<Job<IMailOptions>> {
+  private sendBulkEmail(payload: IMailOptions): Promise<Job<IMailOptions>> {
     return this.mailQueue.add(JobName.BULK_MAIL, payload, {
       attempts: 1,
       removeOnComplete: true,
