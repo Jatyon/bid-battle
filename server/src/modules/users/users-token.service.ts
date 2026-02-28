@@ -1,9 +1,8 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
-import { User } from '@modules/users/entities/user.entity';
+import { User, UserToken } from './entities';
 import { UserTokenEnum } from './enums';
-import { UserToken } from './entities';
 import { LessThan, Repository } from 'typeorm';
 import { addMinutes, isPast } from 'date-fns';
 import { I18nContext } from 'nestjs-i18n';
