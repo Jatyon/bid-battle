@@ -33,7 +33,14 @@ export class UsersTokenService {
   }
 
   async verifyToken(token: string, type: UserTokenEnum, i18n: I18nContext): Promise<UserToken> {
-    const tokenEntity = await this.tokenRepository.findOneBy({ token, type, isUsed: false });
+    const tokenEntity = await this.tokenRepository.findOne({
+      where: {
+        token,
+        type,
+        isUsed: false,
+      },
+      relations: ['user'],
+    });
 
     if (!tokenEntity) throw new BadRequestException(i18n.t('auth.errors.token_not_exist_or_used'));
 

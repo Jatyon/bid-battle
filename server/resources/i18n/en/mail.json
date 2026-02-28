@@ -1,7 +1,8 @@
 {
   "subjects": {
     "test": "Test mail",
-    "forgot-password": "Account Recovery"
+    "forgot-password": "Account Recovery",
+    "reset-password": "Change password"
   },
   "footer": {
     "rights": "All rights reserved."

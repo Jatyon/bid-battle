@@ -1,7 +1,8 @@
 {
   "subjects": {
     "test": "Testowy mail",
-    "forgot-password": "Odzyskiwanie dostępu do konta"
+    "forgot-password": "Odzyskiwanie dostępu do konta",
+    "reset-password": "Zmiana hasła"
   },
   "footer": {
     "rights": "Wszelkie prawa zastrzeżone."

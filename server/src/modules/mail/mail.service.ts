@@ -6,6 +6,7 @@ import { MailContext } from './types';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
 import { Job, Queue } from 'bullmq';
+import { IMailUserData } from './interfaces/mail-user-data.interface';
 
 @Injectable()
 export class MailService {
@@ -61,6 +62,25 @@ export class MailService {
       to: email,
       subject,
       template: `./${lang}/forgot-password`,
+      context,
+    });
+  }
+
+  async sendPasswordChangedEmail(email: string, lang: string, userName: string): Promise<void> {
+    const subject = this.i18n.t('mail.subjects.reset-password', { lang });
+    const footerTranslations = this.getFooterTranslations(lang);
+
+    const context: MailContext<IMailUserData> = {
+      appName: this.appName,
+      appUrl: this.appUrl,
+      footer: footerTranslations,
+      userName,
+    };
+
+    await this.sendCriticalEmail({
+      to: email,
+      subject,
+      template: `./${lang}/reset-password`,
       context,
     });
   }

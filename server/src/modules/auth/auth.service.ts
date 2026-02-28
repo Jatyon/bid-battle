@@ -1,12 +1,13 @@
 import { Injectable, Logger, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService, UserTokenEnum, UsersTokenService } from '@modules/users';
+import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
 import { MailService } from '@modules/mail';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto } from './dto';
 import { IAuthJwtPayload, IAuthTokens } from './interfaces';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
+import { AuthResetPasswordDto } from './dto/auth-reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -91,6 +92,26 @@ export class AuthService {
     const resetToken = await this.usersTokenService.generateToken(user, UserTokenEnum.PASSWORD_RESET, this.configService.app.resetPasswordExpiresInMin);
 
     await this.mailService.sendForgotPasswordEmail(user.email, i18n.lang, user.concatName, this.configService.app.resetPasswordExpiresInMin, resetToken.token);
+  }
+
+  async resetPassword(resetPasswordDto: AuthResetPasswordDto, i18n: I18nContext): Promise<void> {
+    const tokenEntity: UserToken = await this.usersTokenService.verifyToken(resetPasswordDto.token, UserTokenEnum.PASSWORD_RESET, i18n);
+
+    const user: User = tokenEntity.user;
+
+    const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
+    const hashedPassword: string = await bcrypt.hash(resetPasswordDto.password, salt);
+
+    await this.usersService.updateBy(
+      { id: tokenEntity.userId },
+      {
+        password: hashedPassword,
+      },
+    );
+
+    await this.usersTokenService.markTokenAsUsed(tokenEntity.id);
+
+    await this.mailService.sendPasswordChangedEmail(user.email, i18n.lang, user.concatName);
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
