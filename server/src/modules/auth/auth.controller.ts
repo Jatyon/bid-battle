@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { MessageResponse } from '@core/models/message-response.model';
 import { Public } from '@core/decorators/public.decorator';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto } from './dto';
 import { AuthService } from './auth.service';
 import { IAuthTokens } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
@@ -31,5 +31,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto, @I18n() i18n: I18nContext): Promise<IAuthTokens> {
     return this.authService.refreshToken(refreshTokenDto, i18n);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto, @I18n() i18n: I18nContext): Promise<MessageResponse> {
+    await this.authService.forgotPassword(forgotPasswordDto, i18n);
+    return {
+      message: i18n.t('auth.info.password_reset_link_sent'),
+    };
   }
 }

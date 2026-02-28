@@ -1,8 +1,9 @@
 import { Injectable, Logger, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService } from '@modules/users';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
+import { User, UsersService, UserTokenEnum, UsersTokenService } from '@modules/users';
+import { MailService } from '@modules/mail';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto } from './dto';
 import { IAuthJwtPayload, IAuthTokens } from './interfaces';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
@@ -12,9 +13,11 @@ export class AuthService {
   private readonly logger: Logger = new Logger(AuthService.name);
 
   constructor(
+    private readonly usersTokenService: UsersTokenService,
     private readonly configService: AppConfigService,
-    private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
+    private readonly mailService: MailService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async validateJwtUser(payload: IAuthJwtPayload, i18n: I18nService): Promise<User> {
@@ -73,6 +76,21 @@ export class AuthService {
     if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
 
     return this.generateAuthTokens(user);
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto, i18n: I18nContext): Promise<void> {
+    const user = await this.usersService.findOneBy({
+      email: forgotPasswordDto.email,
+    });
+
+    // For security reasons, we do not inform you whether the email exists
+    if (!user) return;
+
+    await this.usersTokenService.deleteUserTokensByType(user.id, UserTokenEnum.PASSWORD_RESET);
+
+    const resetToken = await this.usersTokenService.generateToken(user, UserTokenEnum.PASSWORD_RESET, this.configService.app.resetPasswordExpiresInMin);
+
+    await this.mailService.sendForgotPasswordEmail(user.email, i18n.lang, user.concatName, this.configService.app.resetPasswordExpiresInMin, resetToken.token);
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {

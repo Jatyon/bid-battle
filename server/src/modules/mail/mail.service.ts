@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
-import { IMailFooter, IMailOptions } from './interfaces';
+import { IMailFooter, IMailOptions, IMailForgotPassword } from './interfaces';
 import { MailContext } from './types';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
@@ -40,6 +40,29 @@ export class MailService {
     });
 
     this.logger.log(`Test email to ${email} has been added to queue`);
+  }
+
+  async sendForgotPasswordEmail(email: string, lang: string, userName: string, expiresInMin: number, token: string): Promise<void> {
+    const subject = this.i18n.t('mail.subjects.forgot-password', { lang });
+    const footerTranslations = this.getFooterTranslations(lang);
+
+    const forgotUrl = `${this.appUrl}/auth/forgot-password?token=${token}`;
+
+    const context: MailContext<IMailForgotPassword> = {
+      appName: this.appName,
+      appUrl: this.appUrl,
+      footer: footerTranslations,
+      userName,
+      forgotUrl,
+      expiresInMin,
+    };
+
+    await this.sendCriticalEmail({
+      to: email,
+      subject,
+      template: `./${lang}/forgot-password`,
+      context,
+    });
   }
 
   private getFooterTranslations(lang: string): IMailFooter {

@@ -110,6 +110,9 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!nodemailer-express-handlebars)"
+    ],
     "moduleNameMapper": {
       "^@app/(.*)$": "<rootDir>/app/$1",
       "^@config/(.*)$": "<rootDir>/config/$1",

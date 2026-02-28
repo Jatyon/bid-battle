@@ -2,7 +2,8 @@ import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService } from '@modules/users';
+import { User, UsersService, UsersTokenService } from '@modules/users';
+import { MailService } from '@modules/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
@@ -17,9 +18,9 @@ jest.mock('bcrypt', () => ({
 }));
 
 describe('AuthService', () => {
-  let authService: AuthService;
   let usersService: DeepMocked<UsersService>;
   let jwtService: DeepMocked<JwtService>;
+  let authService: AuthService;
 
   const mockI18nService = createMockI18nService();
   const mockI18nContext = createMockI18nContext();
@@ -29,7 +30,9 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        { provide: UsersTokenService, useValue: createMock<UsersTokenService>() },
         { provide: UsersService, useValue: createMock<UsersService>() },
+        { provide: MailService, useValue: createMock<MailService>() },
         { provide: JwtService, useValue: createMock<JwtService>() },
         {
           provide: AppConfigService,
@@ -44,9 +47,9 @@ describe('AuthService', () => {
       ],
     }).compile();
 
-    authService = module.get<AuthService>(AuthService);
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
+    authService = module.get<AuthService>(AuthService);
   });
 
   afterEach(() => {
