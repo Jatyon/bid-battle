@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
-import { IMailContext, IMailFooter, IMailOptions } from './interfaces';
+import { IMailFooter, IMailOptions } from './interfaces';
+import { MailContext } from './types';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
 import { Job, Queue } from 'bullmq';
@@ -23,10 +24,9 @@ export class MailService {
 
   async sendTestEmail(email: string, lang: string): Promise<void> {
     const subject = this.i18n.t('mail.subjects.test', { lang });
-
     const footerTranslations = this.getFooterTranslations(lang);
 
-    const context: IMailContext = {
+    const context: MailContext = {
       appName: this.appName,
       appUrl: this.appUrl,
       footer: footerTranslations,

@@ -3,7 +3,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
 import { MailService } from './mail.service';
-import { IMailContext } from './interfaces';
+import { MailContext } from './types';
 import { JobName } from './enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nService } from 'nestjs-i18n';
@@ -50,7 +50,7 @@ describe('MailService', () => {
     it('should correctly process translations and add job to queue', async () => {
       const email = 'user@example.com';
       const lang = 'en';
-      const context: IMailContext = {
+      const context: MailContext = {
         appName: mockConfig.app.name,
         appUrl: mockConfig.app.frontendHost,
         footer: { rights: 'translated_mail.footer.rights' },
