@@ -37,4 +37,8 @@ export class User extends BaseEntity {
 
   @OneToMany(() => UserToken, (token) => token.user)
   tokens: UserToken[];
+
+  get concatName(): string {
+    return `${this.firstName} ${this.lastName}`;
+  }
 }
