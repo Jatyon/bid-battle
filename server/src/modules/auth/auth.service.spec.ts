@@ -1,12 +1,12 @@
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UnauthorizedException, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService, UsersTokenService } from '@modules/users';
+import { User, UsersService, UsersTokenService, UserTokenEnum } from '@modules/users';
 import { MailService } from '@modules/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
-import { createUserFixture } from '@test/fixtures/users.fixtures';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
+import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import * as bcrypt from 'bcrypt';
@@ -20,11 +20,15 @@ jest.mock('bcrypt', () => ({
 describe('AuthService', () => {
   let usersService: DeepMocked<UsersService>;
   let jwtService: DeepMocked<JwtService>;
+  let usersTokenService: DeepMocked<UsersTokenService>;
+  let mailService: DeepMocked<MailService>;
   let authService: AuthService;
 
   const mockI18nService = createMockI18nService();
   const mockI18nContext = createMockI18nContext();
   const mockUser = createUserFixture();
+  const mockUserToken = createUserTokenFixture();
+  const mockUserWithoutPassword = createUserFixture({ password: undefined });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +41,9 @@ describe('AuthService', () => {
         {
           provide: AppConfigService,
           useValue: createMock<AppConfigService>({
+            app: {
+              resetPasswordExpiresInMin: 15,
+            },
             jwt: {
               saltOrRounds: 10,
               tokenLife: 3600,
@@ -49,6 +56,8 @@ describe('AuthService', () => {
 
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
+    usersTokenService = module.get(UsersTokenService);
+    mailService = module.get(MailService);
     authService = module.get<AuthService>(AuthService);
   });
 
@@ -156,6 +165,102 @@ describe('AuthService', () => {
         accessToken: 'new_access_token',
         refreshToken: 'new_refresh_token',
       });
+    });
+  });
+
+  describe('forgotPassword', () => {
+    const dto: ForgotPasswordDto = { email: 'test@example.com' };
+
+    it('should silently return if user is not found to prevent email enumeration', async () => {
+      usersService.findOneBy.mockResolvedValue(null);
+
+      await authService.forgotPassword(dto, mockI18nContext);
+
+      expect(usersTokenService.deleteUserTokensByType).not.toHaveBeenCalled();
+      expect(mailService.sendForgotPasswordEmail).not.toHaveBeenCalled();
+    });
+
+    it('should generate token and send email if user exists', async () => {
+      usersService.findOneBy.mockResolvedValue(mockUser);
+
+      usersTokenService.generateToken.mockResolvedValue(mockUserToken);
+
+      await authService.forgotPassword(dto, mockI18nContext);
+
+      expect(usersTokenService.deleteUserTokensByType).toHaveBeenCalledWith(mockUser.id, UserTokenEnum.PASSWORD_RESET);
+      expect(usersTokenService.generateToken).toHaveBeenCalledWith(mockUser, UserTokenEnum.PASSWORD_RESET, 15);
+      expect(mailService.sendForgotPasswordEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName, 15, 'secret-reset-token');
+    });
+  });
+
+  describe('resetPassword', () => {
+    const dto: AuthResetPasswordDto = { token: 'valid-token', password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' };
+
+    it('should hash new password, update user, mark token as used and send email', async () => {
+      usersTokenService.verifyToken.mockResolvedValue(mockUserToken);
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
+
+      await authService.resetPassword(dto, mockI18nContext);
+
+      expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.PASSWORD_RESET, mockI18nContext);
+      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
+      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 'random_salt');
+      expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password' });
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(mockUserToken.id);
+      expect(mailService.sendPasswordChangedEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName);
+    });
+  });
+
+  describe('changePassword', () => {
+    const dto: AuthChangePasswordDto = { currentPassword: 'OldPassword123!', password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' };
+
+    it('should throw NotFoundException if user is not found', async () => {
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(null);
+
+      await expect(authService.changePassword('test@example.com', dto, mockI18nContext)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if user has password but did not provide currentPassword', async () => {
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUser);
+
+      const missingCurrentPassDto = { password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' };
+
+      await expect(authService.changePassword('test@example.com', missingCurrentPassDto, mockI18nContext)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if currentPassword does not match', async () => {
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(authService.changePassword('test@example.com', dto, mockI18nContext)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should successfully update password if currentPassword matches', async () => {
+      const userWithPass = { ...mockUser, password: 'existing_hashed_password' } as User;
+
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(userWithPass);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
+
+      await authService.changePassword('test@example.com', dto, mockI18nContext);
+
+      expect(bcrypt.compare).toHaveBeenCalledWith(dto.currentPassword, userWithPass.password);
+      expect(usersService.updateBy).toHaveBeenCalledWith({ email: 'test@example.com' }, { password: 'hashed_new_password' });
+    });
+
+    it('should allow setting a password without currentPassword if user has NO password (e.g. Google login)', async () => {
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUserWithoutPassword);
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
+
+      const noCurrentPassDto = { password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' } as AuthChangePasswordDto;
+
+      await authService.changePassword('test@example.com', noCurrentPassDto, mockI18nContext);
+
+      expect(bcrypt.compare).not.toHaveBeenCalled();
+      expect(usersService.updateBy).toHaveBeenCalledWith({ email: 'test@example.com' }, { password: 'hashed_new_password' });
     });
   });
 
