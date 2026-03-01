@@ -50,4 +50,12 @@ export class AuthController {
     await this.authService.resetPassword(resetPasswordDto, i18n);
     return { message: i18n.t('auth.info.password_successfully_changed') };
   }
+
+  // @UseGuards(JwtAuthGuard)
+  // @Post('change-password')
+  // async changePassword(@CurrentUser() user: User, @Body() changePasswordDto: AuthChangePasswordDto, @I18n() i18n: I18nContext) {
+  //   console.log(user);
+  //   await this.authService.changePassword(user.email, changePasswordDto, i18n);
+  //   return { message: i18n.t('auth.info.password_successfully_changed') };
+  // }
 }
