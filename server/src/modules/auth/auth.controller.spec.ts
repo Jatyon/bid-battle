@@ -1,7 +1,8 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
@@ -14,6 +15,8 @@ const mockTokens = {
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: DeepMocked<AuthService>;
+
+  const mockUser = createUserFixture();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -101,6 +104,84 @@ describe('AuthController', () => {
       authService.refreshToken.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
 
       await expect(controller.refreshToken(refreshTokenDto, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    const forgotPasswordDto: ForgotPasswordDto = {
+      email: 'test@example.com',
+    };
+
+    it('returns success message and calls authService.forgotPassword', async () => {
+      authService.forgotPassword.mockResolvedValue(undefined);
+      const i18n = createMockI18nContext({
+        'auth.info.password_reset_link_sent': 'Password reset link sent',
+      });
+
+      const result = await controller.forgotPassword(forgotPasswordDto, i18n);
+
+      expect(authService.forgotPassword).toHaveBeenCalledWith(forgotPasswordDto, i18n);
+      expect(result).toEqual({ message: 'Password reset link sent' });
+    });
+  });
+
+  describe('resetPassword', () => {
+    const resetPasswordDto: AuthResetPasswordDto = {
+      token: 'some-valid-token',
+      password: 'NewPassword123!',
+      passwordRepeat: 'NewPassword123!',
+    };
+
+    it('returns success message when password is reset successfully', async () => {
+      authService.resetPassword.mockResolvedValue(undefined);
+      const i18n = createMockI18nContext({
+        'auth.info.password_successfully_changed': 'Password successfully changed',
+      });
+
+      const result = await controller.resetPassword(resetPasswordDto, i18n);
+
+      expect(authService.resetPassword).toHaveBeenCalledWith(resetPasswordDto, i18n);
+      expect(result).toEqual({ message: 'Password successfully changed' });
+    });
+
+    it('propagates exception on invalid or expired token', async () => {
+      authService.resetPassword.mockRejectedValue(new BadRequestException('Token has expired'));
+
+      await expect(controller.resetPassword(resetPasswordDto, createMockI18nContext())).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('changePassword', () => {
+    const changePasswordDto: AuthChangePasswordDto = {
+      currentPassword: 'OldPassword123!',
+      password: 'NewPassword123!',
+      passwordRepeat: 'NewPassword123!',
+    };
+
+    it('returns success message when password is changed successfully', async () => {
+      authService.changePassword.mockResolvedValue(undefined);
+      const i18n = createMockI18nContext({
+        'auth.info.password_successfully_changed': 'Password has been changed successfully',
+      });
+
+      const result = await controller.changePassword(mockUser, changePasswordDto, i18n);
+
+      expect(authService.changePassword).toHaveBeenCalledWith(mockUser.email, changePasswordDto, i18n);
+      expect(result).toEqual({ message: 'Password has been changed successfully' });
+    });
+
+    it('propagates UnauthorizedException if old password does not match', async () => {
+      authService.changePassword.mockRejectedValue(new UnauthorizedException('The current password is incorrect'));
+
+      await expect(controller.changePassword(mockUser, changePasswordDto, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('getMe', () => {
+    it('returns the current user from the request', () => {
+      const result = controller.getMe(mockUser);
+
+      expect(result).toEqual(mockUser);
     });
   });
 });
