@@ -37,7 +37,8 @@ describe('AuthJwtStrategy', () => {
   describe('validate', () => {
     it('should call authService.validateJwtUser and return the user', async () => {
       const mockPayload = {
-        payload: { userId: 1, email: 'test@example.com' },
+        userId: 1,
+        email: 'test@example.com',
       } as unknown as IAuthJwt;
 
       const mockUser = { id: 1, email: 'test@example.com' };
@@ -46,7 +47,7 @@ describe('AuthJwtStrategy', () => {
 
       const result = (await strategy.validate(mockPayload)) as unknown;
 
-      expect(mockAuthService.validateJwtUser).toHaveBeenCalledWith(mockPayload.payload, mockI18nService);
+      expect(mockAuthService.validateJwtUser).toHaveBeenCalledWith(mockPayload, mockI18nService);
 
       expect(result).toEqual(mockUser);
     });
