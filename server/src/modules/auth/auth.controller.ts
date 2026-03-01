@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { MessageResponse } from '@core/models/message-response.model';
 import { CurrentUser } from '@core/decorators/current-user.decorator';
 import { Public } from '@core/decorators/public.decorator';
@@ -59,5 +59,11 @@ export class AuthController {
   async changePassword(@CurrentUser() user: User, @Body() changePasswordDto: AuthChangePasswordDto, @I18n() i18n: I18nContext) {
     await this.authService.changePassword(user.email, changePasswordDto, i18n);
     return { message: i18n.t('auth.info.password_successfully_changed') };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getMe(@CurrentUser() user: User): User {
+    return user;
   }
 }

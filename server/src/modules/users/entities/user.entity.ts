@@ -2,7 +2,6 @@ import { BaseEntity } from '../../../core/entities/base.entity';
 import { SocialAccount } from './social-account.entity';
 import { UserToken } from './user-token.entity';
 import { Column, DeleteDateColumn, Entity, Index, OneToMany } from 'typeorm';
-import { Exclude } from 'class-transformer';
 
 @Entity({ name: 'users' })
 export class User extends BaseEntity {
