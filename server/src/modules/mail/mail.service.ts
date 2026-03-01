@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
-import { IMailFooter, IMailOptions, IMailForgotPassword } from './interfaces';
+import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData } from './interfaces';
 import { MailContext } from './types';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
 import { Job, Queue } from 'bullmq';
-import { IMailUserData } from './interfaces/mail-user-data.interface';
 
 @Injectable()
 export class MailService {

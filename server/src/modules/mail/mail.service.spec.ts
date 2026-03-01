@@ -77,4 +77,66 @@ describe('MailService', () => {
       );
     });
   });
+
+  describe('sendForgotPasswordEmail', () => {
+    it('should correctly build context and call sendCriticalEmail', async () => {
+      const email = 'user@example.com';
+      const lang = 'en';
+      const userName = 'John Doe';
+      const expiresInMin = 15;
+      const token = 'secret-token-123';
+
+      jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Forgot password');
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'All rights reserved' });
+      const sendCriticalSpy = jest.spyOn(service as any, 'sendCriticalEmail').mockResolvedValue(undefined);
+
+      await service.sendForgotPasswordEmail(email, lang, userName, expiresInMin, token);
+
+      expect(i18nService.t).toHaveBeenCalledWith('mail.subjects.forgot-password', { lang });
+      expect(service['getFooterTranslations']).toHaveBeenCalledWith(lang);
+
+      expect(sendCriticalSpy).toHaveBeenCalledWith({
+        to: email,
+        subject: 'Translated subject - Forgot password',
+        template: `./${lang}/forgot-password`,
+        context: {
+          appName: mockConfig.app.name,
+          appUrl: mockConfig.app.frontendHost,
+          footer: { rights: 'All rights reserved' },
+          userName,
+          forgotUrl: `${mockConfig.app.frontendHost}/auth/forgot-password?token=${token}`,
+          expiresInMin,
+        },
+      });
+    });
+  });
+
+  describe('sendPasswordChangedEmail', () => {
+    it('should correctly build context and call sendCriticalEmail', async () => {
+      const email = 'user@example.com';
+      const lang = 'en';
+      const userName = 'John Doe';
+
+      jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Password Reset');
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'All rights reserved' });
+      const sendCriticalSpy = jest.spyOn(service as any, 'sendCriticalEmail').mockResolvedValue(undefined);
+
+      await service.sendPasswordChangedEmail(email, lang, userName);
+
+      expect(i18nService.t).toHaveBeenCalledWith('mail.subjects.reset-password', { lang });
+      expect(service['getFooterTranslations']).toHaveBeenCalledWith(lang);
+
+      expect(sendCriticalSpy).toHaveBeenCalledWith({
+        to: email,
+        subject: 'Translated subject - Password Reset',
+        template: `./${lang}/reset-password`,
+        context: {
+          appName: mockConfig.app.name,
+          appUrl: mockConfig.app.frontendHost,
+          footer: { rights: 'All rights reserved' },
+          userName,
+        },
+      });
+    });
+  });
 });
