@@ -126,18 +126,12 @@ export class AuthService {
     const payload: IAuthJwtPayload = { sub: user.id, email: user.email };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(
-        { payload },
-        {
-          expiresIn: this.configService.jwt.tokenLife,
-        },
-      ),
-      this.jwtService.signAsync(
-        { payload },
-        {
-          expiresIn: this.configService.jwt.refreshTokenLife,
-        },
-      ),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.jwt.tokenLife,
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.jwt.refreshTokenLife,
+      }),
     ]);
 
     return {

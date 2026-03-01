@@ -19,9 +19,6 @@ export class User extends BaseEntity {
   @Column({ name: 'last_name', type: 'varchar', length: 255 })
   lastName: string;
 
-  @Exclude()
-  passwordRepeat?: string;
-
   @Column({ name: 'avatar', type: 'varchar', length: 255, nullable: true })
   avatar?: string | null;
 
