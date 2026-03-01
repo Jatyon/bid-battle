@@ -1,13 +1,12 @@
-import { Injectable, Logger, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
 import { MailService } from '@modules/mail';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto } from './dto';
 import { IAuthJwtPayload, IAuthTokens } from './interfaces';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
-import { AuthResetPasswordDto } from './dto/auth-reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -112,6 +111,30 @@ export class AuthService {
     await this.usersTokenService.markTokenAsUsed(tokenEntity.id);
 
     await this.mailService.sendPasswordChangedEmail(user.email, i18n.lang, user.concatName);
+  }
+
+  async changePassword(email: string, changePasswordDto: AuthChangePasswordDto, i18n: I18nContext): Promise<void> {
+    const user = await this.usersService.findOneWithPasswordByEmail(email);
+
+    if (!user) throw new NotFoundException(i18n.t('users.user_not_found'));
+
+    if (user.password) {
+      if (!changePasswordDto.currentPassword) throw new BadRequestException(i18n.t('error.validation.currentPassword_is_string'));
+
+      const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+
+      if (!isPasswordValid) throw new BadRequestException(i18n.t('auth.errors.the_current_password_incorrect'));
+    }
+
+    const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
+    const hashedPassword: string = await bcrypt.hash(changePasswordDto.password, salt);
+
+    await this.usersService.updateBy(
+      { email },
+      {
+        password: hashedPassword,
+      },
+    );
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {

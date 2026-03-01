@@ -1,7 +1,10 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { MessageResponse } from '@core/models/message-response.model';
+import { CurrentUser } from '@core/decorators/current-user.decorator';
 import { Public } from '@core/decorators/public.decorator';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto } from './dto';
+import { User } from '@modules/users';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { IAuthTokens } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
@@ -48,6 +51,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: AuthResetPasswordDto, @I18n() i18n: I18nContext) {
     await this.authService.resetPassword(resetPasswordDto, i18n);
+    return { message: i18n.t('auth.info.password_successfully_changed') };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  async changePassword(@CurrentUser() user: User, @Body() changePasswordDto: AuthChangePasswordDto, @I18n() i18n: I18nContext) {
+    await this.authService.changePassword(user.email, changePasswordDto, i18n);
     return { message: i18n.t('auth.info.password_successfully_changed') };
   }
 }
