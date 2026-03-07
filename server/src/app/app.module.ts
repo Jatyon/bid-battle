@@ -5,8 +5,6 @@ import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { APP_GUARD } from '@nestjs/core';
 import { Module } from '@nestjs/common';
-import { AppController } from '@app/app.controller';
-import { AppService } from '@app/app.service';
 import { validationSchema } from '@config/validators/validation.schema';
 import { AppConfigService } from '@config/config.service';
 import { AppConfigModule } from '@config/config.module';
@@ -77,9 +75,8 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
     AuthModule,
     UsersModule,
   ],
-  controllers: [AppController, HealthController],
+  controllers: [HealthController],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
