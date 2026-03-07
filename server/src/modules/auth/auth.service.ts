@@ -4,7 +4,8 @@ import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
 import { MailService } from '@modules/mail';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto } from './dto';
-import { IAuthJwtPayload, IAuthTokens } from './interfaces';
+import { IAuthJwtPayload } from './interfaces';
+import { AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
 
@@ -47,7 +48,7 @@ export class AuthService {
     await this.usersService.save(user);
   }
 
-  async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<IAuthTokens> {
+  async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<AuthTokens> {
     const user = await this.validateUser(authLoginDto.email, authLoginDto.password);
 
     if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
@@ -62,7 +63,7 @@ export class AuthService {
     return this.generateAuthTokens(user);
   }
 
-  async refreshToken(refreshTokenDto: RefreshTokenDto, i18n: I18nContext): Promise<IAuthTokens> {
+  async refreshToken(refreshTokenDto: RefreshTokenDto, i18n: I18nContext): Promise<AuthTokens> {
     let payload: IAuthJwtPayload;
 
     try {
@@ -145,7 +146,7 @@ export class AuthService {
     return null;
   }
 
-  private async generateAuthTokens(user: User): Promise<IAuthTokens> {
+  private async generateAuthTokens(user: User): Promise<AuthTokens> {
     const payload: IAuthJwtPayload = { sub: user.id, email: user.email };
 
     const [accessToken, refreshToken] = await Promise.all([
