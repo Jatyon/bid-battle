@@ -5,9 +5,11 @@ export function setupSwagger(app: INestApplication) {
   const logger = new Logger('Swagger');
 
   const config = new DocumentBuilder()
-    .setTitle('NestJS Auth API')
-    .setDescription('API documentation for NestJS application with authentication features')
+    .setTitle('Bid App API')
+    .setDescription('Complete API documentation for Bid App backend application')
     .setVersion('1.0')
+    .addServer('http://localhost:3000', 'Development server')
+    .addServer('https://api.bidapp.com', 'Production server')
     .addBearerAuth(
       {
         type: 'http',
@@ -19,10 +21,15 @@ export function setupSwagger(app: INestApplication) {
       },
       'jwt-auth',
     )
-    .addTag('Health', 'Health checks')
+    .addTag('Health', 'Health check endpoints')
+    .addTag('Authentication', 'User authentication and authorization')
+    .addTag('Users', 'User profile and management')
+    .addTag('Mail Testing', 'Email testing functionality')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
+  });
 
   const path = '/api/docs';
 
@@ -32,7 +39,10 @@ export function setupSwagger(app: INestApplication) {
       tagsSorter: 'alpha',
       operationsSorter: 'alpha',
       docExpansion: 'none',
+      filter: true,
+      showRequestDuration: true,
     },
+    customSiteTitle: 'Bid App API Documentation',
   });
 
   logger.log(`Swagger documentation available at: ${path}`);
