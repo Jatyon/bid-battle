@@ -1,8 +1,9 @@
 import { BaseEntity } from '../../../core/entities/base.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { UserPreferences } from './user-preferences.entity';
 import { SocialAccount } from './social-account.entity';
 import { UserToken } from './user-token.entity';
-import { Column, DeleteDateColumn, Entity, Index, OneToMany } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, Index, OneToMany, OneToOne } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
 @Entity({ name: 'users' })
@@ -70,6 +71,9 @@ export class User extends BaseEntity {
   @Exclude()
   @OneToMany(() => UserToken, (token) => token.user)
   tokens: UserToken[];
+
+  @OneToOne(() => UserPreferences, (preferences) => preferences.user, { cascade: true })
+  preferences?: UserPreferences;
 
   get concatName(): string {
     return `${this.firstName} ${this.lastName}`;

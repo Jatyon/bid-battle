@@ -35,7 +35,7 @@ export function setupSecurity(app: INestApplication) {
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         callback(null, true);
       } else {
         logger.warn(`Blocked CORS request from origin: ${origin}`);
