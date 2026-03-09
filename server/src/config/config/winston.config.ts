@@ -11,7 +11,7 @@ const consoleFormat = winston.format.combine(
     const ts = timestamp as string;
     const msg = message as string;
 
-    const ctx = (context as string) || 'Application';
+    const ctx = typeof context === 'string' ? context : 'Application';
 
     const trc = trace ? `\n${trace as string}` : '';
 
