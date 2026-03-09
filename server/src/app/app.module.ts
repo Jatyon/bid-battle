@@ -11,10 +11,8 @@ import { AppConfigModule } from '@config/config.module';
 import { UsersModule } from '@modules/users';
 import { AuthModule } from '@modules/auth';
 import { MailModule } from '@modules/mail';
-import { MailerConfigProvider } from '@shared/providers/mailer-config.provider';
-import { I18nConfigProvider } from '@shared/providers/i18n-config.provider';
-import { ProvidersModule } from '@shared/providers/providers.module';
 import { HealthController } from '@health/health.controller';
+import { I18nConfigProvider, MailerConfigProvider, ProvidersModule } from '@shared/providers';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
 
 @Module({
