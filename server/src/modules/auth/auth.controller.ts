@@ -1,9 +1,7 @@
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { ApiStandardResponse } from '@core/decorators/api-standard-response.decorator';
-import { MessageResponse } from '@core/models/message-response.model';
-import { CurrentUser } from '@core/decorators/current-user.decorator';
-import { Public } from '@core/decorators/public.decorator';
+import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
+import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';

@@ -1,7 +1,6 @@
 import { ApiTags, ApiOperation, ApiUnauthorizedResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
-import { ApiStandardResponse } from '@core/decorators/api-standard-response.decorator';
-import { CurrentUser } from '@core/decorators/current-user.decorator';
+import { ApiStandardResponse, CurrentUser } from '@core/decorators';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { UserPreferencesService } from './user-preferences.service';
 import { User, UserPreferences } from './entities';

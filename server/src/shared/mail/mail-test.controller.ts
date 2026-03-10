@@ -1,8 +1,7 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { ApiStandardResponse } from '@core/decorators/api-standard-response.decorator';
-import { Public } from '@core/decorators/public.decorator';
-import { MessageResponse } from '@core/models/message-response.model';
+import { ApiStandardResponse, Public } from '@core/decorators';
+import { MessageResponse } from '@core/models';
 import { MailService } from './mail.service';
 import { TestMailDto } from './dto';
 

@@ -1,7 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { ApiStandardResponse } from '@core/decorators/api-standard-response.decorator';
-import { Public } from '@core/decorators/public.decorator';
+import { ApiStandardResponse, Public } from '@core/decorators';
 import { HealthDto } from './dto';
 
 @ApiTags('Health')
