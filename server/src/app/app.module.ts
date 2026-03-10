@@ -10,9 +10,9 @@ import { AppConfigService } from '@config/config.service';
 import { AppConfigModule } from '@config/config.module';
 import { UsersModule } from '@modules/users';
 import { AuthModule } from '@modules/auth';
-import { MailModule } from '@modules/mail';
 import { HealthController } from '@health/health.controller';
 import { I18nConfigProvider, MailerConfigProvider, ProvidersModule } from '@shared/providers';
+import { MailModule } from '@shared/mail';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
 
 @Module({

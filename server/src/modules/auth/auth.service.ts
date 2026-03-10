@@ -2,7 +2,7 @@ import { Injectable, Logger, UnauthorizedException, ConflictException, BadReques
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
-import { MailService } from '@modules/mail';
+import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto } from './dto';
 import { IAuthJwtPayload } from './interfaces';
 import { AuthTokens } from './models';

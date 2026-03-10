@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UsersTokenService, UserTokenEnum } from '@modules/users';
-import { MailService } from '@modules/mail';
+import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
