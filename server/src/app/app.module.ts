@@ -8,10 +8,12 @@ import { Module } from '@nestjs/common';
 import { validationSchema } from '@config/validators/validation.schema';
 import { AppConfigService } from '@config/config.service';
 import { AppConfigModule } from '@config/config.module';
+import { AuctionsModule } from '@modules/auctions';
 import { UsersModule } from '@modules/users';
 import { AuthModule } from '@modules/auth';
 import { HealthController } from '@health/health.controller';
 import { I18nConfigProvider, MailerConfigProvider, ProvidersModule } from '@shared/providers';
+import { RedisModule } from '@shared/redis';
 import { MailModule } from '@shared/mail';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
 
@@ -66,10 +68,12 @@ import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n'
     AppConfigModule.forRoot(),
 
     // Global
+    RedisModule,
     ProvidersModule,
     MailModule,
 
     // Modules
+    AuctionsModule,
     AuthModule,
     UsersModule,
   ],

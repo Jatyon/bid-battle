@@ -25,6 +25,7 @@ export function setupSwagger(app: INestApplication) {
     .addTag('Authentication', 'User authentication and authorization')
     .addTag('Users', 'User profile and management')
     .addTag('Mail Testing', 'Email testing functionality')
+    .addTag('Auctions', 'Auction management and bidding')
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
