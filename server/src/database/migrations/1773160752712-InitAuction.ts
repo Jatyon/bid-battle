@@ -23,10 +23,9 @@ export class InitAuction1773160752712 implements MigrationInterface {
             type: 'text',
           },
           {
-            name: 'image_url',
+            name: 'main_image_url',
             type: 'varchar',
             length: '500',
-            isNullable: true,
           },
           {
             name: 'starting_price',

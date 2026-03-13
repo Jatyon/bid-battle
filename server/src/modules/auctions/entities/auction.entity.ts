@@ -1,8 +1,9 @@
 import { BaseEntity } from '../../../core/entities/base.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from '@modules/users/entities/user.entity';
+import { AuctionImage } from './auction-images.entity';
 import { AuctionStatus } from '../enums';
-import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId, OneToMany } from 'typeorm';
 
 @Entity({ name: 'auctions' })
 @Index(['status', 'endTime'])
@@ -28,8 +29,8 @@ export class Auction extends BaseEntity {
     example: 'https://example.com/image.jpg',
     nullable: true,
   })
-  @Column({ name: 'image_url', type: 'varchar', length: 500, nullable: true })
-  imageUrl?: string | null;
+  @Column({ name: 'main_image_url', type: 'varchar', length: 500 })
+  mainImageUrl: string;
 
   @ApiProperty({
     description: 'Starting price',
@@ -89,4 +90,7 @@ export class Auction extends BaseEntity {
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'winner_id', referencedColumnName: 'id' })
   winner?: User | null;
+
+  @OneToMany(() => AuctionImage, (auctionImage) => auctionImage.auction, { cascade: true })
+  images: AuctionImage[];
 }
