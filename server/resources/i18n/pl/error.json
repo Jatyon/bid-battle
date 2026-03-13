@@ -30,6 +30,20 @@
     "currentPassword_is_string": "Aktualne hasło musi być ciągiem znaków",
     "currentPassword_not_empty": "Aktualne hasło nie może być puste",
     "token_is_string": "Token musi być ciągiem znaków",
-    "token_not_empty": "Token nie może być pusty"
+    "token_not_empty": "Token nie może być pusty",
+
+    "auction": {
+      "title_required": "Tytuł aukcji jest wymagany.",
+      "title_must_be_string": "Tytuł aukcji musi być tekstem.",
+      "description_required": "Opis aukcji jest wymagany.",
+      "description_must_be_string": "Opis aukcji musi być tekstem.",
+      "starting_price_required": "Cena wywoławcza jest wymagana.",
+      "starting_price_must_be_decimal": "Cena wywoławcza musi być liczbą.",
+      "starting_price_must_be_positive": "Cena wywoławcza musi być większa niż 0.",
+      "end_time_required": "Czas zakończenia aukcji jest wymagany.",
+      "end_time_must_be_datetime": "Czas zakończenia musi być poprawną datą i godziną.",
+      "end_time_must_be_at_least_one_hour_from_now": "Czas zakończenia aukcji musi być zaplanowany z co najmniej godzinnym wyprzedzeniem.",
+      "images_must_have_at_least_one_image": "Aukcja musi posiadać przynajmniej jedno zdjęcie!"
+    }
   }
 }

@@ -32,6 +32,20 @@
     "currentPassword_is_string": "Current password must be a string",
     "currentPassword_not_empty": "Current password cannot be empty",
     "token_is_string": "Token must be a string",
-    "token_not_empty": "Token cannot be empty"
+    "token_not_empty": "Token cannot be empty",
+
+    "auction": {
+      "title_required": "Auction title is required.",
+      "title_must_be_string": "Auction title must be a text string.",
+      "description_required": "Auction description is required.",
+      "description_must_be_string": "Auction description must be a text string.",
+      "starting_price_required": "Starting price is required.",
+      "starting_price_must_be_decimal": "Starting price must be a valid number.",
+      "starting_price_must_be_positive": "Starting price must be greater than 0.",
+      "end_time_required": "Auction end time is required.",
+      "end_time_must_be_datetime": "End time must be a valid date and time format.",
+      "end_time_must_be_at_least_one_hour_from_now": "The auction end time must be at least one hour in the future.",
+      "images_must_have_at_least_one_image": "Auction must have at least one image!"
+    }
   }
 }
