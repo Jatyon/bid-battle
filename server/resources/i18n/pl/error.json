@@ -58,5 +58,9 @@
       "invalid_file_type_#allowedTypes": "Nieprawidłowy typ pliku. Dozwolone typy: {allowedTypes}.",
       "upload_failed": "Nie udało się przesłać pliku. Spróbuj ponownie później."
     }
+  },
+
+  "auction": {
+    "not_found": "Aukcja nie została znaleziona."
   }
 }

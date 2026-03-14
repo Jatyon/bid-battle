@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
@@ -6,7 +6,7 @@ import { Paginator, PaginatorResponse } from '@core/models';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
-import { AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto } from './dto';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -63,5 +63,16 @@ export class AuctionsController {
   @Get()
   async getAuctions(@Query() paginator: Paginator): Promise<PaginatorResponse<AuctionResponse>> {
     return this.auctionsService.findActiveAuctions(paginator);
+  }
+
+  @ApiOperation({
+    summary: 'Get auction details',
+    description: 'Get details of a specific auction. Current price is fetched from cache for real-time accuracy.',
+  })
+  @ApiStandardResponse(AuctionDetailResponse, false)
+  @Public()
+  @Get(':id')
+  async getAuction(@Param('id', ParseIntPipe) auctionId: number): Promise<AuctionDetailResponse> {
+    return this.auctionsService.findOne(auctionId);
   }
 }

@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Paginator, PaginatorResponse } from '@core/models';
 import { RedisService } from '@shared/redis';
 import { AuctionsRepository } from './repositories/auctions.repository';
-import { AuctionResponse, CreateAuctionDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto } from './dto';
 import { AuctionStatus } from './enums';
 import { Auction } from './entities';
 
@@ -76,5 +76,23 @@ export class AuctionsService {
     if (page === 1) await this.redisService.setCache(cacheKey, response, 30);
 
     return response;
+  }
+
+  /**
+   * Get auction details by ID
+   * Uses hybrid approach: current_price from Redis (if available), rest from MySQL
+   * @param auctionId - Auction ID
+   * @returns Auction details
+   */
+  async findOne(auctionId: number): Promise<AuctionDetailResponse> {
+    const auction = await this.auctionsRepository.findByIdWithRelations(auctionId);
+
+    if (!auction) throw new NotFoundException('error.auction.not_found');
+
+    const cachedPrice = await this.redisService.getLivePrice(auctionId);
+
+    if (cachedPrice) auction.currentPrice = cachedPrice;
+
+    return new AuctionDetailResponse(auction);
   }
 }

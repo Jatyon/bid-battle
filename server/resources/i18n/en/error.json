@@ -60,5 +60,9 @@
       "invalid_file_type": "Invalid file type. Allowed types: {{allowedTypes}}.",
       "upload_failed": "Failed to upload file. Please try again later."
     }
+  },
+
+  "auction": {
+    "not_found": "Auction not found."
   }
 }

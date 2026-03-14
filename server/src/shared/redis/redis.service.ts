@@ -40,4 +40,15 @@ export class RedisService implements OnModuleDestroy {
       this.logger.error(`Cache delete error for key "${key}"`, stack);
     }
   }
+
+  async getLivePrice(auctionId: number): Promise<number | null> {
+    try {
+      const price = await this.redis.get(`auction:${auctionId}:price`);
+      return price ? parseFloat(price) : null;
+    } catch (error: unknown) {
+      const stack = error instanceof Error ? error.stack : String(error);
+      this.logger.error(`Get live price error for ID "${auctionId}"`, stack);
+      return null;
+    }
+  }
 }

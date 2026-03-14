@@ -18,4 +18,11 @@ export class AuctionsRepository extends Repository<Auction> {
       order: { createdAt: 'DESC' },
     });
   }
+
+  findByIdWithRelations(auctionId: number): Promise<Auction | null> {
+    return this.findOne({
+      where: { id: auctionId },
+      relations: ['owner', 'winner', 'images'],
+    });
+  }
 }
