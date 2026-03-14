@@ -1,9 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AuctionImageDto } from './image-auction.dto';
-import { IsString, IsDateString, IsNotEmpty, Min, IsNumber, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import { IsString, IsDateString, IsNotEmpty, Min, IsNumber, IsArray, IsOptional, IsInt, ArrayMinSize } from 'class-validator';
 import { registerDecorator, ValidationOptions } from 'class-validator';
 import { addHours, isAfter } from 'date-fns';
-import { Type } from 'class-transformer';
 
 export class CreateAuctionDto {
   @ApiProperty({
@@ -45,14 +43,24 @@ export class CreateAuctionDto {
   endTime: string;
 
   @ApiProperty({
-    description: 'Array of auction images (at least one image is required)',
-    type: [AuctionImageDto],
+    description: 'Array of auction image URLs (at least one image is required)',
+    type: [String],
+    example: ['/uploads/2026/03/abc-123.jpg', '/uploads/2026/03/def-456.jpg'],
   })
   @IsArray()
-  @ValidateNested({ each: true })
   @ArrayMinSize(1, { message: 'error.validation.auction.images_must_have_at_least_one_image' })
-  @Type(() => AuctionImageDto)
-  images: AuctionImageDto[];
+  @IsString({ each: true })
+  imageUrls: string[];
+
+  @ApiProperty({
+    description: 'Index of primary image (optional, defaults to 0)',
+    example: 0,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt({ message: 'error.validation.auction.primary_image_index_must_be_integer' })
+  @Min(0, { message: 'error.validation.auction.primary_image_index_must_be_non_negative' })
+  primaryImageIndex?: number;
 }
 
 export function IsFutureDateString(hoursToAdd: number, validationOptions?: ValidationOptions) {

@@ -45,7 +45,9 @@
       "end_time_required": "Auction end time is required.",
       "end_time_must_be_datetime": "End time must be a valid date and time format.",
       "end_time_must_be_at_least_one_hour_from_now": "The auction end time must be at least one hour in the future.",
-      "images_must_have_at_least_one_image": "Auction must have at least one image!"
+      "images_must_have_at_least_one_image": "Auction must have at least one image!",
+      "primaryImageIndex_must_be_valid": "Primary image index is invalid.",
+      "primary_image_index_must_be_integer": "Primary image index must be an integer."
     },
 
     "file": {

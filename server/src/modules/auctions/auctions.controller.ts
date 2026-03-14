@@ -1,16 +1,44 @@
-import { Controller, Post, Body, UseGuards, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser } from '@core/decorators';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { User } from '@modules/users';
+import { FileUploadService } from '@shared/file-upload';
+import { AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto } from './dto';
 import { AuctionsService } from './auctions.service';
-import { AuctionResponse } from './models';
-import { CreateAuctionDto } from './dto';
+import { I18n, I18nContext } from 'nestjs-i18n';
 
 @ApiTags('Auctions')
 @Controller('auctions')
 export class AuctionsController {
-  constructor(private readonly auctionsService: AuctionsService) {}
+  constructor(
+    private readonly auctionsService: AuctionsService,
+    private readonly fileUploadService: FileUploadService,
+  ) {}
+
+  @ApiOperation({
+    summary: 'Upload auction images',
+    description: 'Upload multiple images for an auction. Returns array of uploaded file URLs.',
+  })
+  @ApiStandardResponse(UploadedFileDto, true)
+  @ApiBearerAuth('jwt-auth')
+  @ApiConsumes('multipart/form-data')
+  @HttpCode(200)
+  @Post('/upload-images')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
+  async uploadAuctionImages(
+    @UploadedFiles() files: { images?: Express.Multer.File[] },
+    @Body() uploadDto: UploadAuctionImagesDto,
+    @I18n() i18n: I18nContext,
+  ): Promise<UploadedFileDto[]> {
+    if (!files?.images || files.images.length === 0) throw new BadRequestException(i18n.t('error.validation.file.no_file_provided'));
+
+    const uploadedFiles = await this.fileUploadService.uploadMultiple(files.images, this.fileUploadService.getAuctionImageUploadOptions(), i18n);
+
+    return uploadedFiles.map((file) => new UploadedFileDto(file));
+  }
 
   @ApiOperation({
     summary: 'Create a new auction',

@@ -1,2 +1,4 @@
+export * from './uploaded-file-response.dto';
+export * from './uplaoad-auction-images.dto';
+export * from './auction-response.dto';
 export * from './create-auction.dto';
-export * from './image-auction.dto';

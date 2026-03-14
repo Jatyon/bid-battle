@@ -24,7 +24,7 @@ export class AuctionResponse {
 
   @ApiProperty({
     description: 'Auction main image URL',
-    example: 'https://example.com/image.jpg',
+    example: '/uploads/2026/03/abc-123.jpg',
   })
   mainImageUrl: string;
 

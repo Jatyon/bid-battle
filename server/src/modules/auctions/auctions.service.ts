@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuctionsRepository } from './repositories/auctions.repository';
-import { AuctionResponse } from './models';
-import { CreateAuctionDto } from './dto';
+import { AuctionResponse, CreateAuctionDto } from './dto';
 import { AuctionStatus } from './enums';
 import { Auction } from './entities';
 
@@ -16,13 +15,15 @@ export class AuctionsService {
    * @returns Created auction
    */
   async createAuction(createAuctionDto: CreateAuctionDto, ownerId: number): Promise<AuctionResponse> {
-    let primaryImage = createAuctionDto.images.find((img) => img.isPrimary);
+    const primaryImageIndex: number = createAuctionDto.primaryImageIndex ?? 0;
 
-    if (!primaryImage) primaryImage = createAuctionDto.images[0];
+    if (primaryImageIndex >= createAuctionDto.imageUrls.length) throw new BadRequestException('error.validation.auction.primaryImageIndex_must_be_valid');
 
-    const mappedImages = createAuctionDto.images.map((img) => ({
-      imageUrl: img.url,
-      isPrimary: img.url === primaryImage.url,
+    const primaryImageUrl: string = createAuctionDto.imageUrls[primaryImageIndex];
+
+    const mappedImages = createAuctionDto.imageUrls.map((url, index) => ({
+      imageUrl: url,
+      isPrimary: index === primaryImageIndex,
     }));
 
     const auction: Auction = this.auctionsRepository.create({
@@ -33,7 +34,7 @@ export class AuctionsService {
       ownerId,
       currentPrice: createAuctionDto.startingPrice,
       status: AuctionStatus.ACTIVE,
-      mainImageUrl: primaryImage.url,
+      mainImageUrl: primaryImageUrl,
       images: mappedImages,
     });
 
