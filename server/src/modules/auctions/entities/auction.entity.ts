@@ -4,6 +4,7 @@ import { User } from '@modules/users/entities/user.entity';
 import { AuctionImage } from './auction-images.entity';
 import { AuctionStatus } from '../enums';
 import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId, OneToMany } from 'typeorm';
+import { BigIntTransformer } from '@core/transformers';
 
 @Entity({ name: 'auctions' })
 @Index(['status', 'endTime'])
@@ -34,16 +35,16 @@ export class Auction extends BaseEntity {
 
   @ApiProperty({
     description: 'Starting price',
-    example: 100.5,
+    example: 1005,
   })
-  @Column({ name: 'starting_price', type: 'decimal', precision: 10, scale: 2 })
+  @Column({ name: 'starting_price', type: 'bigint', unsigned: true, transformer: BigIntTransformer })
   startingPrice: number;
 
   @ApiProperty({
     description: 'Current highest bid price (denormalized for optimization)',
-    example: 150.5,
+    example: 1505,
   })
-  @Column({ name: 'current_price', type: 'decimal', precision: 10, scale: 2 })
+  @Column({ name: 'current_price', type: 'bigint', unsigned: true, transformer: BigIntTransformer })
   currentPrice: number;
 
   @ApiProperty({

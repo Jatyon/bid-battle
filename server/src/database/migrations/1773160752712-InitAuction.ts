@@ -29,15 +29,13 @@ export class InitAuction1773160752712 implements MigrationInterface {
           },
           {
             name: 'starting_price',
-            type: 'decimal',
-            precision: 10,
-            scale: 2,
+            type: 'bigint',
+            unsigned: true,
           },
           {
             name: 'current_price',
-            type: 'decimal',
-            precision: 10,
-            scale: 2,
+            type: 'bigint',
+            unsigned: true,
           },
           {
             name: 'end_time',

@@ -42,7 +42,7 @@
       "description_required": "Opis aukcji jest wymagany.",
       "description_must_be_string": "Opis aukcji musi być tekstem.",
       "starting_price_required": "Cena wywoławcza jest wymagana.",
-      "starting_price_must_be_decimal": "Cena wywoławcza musi być liczbą.",
+      "starting_price_must_be_integer": "Cena wywoławcza musi być poprawną liczbą całkowitą.",
       "starting_price_must_be_positive": "Cena wywoławcza musi być większa niż 0.",
       "end_time_required": "Czas zakończenia aukcji jest wymagany.",
       "end_time_must_be_datetime": "Czas zakończenia musi być poprawną datą i godziną.",

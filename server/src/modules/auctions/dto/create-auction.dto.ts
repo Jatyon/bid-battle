@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsNotEmpty, Min, IsNumber, IsArray, IsOptional, IsInt, ArrayMinSize } from 'class-validator';
+import { IsString, IsDateString, IsNotEmpty, Min, IsArray, IsOptional, IsInt, ArrayMinSize } from 'class-validator';
 import { registerDecorator, ValidationOptions } from 'class-validator';
 import { addHours, isAfter } from 'date-fns';
 
@@ -22,11 +22,11 @@ export class CreateAuctionDto {
 
   @ApiProperty({
     description: 'Starting price (must be greater than 0)',
-    example: 100.5,
+    example: 1005,
   })
   @IsNotEmpty({ message: 'error.validation.auction.starting_price_required' })
-  @IsNumber({}, { message: 'error.validation.auction.starting_price_must_be_decimal' })
-  @Min(0.01, { message: 'error.validation.auction.starting_price_must_be_positive' })
+  @IsInt({ message: 'error.validation.auction.starting_price_must_be_integer' })
+  @Min(1, { message: 'error.validation.auction.starting_price_must_be_positive' })
   startingPrice: number;
 
   @ApiProperty({

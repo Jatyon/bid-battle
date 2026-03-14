@@ -40,7 +40,7 @@
       "description_required": "Auction description is required.",
       "description_must_be_string": "Auction description must be a text string.",
       "starting_price_required": "Starting price is required.",
-      "starting_price_must_be_decimal": "Starting price must be a valid number.",
+      "starting_price_must_be_integer": "Starting price must be a valid integer.",
       "starting_price_must_be_positive": "Starting price must be greater than 0.",
       "end_time_required": "Auction end time is required.",
       "end_time_must_be_datetime": "End time must be a valid date and time format.",

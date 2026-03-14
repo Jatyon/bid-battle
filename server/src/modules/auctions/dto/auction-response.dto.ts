@@ -30,13 +30,13 @@ export class AuctionResponse {
 
   @ApiProperty({
     description: 'Starting price',
-    example: 100.5,
+    example: 1005,
   })
   startingPrice: number;
 
   @ApiProperty({
     description: 'Current highest bid price',
-    example: 150.5,
+    example: 1505,
   })
   currentPrice: number;
 
