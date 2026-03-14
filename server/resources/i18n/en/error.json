@@ -63,6 +63,9 @@
   },
 
   "auction": {
-    "not_found": "Auction not found."
+    "not_found": "Auction not found.",
+    "cancel_forbidden_not_owner": "You are not the owner of this auction, so you cannot cancel it.",
+    "cancel_forbidden_not_active": "Only active auctions can be canceled.",
+    "cancel_forbidden_already_has_bids": "Cannot cancel an auction that already has bids."
   }
 }

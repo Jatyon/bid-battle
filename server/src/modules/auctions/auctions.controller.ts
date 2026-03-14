@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
@@ -74,5 +74,17 @@ export class AuctionsController {
   @Get(':id')
   async getAuction(@Param('id', ParseIntPipe) auctionId: number): Promise<AuctionDetailResponse> {
     return this.auctionsService.findOne(auctionId);
+  }
+
+  @ApiOperation({
+    summary: 'Cancel an auction',
+    description: 'Cancel an active auction. Only the owner can cancel, and only if no one has bid yet.',
+  })
+  @ApiStandardResponse(AuctionResponse, false)
+  @ApiBearerAuth('jwt-auth')
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  async cancelAuction(@Param('id', ParseIntPipe) auctionId: number, @CurrentUser() user: User): Promise<AuctionResponse> {
+    return this.auctionsService.cancelAuction(auctionId, user.id);
   }
 }

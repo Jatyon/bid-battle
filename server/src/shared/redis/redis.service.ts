@@ -51,4 +51,24 @@ export class RedisService implements OnModuleDestroy {
       return null;
     }
   }
+
+  async invalidateCache(pattern: string): Promise<void> {
+    try {
+      let cursor = '0';
+      let totalDeleted = 0;
+
+      do {
+        const [nextCursor, foundKeys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+
+        if (foundKeys.length > 0) await this.redis.del(...foundKeys);
+        totalDeleted += foundKeys.length;
+      } while (cursor !== '0');
+
+      if (totalDeleted > 0) this.logger.log(`Invalidated ${totalDeleted} keys matching "${pattern}"`);
+    } catch (error: unknown) {
+      const stack = error instanceof Error ? error.stack : String(error);
+      this.logger.error(`Cache invalidation error for pattern "${pattern}"`, stack);
+    }
+  }
 }

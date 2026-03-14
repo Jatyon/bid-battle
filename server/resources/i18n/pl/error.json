@@ -61,6 +61,9 @@
   },
 
   "auction": {
-    "not_found": "Aukcja nie została znaleziona."
+    "not_found": "Aukcja nie została znaleziona.",
+    "cancel_forbidden_not_owner": "Nie jesteś właścicielem tej aukcji, więc nie możesz jej anulować.",
+    "cancel_forbidden_not_active": "Można anulować tylko aktywne aukcje.",
+    "cancel_forbidden_already_has_bids": "Nie można anulować aukcji, na którą już złożono oferty."
   }
 }

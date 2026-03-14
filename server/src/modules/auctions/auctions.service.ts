@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Paginator, PaginatorResponse } from '@core/models';
 import { RedisService } from '@shared/redis';
-import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto } from './dto';
+import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionStatus } from './enums';
 import { Auction } from './entities';
 
@@ -94,5 +94,46 @@ export class AuctionsService {
     if (cachedPrice) auction.currentPrice = cachedPrice;
 
     return new AuctionDetailResponse(auction);
+  }
+
+  /**
+   * Cancel an auction (only if no one has bid yet)
+   * Bidding status is determined by checking if current_price > starting_price
+   * @param auctionId - Auction ID
+   * @param userId - User ID (must be auction owner)
+   * @returns Updated auction
+   */
+  async cancelAuction(auctionId: number, userId: number): Promise<AuctionResponse> {
+    const auction = await this.auctionsRepository.findByIdWithRelations(auctionId);
+
+    if (!auction) throw new NotFoundException('error.auction.not_found');
+
+    if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.cancel_forbidden_not_owner');
+
+    if (auction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.cancel_forbidden_not_active');
+
+    if (auction.currentPrice > auction.startingPrice) throw new BadRequestException('error.auction.cancel_forbidden_already_has_bids');
+
+    auction.status = AuctionStatus.CANCELED;
+    const updatedAuction = await this.auctionsRepository.save(auction);
+
+    await this.invalidateAuctionsCache();
+    await this.invalidatePriceCache(auctionId);
+
+    return new AuctionResponse(updatedAuction);
+  }
+
+  /**
+   * Invalidate auctions list cache
+   */
+  private async invalidateAuctionsCache(): Promise<void> {
+    await this.redisService.invalidateCache('auctions:active:*');
+  }
+
+  /**
+   * Invalidate price cache for specific auction
+   */
+  private async invalidatePriceCache(auctionId: number): Promise<void> {
+    await this.redisService.deleteCache(`auction:${auctionId}:price`);
   }
 }
