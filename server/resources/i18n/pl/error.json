@@ -31,6 +31,10 @@
     "currentPassword_not_empty": "Aktualne hasło nie może być puste",
     "token_is_string": "Token musi być ciągiem znaków",
     "token_not_empty": "Token nie może być pusty",
+    "page_must_be_integer": "Strona musi być liczbą całkowitą",
+    "page_must_be_at_least_1": "Strona musi być co najmniej 1",
+    "limit_must_be_integer": "Limit musi być liczbą całkowitą",
+    "limit_must_be_at_least_1": "Limit musi być co najmniej 1",
 
     "auction": {
       "title_required": "Tytuł aukcji jest wymagany.",

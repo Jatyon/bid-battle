@@ -38,9 +38,32 @@ const createErrorSchema = (status: number, error: string, message: string | stri
   };
 };
 
-export const ApiStandardResponse = <TModel extends Type<any>>(model: TModel, isArray: boolean = false) => {
+const createSuccessSchema = (model: Type<any>, isArray: boolean, genericType?: Type<any>) => {
+  if (genericType) {
+    return {
+      allOf: [
+        { $ref: getSchemaPath(model) },
+        {
+          properties: {
+            items: {
+              type: 'array',
+              items: { $ref: getSchemaPath(genericType) },
+            },
+          },
+        },
+      ],
+    };
+  } else if (isArray) return { type: 'array', items: { $ref: getSchemaPath(model) } };
+  else return { $ref: getSchemaPath(model) };
+};
+
+export const ApiStandardResponse = <TModel extends Type<any>>(model: TModel, isArray: boolean = false, genericType?: Type<any>) => {
+  const modelsToExtract = genericType ? [ApiResponseDto, ErrorResponseDto, model, genericType] : [ApiResponseDto, ErrorResponseDto, model];
+
+  const dataProperty = createSuccessSchema(model, isArray, genericType);
+
   return applyDecorators(
-    ApiExtraModels(ApiResponseDto, ErrorResponseDto, model),
+    ApiExtraModels(...modelsToExtract),
 
     ApiOkResponse({
       description: 'Successful operation',
@@ -51,7 +74,7 @@ export const ApiStandardResponse = <TModel extends Type<any>>(model: TModel, isA
             properties: {
               statusCode: { example: 200 },
               timestamp: { example: new Date().toISOString() },
-              data: isArray ? { type: 'array', items: { $ref: getSchemaPath(model) } } : { $ref: getSchemaPath(model) },
+              data: dataProperty,
             },
           },
         ],

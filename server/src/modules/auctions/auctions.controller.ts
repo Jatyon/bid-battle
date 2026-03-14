@@ -1,7 +1,8 @@
-import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { ApiStandardResponse, CurrentUser } from '@core/decorators';
+import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
+import { Paginator, PaginatorResponse } from '@core/models';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
@@ -51,5 +52,16 @@ export class AuctionsController {
   @UseGuards(JwtAuthGuard)
   async createAuction(@Body() createAuctionDto: CreateAuctionDto, @CurrentUser() user: User): Promise<AuctionResponse> {
     return this.auctionsService.createAuction(createAuctionDto, user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Get active auctions',
+    description: 'Get list of active auctions with pagination. Results are cached for faster response.',
+  })
+  @ApiStandardResponse(PaginatorResponse, false, AuctionResponse)
+  @Public()
+  @Get()
+  async getAuctions(@Query() paginator: Paginator): Promise<PaginatorResponse<AuctionResponse>> {
+    return this.auctionsService.findActiveAuctions(paginator);
   }
 }
