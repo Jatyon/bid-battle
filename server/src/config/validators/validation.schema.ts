@@ -27,6 +27,10 @@ export const validationSchema = Joi.object({
 
   // FILE
   AVATAR_MAX_SIZE_MB: Joi.number().default(5),
+  AUCTION_IMAGE_MAX_SIZE_MB: Joi.number().default(10),
+  ALLOWED_IMAGE_TYPES: Joi.string().default('image/jpeg,image/png'),
+  UPLOADS_DIR: Joi.string().default('uploads'),
+  STORAGE_TYPE: Joi.string().valid('local').default('local'),
 
   // JWT
   JWT_EXPIRES_IN: Joi.string().default('1d'),

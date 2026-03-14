@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
+import { StorageType } from '@shared/file-upload';
 import { IConfigApp, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigStripe, IDatabaseConfig } from './interfaces';
 import { DatabaseType } from 'typeorm';
 
@@ -48,6 +49,10 @@ export class AppConfigService {
   get file(): IConfigFile {
     return {
       avatarMaxSizeMB: this.configService.get<number>('AVATAR_MAX_SIZE_MB', 5),
+      auctionImageMaxSizeMB: this.configService.get<number>('AUCTION_IMAGE_MAX_SIZE_MB', 10),
+      allowedImageTypes: this.configService.get<string>('ALLOWED_IMAGE_TYPES', 'image/jpeg,image/png').split(','),
+      uploadsDir: this.configService.get<string>('UPLOADS_DIR', 'uploads'),
+      storageType: this.configService.get<StorageType>('STORAGE_TYPE', 'local'),
     };
   }
 

@@ -44,6 +44,13 @@
       "end_time_must_be_datetime": "Czas zakończenia musi być poprawną datą i godziną.",
       "end_time_must_be_at_least_one_hour_from_now": "Czas zakończenia aukcji musi być zaplanowany z co najmniej godzinnym wyprzedzeniem.",
       "images_must_have_at_least_one_image": "Aukcja musi posiadać przynajmniej jedno zdjęcie!"
+    },
+
+    "file": {
+      "no_file_provided": "Nie podano pliku do przesłania.",
+      "file_too_large_#maxSize": "Plik jest zbyt duży. Maksymalny rozmiar to {maxSize} MB.",
+      "invalid_file_type_#allowedTypes": "Nieprawidłowy typ pliku. Dozwolone typy: {allowedTypes}.",
+      "upload_failed": "Nie udało się przesłać pliku. Spróbuj ponownie później."
     }
   }
 }
