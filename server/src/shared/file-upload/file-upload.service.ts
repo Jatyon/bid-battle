@@ -73,17 +73,22 @@ export class FileUploadService {
   /**
    * Delete a file by its relative path (from uploads dir)
    */
-  async deleteFile(relativePath: string, i18n: I18nContext): Promise<void> {
-    const fullPath = join(this.config.uploadsDir, relativePath);
-    await this.storageStrategy.delete(fullPath, i18n);
-    this.logger.log(`File deleted successfully: ${relativePath}`);
+  async deleteFile(relativePath: string): Promise<void> {
+    try {
+      await this.storageStrategy.delete(relativePath);
+      this.logger.log(`File deleted successfully: ${relativePath}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to delete file: ${message}`, stack);
+    }
   }
 
   /**
    * Delete multiple files
    */
-  async deleteFiles(relativePaths: string[], i18n: I18nContext): Promise<void> {
-    await Promise.all(relativePaths.map((path) => this.deleteFile(path, i18n)));
+  async deleteFiles(relativePaths: string[]): Promise<void> {
+    await Promise.all(relativePaths.map((path) => this.deleteFile(path)));
   }
 
   private validateFile(file: Express.Multer.File, options: IUploadOptions, i18n: I18nContext): void {
