@@ -121,6 +121,7 @@ export class AuctionsService {
 
     if (auction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.cancel_forbidden_not_active');
 
+    //TODO: If the first bidder enters an amount exactly equal to the starting price, it will be treated as no bids. You might consider adding an additional "hasBids" field or checking for the existence of records in the bid table.
     if (auction.currentPrice > auction.startingPrice) throw new BadRequestException('error.auction.cancel_forbidden_already_has_bids');
 
     auction.status = AuctionStatus.CANCELED;
