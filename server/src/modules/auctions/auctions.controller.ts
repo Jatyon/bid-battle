@@ -2,11 +2,11 @@ import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedF
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
-import { Paginator, PaginatorResponse } from '@core/models';
+import { MessageResponse, Paginator, PaginatorResponse } from '@core/models';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto, UpdateAuctionDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto } from './dto';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -98,5 +98,30 @@ export class AuctionsController {
   @UseGuards(JwtAuthGuard)
   async updateAuction(@Param('id', ParseIntPipe) auctionId: number, @Body() updateAuctionDto: UpdateAuctionDto, @CurrentUser() user: User): Promise<AuctionResponse> {
     return this.auctionsService.updateAuction(auctionId, updateAuctionDto, user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Update auction images',
+    description: 'Replace auction images. Only the owner can update, and only active auctions can be modified.',
+  })
+  @ApiStandardResponse(MessageResponse, false)
+  @ApiBearerAuth('jwt-auth')
+  @ApiConsumes('multipart/form-data')
+  @HttpCode(200)
+  @Patch(':id/images')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
+  async updateAuctionImages(
+    @Param('id', ParseIntPipe) auctionId: number,
+    @UploadedFiles() files: { images?: Express.Multer.File[] },
+    @Body() uploadDto: UpdateAuctionImagesDto,
+    @CurrentUser() user: User,
+    @I18n() i18n: I18nContext,
+  ): Promise<MessageResponse> {
+    await this.auctionsService.updateAuctionImages(auctionId, user.id, files?.images ?? [], uploadDto.existingImageUrls ?? [], uploadDto.primaryImageIndex, i18n);
+
+    return {
+      message: i18n.t('auction.info.update_images_success'),
+    };
   }
 }
