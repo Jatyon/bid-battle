@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Paginator, PaginatorResponse } from '@core/models';
 import { RedisService } from '@shared/redis';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UpdateAuctionDto } from './dto';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionStatus } from './enums';
 import { Auction } from './entities';
@@ -119,6 +119,42 @@ export class AuctionsService {
 
     await this.invalidateAuctionsCache();
     await this.invalidatePriceCache(auctionId);
+
+    return new AuctionResponse(updatedAuction);
+  }
+
+  /**
+   * Update an auction
+   * Only the owner can update, and only certain fields can be modified
+   * @param auctionId - Auction ID
+   * @param updateAuctionDto - Update data
+   * @param userId - User ID (must be auction owner)
+   * @returns Updated auction
+   */
+  async updateAuction(auctionId: number, updateAuctionDto: UpdateAuctionDto, userId: number): Promise<AuctionResponse> {
+    const auction = await this.auctionsRepository.findOneBy({ id: auctionId });
+
+    if (!auction) throw new NotFoundException('error.auction.not_found');
+
+    if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.update_forbidden_not_owner');
+
+    if (auction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.update_forbidden_not_active');
+
+    if (updateAuctionDto.endTime) {
+      const newEndTime = new Date(updateAuctionDto.endTime);
+
+      if (newEndTime <= auction.endTime) throw new BadRequestException('error.auction.update_forbidden_end_time');
+
+      auction.endTime = newEndTime;
+    }
+
+    if (updateAuctionDto.title) auction.title = updateAuctionDto.title;
+
+    if (updateAuctionDto.description) auction.description = updateAuctionDto.description;
+
+    const updatedAuction = await this.auctionsRepository.save(auction);
+
+    await this.invalidateAuctionsCache();
 
     return new AuctionResponse(updatedAuction);
   }

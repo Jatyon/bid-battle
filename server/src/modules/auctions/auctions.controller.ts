@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe, Delete } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe, Delete, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
@@ -6,7 +6,7 @@ import { Paginator, PaginatorResponse } from '@core/models';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto, UpdateAuctionDto } from './dto';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -86,5 +86,17 @@ export class AuctionsController {
   @UseGuards(JwtAuthGuard)
   async cancelAuction(@Param('id', ParseIntPipe) auctionId: number, @CurrentUser() user: User): Promise<AuctionResponse> {
     return this.auctionsService.cancelAuction(auctionId, user.id);
+  }
+
+  @ApiOperation({
+    summary: 'Update an auction',
+    description: 'Update auction details (title/description/end time). Only the owner can update, and only active auctions can be modified. End time can only be extended.',
+  })
+  @ApiStandardResponse(AuctionResponse, false)
+  @ApiBearerAuth('jwt-auth')
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  async updateAuction(@Param('id', ParseIntPipe) auctionId: number, @Body() updateAuctionDto: UpdateAuctionDto, @CurrentUser() user: User): Promise<AuctionResponse> {
+    return this.auctionsService.updateAuction(auctionId, updateAuctionDto, user.id);
   }
 }

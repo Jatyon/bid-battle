@@ -64,6 +64,9 @@
     "not_found": "Aukcja nie została znaleziona.",
     "cancel_forbidden_not_owner": "Nie jesteś właścicielem tej aukcji, więc nie możesz jej anulować.",
     "cancel_forbidden_not_active": "Można anulować tylko aktywne aukcje.",
-    "cancel_forbidden_already_has_bids": "Nie można anulować aukcji, na którą już złożono oferty."
+    "cancel_forbidden_already_has_bids": "Nie można anulować aukcji, na którą już złożono oferty.",
+    "update_forbidden_not_owner": "Nie jesteś właścicielem tej aukcji, więc nie możesz jej aktualizować.",
+    "update_forbidden_not_active": "Można aktualizować tylko aktywne aukcje.",
+    "update_forbidden_end_time": "Czas zakończenia aukcji można tylko wydłużyć, nie można go skrócić."
   }
 }
