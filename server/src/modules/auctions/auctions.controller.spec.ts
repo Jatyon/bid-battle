@@ -1,93 +1,44 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { Paginator, PaginatorResponse } from '@core/models';
+import { createAuctionResponseFixture, createAuctionDetailResponseFixture, createCreateAuctionDtoFixture, createMockFilesFixture } from '@test/fixtures/auctions.fixtures';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { FileUploadService, IUploadOptions, IUploadedFile } from '@shared/file-upload';
-import { AuctionResponse, AuctionDetailResponse, CreateAuctionDto, UploadAuctionImagesDto, UpdateAuctionDto, UpdateAuctionImagesDto, UploadedFileDto } from './dto';
+import { AuctionResponse, UploadAuctionImagesDto, UpdateAuctionDto, UpdateAuctionImagesDto, UploadedFileDto } from './dto';
 import { AuctionsController } from './auctions.controller';
 import { AuctionsService } from './auctions.service';
 import { AuctionStatus } from './enums';
-import { Auction } from './entities';
+import { createMock, DeepMocked } from '@golevelup/ts-jest';
 
 describe('AuctionsController', () => {
   let controller: AuctionsController;
-  let service: AuctionsService;
-  let fileUploadService: FileUploadService;
+  let service: DeepMocked<AuctionsService>;
+  let fileUploadService: DeepMocked<FileUploadService>;
 
   const mockUser = createUserFixture();
   const mockI18n = createMockI18nContext();
 
-  const baseAuctionData = {
-    id: 1,
-    title: 'Test Auction',
-    description: 'Test Description',
-    mainImageUrl: '/uploads/main.jpg',
-    startingPrice: 100,
-    currentPrice: 100,
-    status: AuctionStatus.ACTIVE,
-    ownerId: 1,
-    endTime: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const baseOwner = {
-    id: 1,
-    email: 'test@example.com',
-    firstName: 'Test',
-    lastName: 'User',
-    avatar: null,
-  };
-
-  const buildCreateAuctionDto = (overrides: Partial<CreateAuctionDto> = {}): CreateAuctionDto =>
-    ({
-      title: baseAuctionData.title,
-      description: baseAuctionData.description,
-      startingPrice: baseAuctionData.startingPrice,
-      imageUrls: [baseAuctionData.mainImageUrl],
-      endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-      ...overrides,
-    }) as CreateAuctionDto;
-
-  const buildAuctionResponse = (overrides: Partial<Auction> = {}) => new AuctionResponse({ ...baseAuctionData, ...overrides } as Auction);
-
-  const buildAuctionDetailResponse = (overrides: Partial<Auction> = {}) =>
-    new AuctionDetailResponse({
-      ...baseAuctionData,
-      images: [{ imageUrl: baseAuctionData.mainImageUrl }],
-      owner: baseOwner,
-      ...overrides,
-    } as Auction);
-
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuctionsController],
       providers: [
         {
           provide: AuctionsService,
-          useValue: {
-            createAuction: jest.fn(),
-            findActiveAuctions: jest.fn(),
-            findOne: jest.fn(),
-            cancelAuction: jest.fn(),
-            updateAuction: jest.fn(),
-            updateAuctionImages: jest.fn(),
-          },
+          useValue: createMock<AuctionsService>(),
         },
         {
           provide: FileUploadService,
-          useValue: {
-            uploadMultiple: jest.fn(),
-            getAuctionImageUploadOptions: jest.fn(),
-          },
+          useValue: createMock<FileUploadService>(),
         },
       ],
     }).compile();
 
     controller = module.get<AuctionsController>(AuctionsController);
-    service = module.get<AuctionsService>(AuctionsService);
-    fileUploadService = module.get<FileUploadService>(FileUploadService);
+    service = module.get(AuctionsService);
+    fileUploadService = module.get(FileUploadService);
   });
 
   it('should be defined', () => {
@@ -96,10 +47,10 @@ describe('AuctionsController', () => {
 
   describe('createAuction', () => {
     it('should call service.createAuction with correct parameters and return the result', async () => {
-      const createAuctionDto = buildCreateAuctionDto();
-      const mockResponse = buildAuctionResponse();
+      const createAuctionDto = createCreateAuctionDtoFixture();
+      const mockResponse = createAuctionResponseFixture();
 
-      jest.spyOn(service, 'createAuction').mockResolvedValue(mockResponse);
+      service.createAuction.mockResolvedValue(mockResponse);
 
       const result = await controller.createAuction(createAuctionDto, mockUser);
 
@@ -108,9 +59,9 @@ describe('AuctionsController', () => {
     });
 
     it('should propagate error thrown by service', async () => {
-      const createAuctionDto = buildCreateAuctionDto();
+      const createAuctionDto = createCreateAuctionDtoFixture();
 
-      jest.spyOn(service, 'createAuction').mockRejectedValue(new BadRequestException());
+      service.createAuction.mockRejectedValue(new BadRequestException());
 
       await expect(controller.createAuction(createAuctionDto, mockUser)).rejects.toThrow(BadRequestException);
     });
@@ -125,9 +76,11 @@ describe('AuctionsController', () => {
         limit: 10,
       };
 
-      jest.spyOn(service, 'findActiveAuctions').mockResolvedValue(mockResponse);
+      service.findActiveAuctions.mockResolvedValue(mockResponse);
 
-      const paginator = Object.assign(new Paginator(), { page: 1, limit: 10 });
+      const paginator = new Paginator();
+      paginator.page = 1;
+      paginator.limit = 10;
 
       const result = await controller.getAuctions(paginator);
 
@@ -138,9 +91,9 @@ describe('AuctionsController', () => {
 
   describe('getAuction', () => {
     it('should return auction detail by id', async () => {
-      const mockResponse = buildAuctionDetailResponse();
+      const mockResponse = createAuctionDetailResponseFixture();
 
-      jest.spyOn(service, 'findOne').mockResolvedValue(mockResponse);
+      service.findOne.mockResolvedValue(mockResponse);
 
       const result = await controller.getAuction(1);
 
@@ -149,7 +102,7 @@ describe('AuctionsController', () => {
     });
 
     it('should propagate NotFoundException when auction does not exist', async () => {
-      jest.spyOn(service, 'findOne').mockRejectedValue(new NotFoundException());
+      service.findOne.mockRejectedValue(new NotFoundException());
 
       await expect(controller.getAuction(999)).rejects.toThrow(NotFoundException);
     });
@@ -157,9 +110,9 @@ describe('AuctionsController', () => {
 
   describe('cancelAuction', () => {
     it('should cancel auction and return response with CANCELED status', async () => {
-      const mockResponse = buildAuctionResponse({ status: AuctionStatus.CANCELED });
+      const mockResponse = createAuctionResponseFixture({ status: AuctionStatus.CANCELED });
 
-      jest.spyOn(service, 'cancelAuction').mockResolvedValue(mockResponse);
+      service.cancelAuction.mockResolvedValue(mockResponse);
 
       const result = await controller.cancelAuction(1, mockUser);
 
@@ -168,13 +121,13 @@ describe('AuctionsController', () => {
     });
 
     it('should propagate error when cancellation is not allowed', async () => {
-      jest.spyOn(service, 'cancelAuction').mockRejectedValue(new BadRequestException());
+      service.cancelAuction.mockRejectedValue(new BadRequestException());
 
       await expect(controller.cancelAuction(1, mockUser)).rejects.toThrow(BadRequestException);
     });
 
     it('should propagate NotFoundException when auction does not exist', async () => {
-      jest.spyOn(service, 'cancelAuction').mockRejectedValue(new NotFoundException());
+      service.cancelAuction.mockRejectedValue(new NotFoundException());
 
       await expect(controller.cancelAuction(999, mockUser)).rejects.toThrow(NotFoundException);
     });
@@ -182,23 +135,27 @@ describe('AuctionsController', () => {
 
   describe('uploadAuctionImages', () => {
     it('should upload images and return UploadedFileDto array', async () => {
+      const mockFiles = createMockFilesFixture(1);
       const files: { images: Express.Multer.File[] } = {
-        images: [{ originalname: 'test.jpg' } as unknown as Express.Multer.File],
+        images: mockFiles,
       };
+
       const uploadDto: UploadAuctionImagesDto = { images: [] };
+
       const uploadedFiles: IUploadedFile[] = [
         {
-          filename: 'test.jpg',
-          path: '/uploads/test.jpg',
-          url: '/uploads/test.jpg',
-          size: 123,
-          mimetype: 'image/jpeg',
+          filename: mockFiles[0].filename,
+          path: mockFiles[0].path,
+          url: `/uploads/${mockFiles[0].filename}`,
+          size: mockFiles[0].size,
+          mimetype: mockFiles[0].mimetype,
         },
       ];
+
       const options: IUploadOptions = { maxSizeMB: 5, allowedTypes: ['image/jpeg'], subDir: 'auctions' };
 
-      jest.spyOn(fileUploadService, 'getAuctionImageUploadOptions').mockReturnValue(options);
-      jest.spyOn(fileUploadService, 'uploadMultiple').mockResolvedValue(uploadedFiles);
+      fileUploadService.getAuctionImageUploadOptions.mockReturnValue(options);
+      fileUploadService.uploadMultiple.mockResolvedValue(uploadedFiles);
 
       const result = await controller.uploadAuctionImages(files, uploadDto, mockI18n);
 
@@ -207,7 +164,9 @@ describe('AuctionsController', () => {
     });
 
     it('should throw BadRequestException when no files are provided', async () => {
-      await expect(controller.uploadAuctionImages({ images: undefined }, {} as UploadAuctionImagesDto, mockI18n)).rejects.toThrow(BadRequestException);
+      const mockEmptyFiles = { images: undefined } as unknown as { images: Express.Multer.File[] };
+
+      await expect(controller.uploadAuctionImages(mockEmptyFiles, {} as UploadAuctionImagesDto, mockI18n)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when images array is empty', async () => {
@@ -218,9 +177,9 @@ describe('AuctionsController', () => {
   describe('updateAuction', () => {
     it('should call service.updateAuction with correct parameters and return the result', async () => {
       const updateDto: UpdateAuctionDto = { title: 'Updated title' };
-      const mockResponse = buildAuctionResponse({ title: 'Updated title' });
+      const mockResponse = createAuctionResponseFixture({ title: 'Updated title' });
 
-      jest.spyOn(service, 'updateAuction').mockResolvedValue(mockResponse);
+      service.updateAuction.mockResolvedValue(mockResponse);
 
       const result = await controller.updateAuction(1, updateDto, mockUser);
 
@@ -229,13 +188,13 @@ describe('AuctionsController', () => {
     });
 
     it('should propagate NotFoundException when auction does not exist', async () => {
-      jest.spyOn(service, 'updateAuction').mockRejectedValue(new NotFoundException());
+      service.updateAuction.mockRejectedValue(new NotFoundException());
 
       await expect(controller.updateAuction(999, {}, mockUser)).rejects.toThrow(NotFoundException);
     });
 
     it('should propagate error when update is not allowed (e.g. not owner)', async () => {
-      jest.spyOn(service, 'updateAuction').mockRejectedValue(new BadRequestException());
+      service.updateAuction.mockRejectedValue(new BadRequestException());
 
       await expect(controller.updateAuction(1, {}, mockUser)).rejects.toThrow(BadRequestException);
     });
@@ -248,7 +207,7 @@ describe('AuctionsController', () => {
         primaryImageIndex: 0,
       };
 
-      jest.spyOn(service, 'updateAuctionImages').mockResolvedValue(undefined);
+      service.updateAuctionImages.mockResolvedValue(undefined);
 
       const result = await controller.updateAuctionImages(1, { images: [] }, updateDto, mockUser, mockI18n);
 
@@ -257,13 +216,13 @@ describe('AuctionsController', () => {
     });
 
     it('should call service.updateAuctionImages with new files when provided', async () => {
-      const newFiles: Express.Multer.File[] = [{ originalname: 'new.jpg' } as unknown as Express.Multer.File];
+      const newFiles = createMockFilesFixture(1);
       const updateDto: UpdateAuctionImagesDto = {
         existingImageUrls: [],
         primaryImageIndex: 0,
       };
 
-      jest.spyOn(service, 'updateAuctionImages').mockResolvedValue(undefined);
+      service.updateAuctionImages.mockResolvedValue(undefined);
 
       await controller.updateAuctionImages(1, { images: newFiles }, updateDto, mockUser, mockI18n);
 
@@ -271,7 +230,7 @@ describe('AuctionsController', () => {
     });
 
     it('should propagate NotFoundException when auction does not exist', async () => {
-      jest.spyOn(service, 'updateAuctionImages').mockRejectedValue(new NotFoundException());
+      service.updateAuctionImages.mockRejectedValue(new NotFoundException());
 
       await expect(controller.updateAuctionImages(999, { images: [] }, {} as UpdateAuctionImagesDto, mockUser, mockI18n)).rejects.toThrow(NotFoundException);
     });
