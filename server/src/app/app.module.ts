@@ -12,6 +12,7 @@ import { AppConfigModule } from '@config/config.module';
 import { AuctionsModule } from '@modules/auctions';
 import { UsersModule } from '@modules/users';
 import { AuthModule } from '@modules/auth';
+import { BidModule } from '@modules/bid';
 import { HealthController } from '@health/health.controller';
 import { I18nConfigProvider, MailerConfigProvider, ProvidersModule } from '@shared/providers';
 import { FileUploadModule } from '@shared/file-upload';
@@ -83,6 +84,7 @@ import { join } from 'path';
     // Modules
     AuctionsModule,
     AuthModule,
+    BidModule,
     UsersModule,
   ],
   controllers: [HealthController],
