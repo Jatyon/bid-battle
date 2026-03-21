@@ -1,0 +1,6 @@
+{
+  "error": {
+    "auction_ended": "Aukcja już się zakończyła. Nie można składać ofert.",
+    "join_failed": "Nie udało się dołączyć do pokoju aukcji."
+  }
+}

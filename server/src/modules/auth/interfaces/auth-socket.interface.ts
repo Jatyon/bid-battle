@@ -6,5 +6,6 @@ export interface IAuthSocket extends Socket {
     user?: IAuthJwtPayload;
     lang?: string;
     eventTimestamps?: number[];
+    auctionId?: number;
   };
 }

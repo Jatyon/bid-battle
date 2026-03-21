@@ -60,6 +60,11 @@
       "file_too_large": "File is too large. Maximum size is {{maxSize}} MB.",
       "invalid_file_type": "Invalid file type. Allowed types: {{allowedTypes}}.",
       "upload_failed": "Failed to upload file. Please try again later."
+    },
+
+    "bid": {
+      "auction_id_must_be_integer": "Auction ID must be a valid integer.",
+      "auction_id_must_be_positive": "Auction ID must be greater than 0."
     }
   },
 

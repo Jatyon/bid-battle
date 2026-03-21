@@ -58,6 +58,11 @@
       "file_too_large_#maxSize": "Plik jest zbyt duży. Maksymalny rozmiar to {maxSize} MB.",
       "invalid_file_type_#allowedTypes": "Nieprawidłowy typ pliku. Dozwolone typy: {allowedTypes}.",
       "upload_failed": "Nie udało się przesłać pliku. Spróbuj ponownie później."
+    },
+
+    "bid": {
+      "auction_id_must_be_integer": "Identyfikator aukcji musi być poprawną liczbą całkowitą.",
+      "auction_id_must_be_positive": "Identyfikator aukcji musi być większy niż 0."
     }
   },
 
