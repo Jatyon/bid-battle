@@ -1,6 +1,7 @@
 {
   "error": {
     "auction_ended": "The auction has already ended. You cannot place bids.",
-    "join_failed": "Failed to join the auction room."
+    "join_failed": "Failed to join the auction room.",
+    "leave_failed": "Failed to leave the auction room."
   }
 }

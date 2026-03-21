@@ -40,7 +40,7 @@ export abstract class BaseGateway implements OnGatewayInit, OnGatewayConnection,
 
   protected abstract onClientConnect(client: IAuthSocket): Promise<void>;
 
-  protected abstract onClientDisconnect(client: IAuthSocket): void;
+  protected abstract onClientDisconnect(client: IAuthSocket): Promise<void>;
 
   private setupRateLimit(client: IAuthSocket) {
     client.data.eventTimestamps = [];
