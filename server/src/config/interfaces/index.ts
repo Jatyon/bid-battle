@@ -6,3 +6,4 @@ export * from './jwt-config.interface';
 export * from './mailer-config.interface';
 export * from './redis-config.interface';
 export * from './stripe-config.interface';
+export * from './socket-config.interface';

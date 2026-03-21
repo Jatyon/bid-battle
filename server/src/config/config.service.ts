@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { StorageType } from '@shared/file-upload';
-import { IConfigApp, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigStripe, IDatabaseConfig } from './interfaces';
+import { IConfigApp, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IConfigStripe, IDatabaseConfig } from './interfaces';
 import { DatabaseType } from 'typeorm';
 
 @Injectable()
@@ -91,6 +91,15 @@ export class AppConfigService {
         port: this.configService.get<number>('REDIS_PORT', 6379),
         password: this.configService.get<string>('REDIS_PASSWORD', ''),
         ttl: this.configService.get<number>('REDIS_TTL', 300),
+      };
+    }
+  }
+
+  get socket(): IConfigSocket {
+    {
+      return {
+        windowMs: this.configService.get<number>('WS_RATE_LIMIT_MS', 10000),
+        maxEvents: this.configService.get<number>('WS_RATE_LIMIT_MAX', 10),
       };
     }
   }

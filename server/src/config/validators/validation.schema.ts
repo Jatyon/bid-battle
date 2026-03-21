@@ -54,6 +54,10 @@ export const validationSchema = Joi.object({
   REDIS_PASSWORD: Joi.string().default(''),
   REDIS_TTL: Joi.number().default(300),
 
+  // SOCKET
+  WS_RATE_LIMIT_MS: Joi.number().default(10000),
+  WS_RATE_LIMIT_MAX: Joi.number().default(10),
+
   // STRIPE
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_CURRENCY: Joi.string().default('usd'),

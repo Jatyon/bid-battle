@@ -5,6 +5,7 @@ import { JwtConfigProvider } from './providers/jwt-config.provider';
 import { AuthJwtStrategy } from './strategies/auth-jwt.strategy';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { WsJwtGuard } from './guards';
 
 @Module({
   controllers: [AuthController],
@@ -14,7 +15,7 @@ import { AuthService } from './auth.service';
       useClass: JwtConfigProvider,
     }),
   ],
-  providers: [AuthService, UsersService, UsersTokenService, AuthJwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, UsersService, UsersTokenService, AuthJwtStrategy, WsJwtGuard],
+  exports: [AuthService, WsJwtGuard, JwtModule],
 })
 export class AuthModule {}

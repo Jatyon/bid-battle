@@ -16,6 +16,7 @@
 
   "validation_failed": "Validation failed.",
   "timeout": "Request timed out.",
+  "rate_limit_exceeded": "Too many requests. Please try again later.",
 
   "validation": {
     "first_name_is_string": "First name must be a string",
