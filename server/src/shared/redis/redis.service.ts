@@ -246,6 +246,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Gets the number of unique socket connections currently in the auction room.
+   * @param auctionId - The ID of the auction.
+   */
+  async getAuctionParticipantsCount(auctionId: number): Promise<number> {
+    try {
+      return await this.redis.hlen(RedisKey.auctionParticipants(auctionId));
+    } catch (error: unknown) {
+      this.handleError(`Get participants count error for auction "${auctionId}"`, error);
+      return 0;
+    }
+  }
+
+  /**
    * Retrieves the auction ID currently assigned to a specific socket.
    * Acts as the source of truth for multi-server/load-balanced environments.
    *

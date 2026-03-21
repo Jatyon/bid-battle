@@ -34,8 +34,8 @@ export abstract class BaseGateway implements OnGatewayInit, OnGatewayConnection,
     }
   }
 
-  handleDisconnect(client: IAuthSocket) {
-    this.onClientDisconnect(client);
+  async handleDisconnect(client: IAuthSocket) {
+    await this.onClientDisconnect(client);
   }
 
   protected abstract onClientConnect(client: IAuthSocket): Promise<void>;

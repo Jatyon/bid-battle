@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class auctionEventDto {
+export class AuctionEventDto {
   @ApiProperty({
     description: 'The ID of the auction',
     example: 123,

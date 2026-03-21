@@ -5,7 +5,7 @@ import { BaseGateway } from '@core/gateways/base.gateway';
 import { AuthService, IAuthJwtPayload, type IAuthSocket, WsJwtGuard } from '@modules/auth';
 import { UsersService } from '@modules/users';
 import { RedisService } from '@shared/redis';
-import { auctionEventDto, AuctionIdDto, newHighestBidDto, PlaceBidDto } from './dto';
+import { AuctionEventDto, AuctionIdDto, AuctionStateDto, NewHighestBidDto, PlaceBidDto } from './dto';
 import { BidService } from './bid.service';
 import { I18nService } from 'nestjs-i18n';
 
@@ -103,7 +103,7 @@ export class BidGateway extends BaseGateway {
       await client.join(`auction_room_${data.auctionId}`);
       client.data.auctionId = data.auctionId;
 
-      const responsePayload: auctionEventDto = {
+      const responsePayload: AuctionEventDto = {
         auctionId: data.auctionId,
         timestamp: new Date().toISOString(),
       };
@@ -141,7 +141,7 @@ export class BidGateway extends BaseGateway {
       await client.leave(`auction_room_${data.auctionId}`);
       client.data.auctionId = undefined;
 
-      const responsePayload: auctionEventDto = {
+      const responsePayload: AuctionEventDto = {
         auctionId: data.auctionId,
         timestamp: new Date().toISOString(),
       };
@@ -213,7 +213,7 @@ export class BidGateway extends BaseGateway {
         return;
       }
 
-      const responsePayload: newHighestBidDto = {
+      const responsePayload: NewHighestBidDto = {
         auctionId,
         amount: data.amount,
         timestamp: new Date().toISOString(),
@@ -225,6 +225,45 @@ export class BidGateway extends BaseGateway {
     } catch (error) {
       this.logger.error(`Error placing bid: ${error instanceof Error ? error.message : String(error)}`);
       return await rejectBid('SERVER_ERROR', 'bid.error.place_failed');
+    }
+  }
+
+  /**
+   * Retrieves the current live state of an auction.
+   * Protects user privacy by not broadcasting the highest bidder's ID,
+   * but instead calculating if the requesting user is the current leader.
+   */
+  @SubscribeMessage('request:current:state')
+  async handleRequestCurrentState(@ConnectedSocket() client: IAuthSocket) {
+    try {
+      const auctionId: number | undefined = client.data.auctionId;
+
+      if (!auctionId) {
+        client.emit('current:state', {
+          error: this.i18n.translate('bid.error.not_in_room', { lang: client.data.lang }),
+          code: 'NOT_IN_AUCTION_ROOM',
+        });
+        return;
+      }
+
+      const requestingUserId: number | undefined = client.data.user?.sub;
+
+      const state = await this.bidService.getCurrentState(auctionId, requestingUserId);
+
+      const auctionStateDto: AuctionStateDto = {
+        auctionId,
+        ...state,
+        timestamp: new Date().toISOString(),
+      };
+
+      client.emit('current:state', auctionStateDto);
+    } catch (error) {
+      this.logger.error(`Error getting current state: ${error instanceof Error ? error.message : String(error)}`);
+
+      client.emit('current:state', {
+        error: this.i18n.translate('bid.error.get_state_failed', { lang: client.data.lang }),
+        code: 'GET_STATE_ERROR',
+      });
     }
   }
 }

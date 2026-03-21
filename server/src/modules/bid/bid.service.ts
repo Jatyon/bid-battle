@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RedisService } from '@shared/redis';
 import { MIN_BID_INCREMENT } from './bid.constants';
-import { IBidResult } from './interfaces';
+import { IAuctionState, IBidResult } from './interfaces';
 import { Bid } from './entities';
 import { I18nService } from 'nestjs-i18n';
 import { Repository } from 'typeorm';
@@ -97,6 +97,41 @@ export class BidService {
     } catch (error) {
       this.logger.error(`Error placing bid: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
       return this.fail('SERVER_ERROR', 'bid.error.bid_failed');
+    }
+  }
+
+  /**
+   * Fetches the current live state of an auction from Redis.
+   * Protects privacy by determining if the requester is the leader,
+   * rather than returning the raw ID of the highest bidder.
+   *
+   * @param auctionId - The ID of the auction to query.
+   * @param requestingUserId - (Optional) The ID of the user requesting the state.
+   * @returns A promise resolving to the current auction state.
+   */
+  async getCurrentState(auctionId: number, requestingUserId?: number): Promise<IAuctionState> {
+    try {
+      const [currentPrice, highestBidderId, isActive, participantsCount] = await Promise.all([
+        this.redisService.getLivePrice(auctionId),
+        this.redisService.getHighestBidderId(auctionId),
+        this.redisService.isAuctionActive(auctionId),
+        this.redisService.getAuctionParticipantsCount(auctionId),
+      ]);
+
+      const isLeading = requestingUserId !== undefined && highestBidderId === requestingUserId;
+
+      return {
+        currentPrice: currentPrice ?? 0,
+        isLeading,
+        isActive: !!isActive,
+        participantsCount: participantsCount ?? 0,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error getting current state for auction ${auctionId}: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
     }
   }
 

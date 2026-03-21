@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { auctionEventDto } from './auction-event-response.dto';
+import { AuctionEventDto } from './auction-event-response.dto';
 
-export class newHighestBidDto extends auctionEventDto {
+export class NewHighestBidDto extends AuctionEventDto {
   @ApiProperty({
     description: 'The new highest bid amount for the auction',
     example: 123,
