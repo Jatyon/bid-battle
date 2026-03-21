@@ -1,7 +1,17 @@
 {
   "error": {
-    "auction_ended": "The auction has already ended. You cannot place bids.",
+    "bid_too_low_#minBid": "Your bid is too low. The minimum bid is {minBid}.",
+    "auction_ended": "The auction has already ended. Bids can no longer be placed.",
+    "unauthorized": "Please log in to place a bid.",
+    "bid_failed": "Could not place bid. Please try again later.",
+    "invalid_amount": "Invalid bid amount.",
+    "outbid": "You have been outbid by a higher offer.",
+    "owner_cannot_bid": "Auction owners cannot bid on their own auctions.",
     "join_failed": "Failed to join the auction room.",
-    "leave_failed": "Failed to leave the auction room."
+    "leave_failed": "Failed to leave the auction room.",
+    "place_failed": "Failed to place your bid. Please try again.",
+    "get_state_failed": "Failed to retrieve the auction state.",
+    "not_in_room": "You are not currently in an auction room.",
+    "rejected_too_low": "Bid rejected — amount is too low."
   }
 }

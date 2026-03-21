@@ -64,7 +64,9 @@
 
     "bid": {
       "auction_id_must_be_integer": "Auction ID must be a valid integer.",
-      "auction_id_must_be_positive": "Auction ID must be greater than 0."
+      "auction_id_must_be_positive": "Auction ID must be greater than 0.",
+      "amount_must_be_integer": "The amount must be a valid integer.",
+      "amount_must_be_at_least_1": "The bid amount must be at least 1."
     }
   },
 

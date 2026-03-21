@@ -62,7 +62,9 @@
 
     "bid": {
       "auction_id_must_be_integer": "Identyfikator aukcji musi być poprawną liczbą całkowitą.",
-      "auction_id_must_be_positive": "Identyfikator aukcji musi być większy niż 0."
+      "auction_id_must_be_positive": "Identyfikator aukcji musi być większy niż 0.",
+      "amount_must_be_integer": "Kwtota musi być poprawną liczbą całkowitą.",
+      "amount_must_be_at_least_1": "Kwota oferty musi wynosić co najmniej 1."
     }
   },
 

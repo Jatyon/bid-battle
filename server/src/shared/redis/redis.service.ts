@@ -1,63 +1,141 @@
-import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { REDIS_CLIENT, SOCKET_AUCTION_TTL } from './redis.constants';
-import Redis from 'ioredis';
+import Redis, { Result } from 'ioredis';
 
+declare module 'ioredis' {
+  interface RedisCommander<Context> {
+    placeBidAtomicCommand(priceKey: string, bidderKey: string, activeKey: string, newAmount: number, userId: number, minIncrement: number): Result<number, Context>;
+  }
+}
+
+/**
+ * Centralized Redis key definitions for the auction domain.
+ * Ensures consistency across the application when accessing Redis data.
+ */
 const RedisKey = {
   auctionActive: (id: number) => `auction:${id}:active`,
+  auctionBidder: (id: number) => `auction:${id}:highest_bidder`,
+  auctionOwner: (id: number) => `auction:${id}:owner`,
   auctionParticipants: (id: number) => `auction:${id}:participants`,
+  auctionPrice: (id: number) => `auction:${id}:price`,
   userSocketAuction: (userId: number, socketId: string) => `user:${userId}:socket:${socketId}`,
 } as const;
 
 @Injectable()
-export class RedisService implements OnModuleDestroy {
+export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
 
+  /**
+   * LUA script for atomic bid placement.
+   * Execution steps:
+   * 1. Checks if the auction is active.
+   * 2. Prevents the current highest bidder from outbidding themselves.
+   * 3. Validates the minimum bid increment.
+   * 4. Updates price and bidder ID atomically.
+   */
+  private readonly BID_SCRIPT = `
+    local priceKey = KEYS[1]
+    local bidderKey = KEYS[2]
+    local activeKey = KEYS[3]
+    local newAmount = tonumber(ARGV[1])
+    local userIdStr = ARGV[2]
+    local minIncrement = tonumber(ARGV[3])
+
+    -- Check if auction is active
+    if redis.call('EXISTS', activeKey) == 0 then
+      return 0
+    end
+
+    local currentPriceStr = redis.call('GET', priceKey)
+    local currentBidderStr = redis.call('GET', bidderKey)
+    local currentPrice = 0
+
+    if currentPriceStr then
+      currentPrice = tonumber(currentPriceStr)
+    end
+
+    -- Prevent user from outbidding themselves
+    if currentBidderStr == userIdStr then
+      return 0
+    end
+
+    -- Validate minimum increment
+    if newAmount < currentPrice + minIncrement then
+      return 0
+    end
+
+    -- Update price and bidder
+    redis.call('SET', priceKey, tostring(newAmount))
+    redis.call('SET', bidderKey, userIdStr)
+    
+    return 1
+  `;
+
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+
+  onModuleInit() {
+    this.redis.defineCommand('placeBidAtomicCommand', {
+      numberOfKeys: 3,
+      lua: this.BID_SCRIPT,
+    });
+    this.logger.log('Redis Lua scripts loaded.');
+  }
 
   onModuleDestroy(): void {
     this.redis.disconnect();
   }
 
+  // --- Generic Cache Methods ---
+
+  /**
+   * Retrieves and parses a JSON payload from Redis.
+   *
+   * @param key - The Redis key to retrieve.
+   * @returns The parsed object of type T, or null if the key doesn't exist or an error occurs.
+   */
   async getCache<T = any>(key: string): Promise<T | null> {
     try {
       const data = await this.redis.get(key);
       return data ? (JSON.parse(data) as T) : null;
     } catch (error: unknown) {
-      const stack = error instanceof Error ? error.stack : String(error);
-      this.logger.error(`Cache get error for key "${key}"`, stack);
+      this.handleError(`Cache get error for key "${key}"`, error);
       return null;
     }
   }
 
+  /**
+   * Serializes an object and stores it in Redis with an expiration time.
+   *
+   * @param key - The Redis key to set.
+   * @param value - The value to store (will be JSON stringified).
+   * @param ttlSeconds - Time-To-Live in seconds.
+   */
   async setCache(key: string, value: any, ttlSeconds: number): Promise<void> {
     try {
       await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
     } catch (error: unknown) {
-      const stack = error instanceof Error ? error.stack : String(error);
-      this.logger.error(`Cache set error for key "${key}"`, stack);
+      this.handleError(`Cache set error for key "${key}"`, error);
     }
   }
 
+  /**
+   * Deletes a specific key from Redis.
+   *
+   * @param key - The Redis key to delete.
+   */
   async deleteCache(key: string): Promise<void> {
     try {
       await this.redis.del(key);
     } catch (error: unknown) {
-      const stack = error instanceof Error ? error.stack : String(error);
-      this.logger.error(`Cache delete error for key "${key}"`, stack);
+      this.handleError(`Cache delete error for key "${key}"`, error);
     }
   }
 
-  async getLivePrice(auctionId: number): Promise<number | null> {
-    try {
-      const price = await this.redis.get(`auction:${auctionId}:price`);
-      return price ? parseFloat(price) : null;
-    } catch (error: unknown) {
-      const stack = error instanceof Error ? error.stack : String(error);
-      this.logger.error(`Get live price error for ID "${auctionId}"`, stack);
-      return null;
-    }
-  }
-
+  /**
+   * Invalidates all cache keys matching a specific pattern using the SCAN command.
+   *
+   * @param pattern - The pattern to match (e.g., "auction:*:active").
+   */
   async invalidateCache(pattern: string): Promise<void> {
     try {
       let cursor = '0';
@@ -67,22 +145,44 @@ export class RedisService implements OnModuleDestroy {
         const [nextCursor, foundKeys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
         cursor = nextCursor;
 
-        if (foundKeys.length > 0) await this.redis.del(...foundKeys);
-        totalDeleted += foundKeys.length;
+        if (foundKeys.length > 0) {
+          await this.redis.del(...foundKeys);
+          totalDeleted += foundKeys.length;
+        }
       } while (cursor !== '0');
 
-      if (totalDeleted > 0) this.logger.log(`Invalidated ${totalDeleted} keys matching "${pattern}"`);
+      if (totalDeleted > 0) {
+        this.logger.log(`Invalidated ${totalDeleted} keys matching "${pattern}"`);
+      }
     } catch (error: unknown) {
-      const stack = error instanceof Error ? error.stack : String(error);
-      this.logger.error(`Cache invalidation error for pattern "${pattern}"`, stack);
+      this.handleError(`Cache invalidation error for pattern "${pattern}"`, error);
+    }
+  }
+
+  // --- Auction Domain Methods ---
+
+  /**
+   * Retrieves the current highest price for a specific auction.
+   *
+   * @param auctionId - The ID of the auction.
+   * @returns The current live price, or null if no bids have been placed yet.
+   */
+  async getLivePrice(auctionId: number): Promise<number | null> {
+    try {
+      const price = await this.redis.get(RedisKey.auctionPrice(auctionId));
+      return price ? parseFloat(price) : null;
+    } catch (error: unknown) {
+      this.handleError(`Get live price error for ID "${auctionId}"`, error);
+      return null;
     }
   }
 
   /**
-   * Checks if an auction is currently active.
-   * Used as a safeguard to prevent users from joining non-existent or ended auctions.
-   * * @param auctionId - The ID of the auction to check
-   * @returns True if the auction exists and is active, false otherwise
+   * Checks whether an auction is currently active.
+   * Used as a safeguard to prevent bids on ended or non-existent auctions.
+   *
+   * @param auctionId - The ID of the auction.
+   * @returns True if the active key exists, false otherwise.
    */
   async isAuctionActive(auctionId: number): Promise<boolean> {
     try {
@@ -95,10 +195,46 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * Removes a specific socket connection from the auction room.
-   * Ensures that closing one tab does not remove the user entirely if they have other active tabs.
-   * * @param auctionId - The ID of the auction
-   * @param socketId - The unique ID of the disconnected socket
+   * Retrieves the ID of the auction's owner.
+   * Used to prevent owners from bidding on their own items.
+   *
+   * @param auctionId - The ID of the auction.
+   * @returns The owner's user ID, or null if the auction is not found.
+   */
+  async getAuctionOwner(auctionId: number): Promise<number | null> {
+    try {
+      const ownerId = await this.redis.get(RedisKey.auctionOwner(auctionId));
+      return ownerId !== null ? Number(ownerId) : null;
+    } catch (error: unknown) {
+      this.handleError(`Get auction owner error for ID "${auctionId}"`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Retrieves the ID of the current highest bidder.
+   *
+   * @param auctionId - The ID of the auction.
+   * @returns The user ID of the highest bidder, or null if there are no bids.
+   */
+  async getHighestBidderId(auctionId: number): Promise<number | null> {
+    try {
+      const bidderId = await this.redis.get(RedisKey.auctionBidder(auctionId));
+      return bidderId !== null ? parseInt(bidderId, 10) : null;
+    } catch (error: unknown) {
+      this.handleError(`Get highest bidder error for auction "${auctionId}"`, error);
+      return null;
+    }
+  }
+
+  // --- Socket Management ---
+
+  /**
+   * Removes a specific socket connection from the auction room participants (Hash map).
+   * Prevents total user removal if the user has other active tabs/devices.
+   *
+   * @param auctionId - The ID of the auction.
+   * @param socketId - The unique ID of the socket.
    */
   async removeUserFromAuctionRoom(auctionId: number, socketId: string): Promise<void> {
     try {
@@ -110,10 +246,28 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * Deletes the temporary mapping between a socket and an auction.
-   * Called when a user explicitly leaves an auction or disconnects.
-   * * @param userId - The ID of the user
-   * @param socketId - The unique ID of the socket
+   * Retrieves the auction ID currently assigned to a specific socket.
+   * Acts as the source of truth for multi-server/load-balanced environments.
+   *
+   * @param userId - The ID of the user.
+   * @param socketId - The unique ID of the socket.
+   * @returns The auction ID the socket is bound to, or null if not found.
+   */
+  async getSocketAuction(userId: number, socketId: string): Promise<number | null> {
+    try {
+      const val = await this.redis.get(RedisKey.userSocketAuction(userId, socketId));
+      return val ? Number(val) : null;
+    } catch (error: unknown) {
+      this.handleError(`Get socket auction error for user "${userId}", socket "${socketId}"`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Deletes the temporary mapping between a user's socket and an auction.
+   *
+   * @param userId - The ID of the user.
+   * @param socketId - The unique ID of the socket.
    */
   async deleteSocketAuction(userId: number, socketId: string): Promise<void> {
     try {
@@ -125,11 +279,11 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * Adds a user's specific socket connection to the auction room.
-   * Uses a Redis Hash to allow the same user to connect from multiple tabs/devices simultaneously.
-   * * @param auctionId - The ID of the auction
-   * @param socketId - The unique ID of the client's socket
-   * @param userId - The ID of the user joining the auction
+   * Registers a user's socket as a participant in the auction room using a Redis Hash.
+   *
+   * @param auctionId - The ID of the auction.
+   * @param socketId - The unique ID of the socket.
+   * @param userId - The ID of the user joining the room.
    */
   async addUserToAuctionRoom(auctionId: number, socketId: string, userId: number): Promise<void> {
     try {
@@ -141,13 +295,12 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * Saves the socket -> auction mapping for a specific user.
-   * A 24h TTL prevents Redis from getting cluttered in case of a server crash
-   * (when the disconnect event never fires).
+   * Maps a socket to an auction with a specific TTL.
+   * Prevents Redis clutter in case a socket disconnects without triggering a cleanup event.
    *
-   * @param userId - The ID of the authenticated user
-   * @param socketId - The unique ID of the client's socket connection
-   * @param auctionId - The ID of the joined auction
+   * @param userId - The ID of the user.
+   * @param socketId - The unique ID of the socket.
+   * @param auctionId - The ID of the auction to map to.
    */
   async setSocketAuction(userId: number, socketId: string, auctionId: number): Promise<void> {
     try {
@@ -158,6 +311,78 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
+  // --- Atomic Operations ---
+
+  /**
+   * Executes the atomic bid placement script in Redis.
+   * Ensures thread safety and prevents race conditions when multiple users bid simultaneously.
+   *
+   * @param auctionId - The ID of the auction.
+   * @param userId - The ID of the user placing the bid.
+   * @param newAmount - The proposed bid amount.
+   * @param minIncrement - The required minimum difference between the new and current bid.
+   * @returns True if the bid was successfully placed (script returned 1), false otherwise.
+   */
+  async placeBidAtomic(auctionId: number, userId: number, newAmount: number, minIncrement: number): Promise<boolean> {
+    try {
+      const result = await this.redis.placeBidAtomicCommand(
+        RedisKey.auctionPrice(auctionId),
+        RedisKey.auctionBidder(auctionId),
+        RedisKey.auctionActive(auctionId),
+        newAmount,
+        userId,
+        minIncrement,
+      );
+      return result === 1;
+    } catch (error: unknown) {
+      this.handleError(`Atomic bid error for auction "${auctionId}"`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Atomically rolls back the Redis state if database persistence fails after a successful bid.
+   * Restores the previous price and bidder ID while maintaining the original TTL.
+   *
+   * @param auctionId - The ID of the auction.
+   * @param previousPrice - The price to restore, or null if this was the first bid.
+   * @param previousBidderId - The bidder ID to restore, or null if there was no prior bidder.
+   */
+  async rollbackBid(auctionId: number, previousPrice: number | null, previousBidderId: number | null): Promise<void> {
+    try {
+      const remainingTtl = await this.redis.ttl(RedisKey.auctionPrice(auctionId));
+
+      if (remainingTtl === -2) {
+        this.logger.warn(`Rollback skipped for auction ${auctionId} — price key no longer exists`);
+        return;
+      }
+
+      const safeTtl = remainingTtl > 0 ? remainingTtl : 3600;
+
+      const pipeline = this.redis.pipeline();
+
+      if (previousPrice) pipeline.set(RedisKey.auctionPrice(auctionId), previousPrice, 'EX', safeTtl);
+      else pipeline.del(RedisKey.auctionPrice(auctionId));
+
+      if (previousBidderId !== null) {
+        pipeline.set(RedisKey.auctionBidder(auctionId), previousBidderId, 'EX', safeTtl);
+      } else {
+        pipeline.del(RedisKey.auctionBidder(auctionId));
+      }
+
+      await pipeline.exec();
+      this.logger.warn(`Bid rolled back in Redis for auction ${auctionId} — restored price=${previousPrice}, bidder=${previousBidderId ?? 'none'}`);
+    } catch (error: unknown) {
+      this.logger.error(`CRITICAL: Redis rollback failed for auction ${auctionId}. Inconsistency risk!`, error instanceof Error ? error.stack : String(error));
+    }
+  }
+
+  /**
+   * Standardizes error logging across the service.
+   *
+   * @param message - The context or description of the error.
+   * @param error - The actual error object or string.
+   */
   private handleError(message: string, error: unknown): void {
     const stack = error instanceof Error ? error.stack : String(error);
     this.logger.error(message, stack);

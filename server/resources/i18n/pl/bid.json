@@ -1,7 +1,17 @@
 {
   "error": {
+    "bid_too_low_#minBid": "Twoja oferta jest zbyt niska. Minimalna oferta to {minBid}.",
     "auction_ended": "Aukcja już się zakończyła. Nie można składać ofert.",
+    "unauthorized": "Zaloguj się, aby złożyć ofertę.",
+    "bid_failed": "Nie można złożyć oferty. Spróbuj ponownie później.",
+    "invalid_amount": "Nieprawidłowa kwota oferty.",
+    "outbid": "Ktoś ubiegł Cię z wyższą ofertą.",
+    "owner_cannot_bid": "Właściciel aukcji nie może licytować we własnej aukcji.",
     "join_failed": "Nie udało się dołączyć do pokoju aukcji.",
-    "leave_failed": "Nie udało się opuścić pokoju aukcji."
+    "leave_failed": "Nie udało się opuścić pokoju aukcji.",
+    "place_failed": "Nie udało się złożyć oferty. Spróbuj ponownie.",
+    "get_state_failed": "Nie udało się pobrać stanu aukcji.",
+    "not_in_room": "Nie jesteś w żadnym pokoju aukcji.",
+    "rejected_too_low": "Oferta odrzucona — zbyt niska kwota."
   }
 }

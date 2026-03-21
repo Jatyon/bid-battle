@@ -1,11 +1,12 @@
 import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
-import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Logger, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { BaseGateway } from '@core/gateways/base.gateway';
 import { AuthService, IAuthJwtPayload, type IAuthSocket, WsJwtGuard } from '@modules/auth';
 import { UsersService } from '@modules/users';
 import { RedisService } from '@shared/redis';
-import { auctionEventDto, AuctionIdDto } from './dto';
+import { auctionEventDto, AuctionIdDto, newHighestBidDto, PlaceBidDto } from './dto';
+import { BidService } from './bid.service';
 import { I18nService } from 'nestjs-i18n';
 
 @WebSocketGateway({
@@ -20,6 +21,7 @@ export class BidGateway extends BaseGateway {
   constructor(
     protected readonly authService: AuthService,
     protected readonly usersService: UsersService,
+    protected readonly bidService: BidService,
     protected readonly i18n: I18nService,
     protected readonly appConfigService: AppConfigService,
     protected readonly redisService: RedisService,
@@ -71,6 +73,10 @@ export class BidGateway extends BaseGateway {
     }
   }
 
+  /**
+   * Handles request to join a specific auction room.
+   * Manages transition between different auction rooms and updates state in Redis.
+   */
   @SubscribeMessage('join:auction')
   async handleJoinAuction(@MessageBody() data: AuctionIdDto, @ConnectedSocket() client: IAuthSocket) {
     try {
@@ -126,6 +132,9 @@ export class BidGateway extends BaseGateway {
     }
   }
 
+  /**
+   * Handles request to leave an auction room.
+   */
   @SubscribeMessage('leave:auction')
   async handleLeaveAuction(@MessageBody() data: AuctionIdDto, @ConnectedSocket() client: IAuthSocket) {
     try {
@@ -155,6 +164,67 @@ export class BidGateway extends BaseGateway {
         message: this.i18n.translate('bid.error.leave_failed', { lang: client.data.lang }),
         code: 'LEAVE_AUCTION_ERROR',
       });
+    }
+  }
+
+  /**
+   * Handles bid placement.
+   * Includes strict JWT re-validation and consistency checks between socket data and Redis.
+   */
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('place:bid')
+  async handlePlaceBid(@MessageBody() data: PlaceBidDto, @ConnectedSocket() client: IAuthSocket) {
+    const rejectBid = async (code: string, reasonKey: string, extraData = {}) => {
+      const reason = await this.i18n.translate(reasonKey, { lang: client.data.lang });
+      client.emit('bid:rejected', { reason, code, ...extraData });
+    };
+
+    try {
+      if (!client.data.user) return await rejectBid('UNAUTHORIZED', 'bid.error.unauthorized');
+
+      try {
+        await this.wsJwtGuard.revalidateSocket(client);
+      } catch {
+        await rejectBid('UNAUTHORIZED', 'bid.error.unauthorized');
+        client.disconnect();
+        return;
+      }
+
+      const userId: number = client.data.user.sub;
+      const auctionId: number | undefined = client.data.auctionId;
+
+      if (!auctionId) return await rejectBid('NOT_IN_AUCTION_ROOM', 'bid.error.not_in_room');
+
+      const redisAuctionId = await this.redisService.getSocketAuction(userId, client.id);
+
+      if (redisAuctionId !== auctionId) return await rejectBid('NOT_IN_AUCTION_ROOM', 'bid.error.not_in_room');
+
+      const bidResult = await this.bidService.placeBid(auctionId, userId, data.amount);
+
+      if (!bidResult.success) {
+        const reason = bidResult.reason || (await this.i18n.translate('bid.error.rejected_too_low', { lang: client.data.lang }));
+
+        client.emit('bid:rejected', {
+          reason,
+          code: bidResult.code || 'BID_TOO_LOW',
+          currentPrice: bidResult.currentPrice,
+          minNextBid: bidResult.minNextBid,
+        });
+        return;
+      }
+
+      const responsePayload: newHighestBidDto = {
+        auctionId,
+        amount: data.amount,
+        timestamp: new Date().toISOString(),
+      };
+
+      this.server.to(`auction_room_${auctionId}`).emit('new:highest:bid', responsePayload);
+
+      this.logger.log(`New highest bid: auction ${auctionId}, user ${client.data.user.email}, amount ${data.amount}`);
+    } catch (error) {
+      this.logger.error(`Error placing bid: ${error instanceof Error ? error.message : String(error)}`);
+      return await rejectBid('SERVER_ERROR', 'bid.error.place_failed');
     }
   }
 }
