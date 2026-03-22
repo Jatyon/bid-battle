@@ -119,13 +119,17 @@ export class AuctionsService {
   /**
    * Get auction details by ID
    * Uses hybrid approach: current_price from Redis (if available), rest from MySQL
+   * Canceled auctions are hidden from public — only accessible to the owner.
    * @param auctionId - Auction ID
+   * @param requestingUserId - ID of the requesting user (optional, unauthenticated guests pass undefined)
    * @returns Auction details
    */
-  async findOne(auctionId: number): Promise<AuctionDetailResponse> {
+  async findOne(auctionId: number, requestingUserId?: number): Promise<AuctionDetailResponse> {
     const auction = await this.auctionsRepository.findByIdWithRelations(auctionId);
 
     if (!auction) throw new NotFoundException('error.auction.not_found');
+
+    if (auction.status === AuctionStatus.CANCELED && auction.ownerId !== requestingUserId) throw new NotFoundException('error.auction.not_found');
 
     const cachedPrice = await this.redisService.getLivePrice(auctionId);
 
