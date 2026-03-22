@@ -38,14 +38,32 @@ export class InitAuction1773160752712 implements MigrationInterface {
             unsigned: true,
           },
           {
+            name: 'start_time',
+            type: 'timestamp',
+            isNullable: false,
+            default: 'CURRENT_TIMESTAMP',
+          },
+          {
             name: 'end_time',
             type: 'timestamp',
           },
           {
+            name: 'started_at',
+            type: 'timestamp',
+            isNullable: true,
+            default: null,
+          },
+          {
+            name: 'ended_at',
+            type: 'timestamp',
+            isNullable: true,
+            default: null,
+          },
+          {
             name: 'status',
             type: 'enum',
-            enum: ['ACTIVE', 'ENDED', 'CANCELED'],
-            default: "'ACTIVE'",
+            enum: ['PENDING', 'ACTIVE', 'ENDED', 'CANCELED'],
+            default: "'PENDING'",
           },
           {
             name: 'owner_id',
@@ -111,6 +129,10 @@ export class InitAuction1773160752712 implements MigrationInterface {
         name: 'IDX_AUCTIONS_STATUS',
         columnNames: ['status'],
       }),
+      new TableIndex({
+        name: 'IDX_AUCTIONS_STATUS_START_TIME',
+        columnNames: ['status', 'start_time'],
+      }),
     ]);
   }
 
@@ -119,6 +141,7 @@ export class InitAuction1773160752712 implements MigrationInterface {
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_WINNER_ID');
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_OWNER_ID');
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_STATUS_END_TIME');
+    await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_STATUS_START_TIME');
 
     await queryRunner.dropForeignKey('auctions', 'FK_AUCTIONS_WINNER_ID');
     await queryRunner.dropForeignKey('auctions', 'FK_AUCTIONS_OWNER_ID');
