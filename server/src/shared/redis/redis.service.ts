@@ -279,6 +279,32 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Performs a hard cleanup of all Redis keys associated with a specific auction.
+   * * @remarks
+   * This method should be called immediately after an auction officially ends
+   * and its final state is safely persisted to the database. It prevents RAM
+   * clutter by proactively deleting the price, bidder, status, owner, and
+   * participants Hash map.
+   *
+   * @param auctionId - The unique identifier of the auction to be cleaned up.
+   * @returns A promise that resolves when the deletion is confirmed.
+   */
+  async cleanupAuction(auctionId: number): Promise<void> {
+    try {
+      await this.redis.del(
+        RedisKey.auctionPrice(auctionId),
+        RedisKey.auctionBidder(auctionId),
+        RedisKey.auctionActive(auctionId),
+        RedisKey.auctionOwner(auctionId),
+        RedisKey.auctionParticipants(auctionId),
+      );
+      this.logger.log(`Auction ${auctionId} data cleaned up from Redis`);
+    } catch (error: unknown) {
+      this.handleError(`Cleanup auction error for ID "${auctionId}"`, error);
+    }
+  }
+
+  /**
    * Retrieves the ID of the current highest bidder.
    *
    * @param auctionId - The ID of the auction.

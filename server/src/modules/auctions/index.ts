@@ -1,4 +1,5 @@
 export * from './auctions-start.processor';
+export * from './auctions-end.processor';
 export * from './auctions.controller';
 export * from './auction.scheduler';
 export * from './auctions.service';

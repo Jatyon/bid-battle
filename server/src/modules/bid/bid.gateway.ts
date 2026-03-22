@@ -5,7 +5,7 @@ import { BaseGateway } from '@core/gateways/base.gateway';
 import { AuthService, IAuthJwtPayload, type IAuthSocket, WsJwtGuard } from '@modules/auth';
 import { UsersService } from '@modules/users';
 import { RedisService } from '@shared/redis';
-import { AuctionEventDto, AuctionIdDto, AuctionStateDto, NewHighestBidDto, PlaceBidDto } from './dto';
+import { AuctionEndDto, AuctionEventDto, AuctionIdDto, AuctionStateDto, NewHighestBidDto, PlaceBidDto } from './dto';
 import { BidService } from './bid.service';
 import { I18nService } from 'nestjs-i18n';
 
@@ -264,6 +264,40 @@ export class BidGateway extends BaseGateway {
         error: this.i18n.translate('bid.error.get_state_failed', { lang: client.data.lang }),
         code: 'GET_STATE_ERROR',
       });
+    }
+  }
+
+  /**
+   * Broadcasts the conclusion of an auction to all connected WebSocket clients.
+   * * @remarks
+   * This method is typically invoked externally by a BullMQ background worker
+   * (`AuctionEndProcessor`) once the auction's state is finalized in the database.
+   * * **Privacy by Design:**
+   * It intentionally omits the `winnerId` from the public room broadcast to protect
+   * the identity of the winning bidder. Instead, it emits a generic 'auction:ended'
+   * event with the `finalPrice` to the auction room, and sends a private 'auction:won'
+   * event exclusively to the winner's dedicated personal channel (`user:{id}`).
+   *
+   * @param auctionId - The unique identifier of the auction that has ended.
+   * @param winnerId - (Optional) The ID of the winning user, if any bids were placed.
+   * @param finalPrice - (Optional) The final closing price of the auction.
+   * @returns A promise that resolves when the socket emissions are completed.
+   */
+   notifyAuctionEnd(auctionId: number, winnerId?: number, finalPrice?: number): void {
+    try {
+      const auctionEndDto: AuctionEndDto = {
+        auctionId,
+        finalPrice,
+        timestamp: new Date().toISOString(),
+      };
+
+      this.server.to(`auction_room_${auctionId}`).emit('auction:ended', auctionEndDto);
+
+      if (winnerId) this.server.to(`user:${winnerId}`).emit('auction:won', auctionEndDto);
+
+      this.logger.log(`Auction ${auctionId} ended — notification sent`);
+    } catch (error) {
+      this.logger.error(`Error notifying auction end: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 }

@@ -75,7 +75,7 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
 
             await this.redisService.restoreAuction(auction.id, priceToRestore, durationSeconds, auction.ownerId, highestBidderIdToRestore);
 
-            //TODO: add end auction
+            await this.auctionScheduler.scheduleAuctionEnd(auction.id, new Date(auction.endTime));
 
             this.logger.warn(
               `Reconciliation: auction ${auction.id} re-initialized in Redis — price=${priceToRestore}, bidder=${highestBidderIdToRestore ?? 'none'}, ends in ${durationSeconds}s`,
@@ -146,7 +146,7 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
 
     await this.redisService.initializeAuction(auctionId, auction.startingPrice, durationSeconds, auction.ownerId);
 
-    //TODO: add end auction
+    await this.auctionScheduler.scheduleAuctionEnd(auctionId, new Date(auction.endTime));
 
     this.logger.log(`Auction ${auctionId} started — ends in ${durationSeconds}s`);
   }

@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
+import { Bid } from '@modules/bid';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UpdateAuctionDto } from './dto';
@@ -18,6 +19,8 @@ export class AuctionsService {
   constructor(
     @InjectRepository(AuctionImage)
     private auctionImageRepository: Repository<AuctionImage>,
+    @InjectRepository(Bid)
+    private bidRepository: Repository<Bid>,
     private readonly auctionsRepository: AuctionsRepository,
     private readonly redisService: RedisService,
     private readonly fileUploadService: FileUploadService,
@@ -132,10 +135,17 @@ export class AuctionsService {
   }
 
   /**
-   * Cancel an auction (only if no one has bid yet)
-   * Bidding status is determined by checking if current_price > starting_price
-   * @param auctionId - Auction ID
-   * @param userId - User ID (must be auction owner)
+   * Cancels an auction, ensuring that no bids have been placed if it is already active.
+   * * @remarks
+   * An auction can only be canceled if its status is `PENDING` or `ACTIVE`.
+   * If the auction is `ACTIVE`, a strict database check is performed against the bids table
+   * to guarantee that 0 bids exist.
+   * Depending on the auction's prior state, this method safely orchestrates the cleanup of
+   * background scheduling jobs (BullMQ) and live in-memory data (Redis) to prevent
+   * zombie processes and memory leaks.
+   *
+   * @param auctionId - The unique identifier of the auction to cancel.
+   * @param userId - The ID of the user attempting to cancel the auction (must be the owner).
    * @returns Updated auction
    */
   async cancelAuction(auctionId: number, userId: number): Promise<AuctionResponse> {
@@ -145,13 +155,25 @@ export class AuctionsService {
 
     if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.cancel_forbidden_not_owner');
 
-    if (auction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.cancel_forbidden_not_active');
+    if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.cancel_forbidden_not_active');
 
-    //TODO: If the first bidder enters an amount exactly equal to the starting price, it will be treated as no bids. You might consider adding an additional "hasBids" field or checking for the existence of records in the bid table.
-    if (auction.currentPrice > auction.startingPrice) throw new BadRequestException('error.auction.cancel_forbidden_already_has_bids');
+    if (auction.status === AuctionStatus.ACTIVE) {
+      const bidCount = await this.bidRepository.count({ where: { auctionId } });
 
+      if (bidCount > 0) throw new BadRequestException('error.auction.cancel_forbidden_already_has_bids');
+    }
+
+    const previousStatus = auction.status;
     auction.status = AuctionStatus.CANCELED;
+
     const updatedAuction = await this.auctionsRepository.save(auction);
+
+    if (previousStatus === AuctionStatus.PENDING) {
+      await this.auctionScheduler.cancelAuctionStart(auctionId);
+    } else {
+      await this.auctionScheduler.cancelAuctionEnd(auctionId);
+      await this.redisService.cleanupAuction(auctionId);
+    }
 
     await this.invalidateAuctionsCache();
     await this.invalidatePriceCache(auctionId);

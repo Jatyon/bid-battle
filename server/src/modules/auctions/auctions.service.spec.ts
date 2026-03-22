@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
 import { Repository } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
+import { Bid } from '@modules/bid';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import {
@@ -25,6 +26,7 @@ describe('AuctionsService', () => {
   let service: AuctionsService;
   let auctionsRepository: DeepMocked<AuctionsRepository>;
   let auctionImageRepository: DeepMocked<Repository<AuctionImage>>;
+  let bidRepository: DeepMocked<Repository<Bid>>;
   let redisService: DeepMocked<RedisService>;
   let fileUploadService: DeepMocked<FileUploadService>;
   let auctionScheduler: DeepMocked<AuctionScheduler>;
@@ -46,6 +48,10 @@ describe('AuctionsService', () => {
           useValue: createMock<Repository<AuctionImage>>(),
         },
         {
+          provide: getRepositoryToken(Bid),
+          useValue: createMock<Repository<Bid>>(),
+        },
+        {
           provide: RedisService,
           useValue: createMock<RedisService>(),
         },
@@ -63,6 +69,7 @@ describe('AuctionsService', () => {
     service = module.get<AuctionsService>(AuctionsService);
     auctionsRepository = module.get(AuctionsRepository);
     auctionImageRepository = module.get(getRepositoryToken(AuctionImage));
+    bidRepository = module.get(getRepositoryToken(Bid));
     redisService = module.get(RedisService);
     fileUploadService = module.get(FileUploadService);
     auctionScheduler = module.get(AuctionScheduler);
@@ -252,16 +259,40 @@ describe('AuctionsService', () => {
   });
 
   describe('cancelAuction', () => {
-    it('should cancel auction and invalidate both list cache and price cache', async () => {
-      const mockAuction = createAuctionFixture();
+    it('should cancel a PENDING auction, cancel start job, and invalidate caches', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
       auctionsRepository.findByIdWithRelations.mockResolvedValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.CANCELED }));
+      auctionsRepository.save.mockResolvedValue({ ...mockAuction, status: AuctionStatus.CANCELED });
+
+      auctionScheduler.cancelAuctionStart.mockResolvedValue(undefined);
 
       const result = await service.cancelAuction(1, 1);
 
       expect(auctionsRepository.save).toHaveBeenCalledWith(expect.objectContaining({ status: AuctionStatus.CANCELED }));
+      expect(auctionScheduler.cancelAuctionStart).toHaveBeenCalledWith(1);
+      expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
+      expect(redisService.cleanupAuction).not.toHaveBeenCalled();
       expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
       expect(redisService.deleteCache).toHaveBeenCalledWith('auction:1:price');
+      expect(result).toBeInstanceOf(AuctionResponse);
+    });
+
+    it('should cancel an ACTIVE auction with no bids, cancel end job, clean Redis, and invalidate caches', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(mockAuction);
+      bidRepository.count.mockResolvedValue(0);
+      auctionsRepository.save.mockResolvedValue({ ...mockAuction, status: AuctionStatus.CANCELED });
+
+      auctionScheduler.cancelAuctionEnd.mockResolvedValue(undefined);
+      redisService.cleanupAuction.mockResolvedValue(undefined);
+
+      const result = await service.cancelAuction(1, 1);
+
+      expect(bidRepository.count).toHaveBeenCalledWith({ where: { auctionId: 1 } });
+      expect(auctionsRepository.save).toHaveBeenCalledWith(expect.objectContaining({ status: AuctionStatus.CANCELED }));
+      expect(auctionScheduler.cancelAuctionEnd).toHaveBeenCalledWith(1);
+      expect(auctionScheduler.cancelAuctionStart).not.toHaveBeenCalled();
+      expect(redisService.cleanupAuction).toHaveBeenCalledWith(1);
       expect(result).toBeInstanceOf(AuctionResponse);
     });
 
@@ -273,31 +304,27 @@ describe('AuctionsService', () => {
     });
 
     it('should throw ForbiddenException when requesting user is not the owner', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ ownerId: 1 }));
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ ownerId: 2 }));
 
-      await expect(service.cancelAuction(1, 2)).rejects.toThrow(ForbiddenException);
+      await expect(service.cancelAuction(1, 1)).rejects.toThrow(ForbiddenException);
       expect(auctionsRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when auction status is not ACTIVE', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.CANCELED }));
+    it('should throw BadRequestException when auction status is not ACTIVE or PENDING', async () => {
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.ENDED, ownerId: 1 }));
 
       await expect(service.cancelAuction(1, 1)).rejects.toThrow(BadRequestException);
       expect(auctionsRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when auction already has bids (currentPrice > startingPrice)', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ currentPrice: 150, startingPrice: 100 }));
+    it('should throw BadRequestException when an ACTIVE auction already has bids (bidCount > 0)', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(mockAuction);
+      bidRepository.count.mockResolvedValue(3);
 
       await expect(service.cancelAuction(1, 1)).rejects.toThrow(BadRequestException);
       expect(auctionsRepository.save).not.toHaveBeenCalled();
-    });
-
-    it('should allow cancellation when currentPrice equals startingPrice (no bids edge case)', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ currentPrice: 100, startingPrice: 100 }));
-      auctionsRepository.save.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.CANCELED }));
-
-      await expect(service.cancelAuction(1, 1)).resolves.toBeInstanceOf(AuctionResponse);
+      expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
     });
   });
 
