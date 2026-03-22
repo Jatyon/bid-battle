@@ -195,6 +195,73 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Initializes a new auction in Redis with its starting parameters.
+   * Sets the initial price, the active status flag, and the owner ID.
+   * * @remarks
+   * All keys (except the 'active' flag) are assigned a TTL equal to the auction's
+   * duration plus a 1-hour buffer. This acts as a fail-safe mechanism to prevent
+   * Redis memory leaks in case the Node.js process crashes and `cleanupAuction`
+   * is never explicitly called.
+   *
+   * @param auctionId - The unique identifier of the auction.
+   * @param startingPrice - The base price at which the auction starts.
+   * @param durationSeconds - The exact duration of the auction in seconds.
+   * @param ownerId - The ID of the user who created the auction.
+   * @returns A promise that resolves when all keys are successfully set.
+   */
+  async initializeAuction(auctionId: number, startingPrice: number, durationSeconds: number, ownerId: number): Promise<void> {
+    try {
+      const ttlWithBuffer = durationSeconds + 3600;
+
+      await Promise.all([
+        this.redis.set(RedisKey.auctionPrice(auctionId), startingPrice, 'EX', ttlWithBuffer),
+        this.redis.set(RedisKey.auctionActive(auctionId), '1', 'EX', durationSeconds),
+        this.redis.set(RedisKey.auctionOwner(auctionId), ownerId, 'EX', ttlWithBuffer),
+      ]);
+
+      this.logger.log(`Auction ${auctionId} initialized: price=${startingPrice}, duration=${durationSeconds}s, owner=${ownerId}`);
+    } catch (error: unknown) {
+      this.handleError(`Initialize auction error for ID "${auctionId}"`, error);
+    }
+  }
+
+  /**
+   * Restores the state of an active auction in Redis, typically invoked during
+   * server reconciliation after a crash or restart.
+   * * @remarks
+   * Unlike `initializeAuction`, this method specifically restores the `highestBidderId`.
+   * This is a critical step to prevent the auction from resolving with a `null` winner
+   * if it ends shortly after the server restarts. It uses a Redis pipeline to batch
+   * the commands for better performance.
+   *
+   * @param auctionId - The unique identifier of the auction.
+   * @param currentPrice - The last known highest price retrieved from the database.
+   * @param durationSeconds - The remaining duration of the auction in seconds.
+   * @param ownerId - The ID of the user who created the auction.
+   * @param highestBidderId - The ID of the current leading bidder, or null if no bids exist.
+   * @returns A promise that resolves when the pipeline executes successfully.
+   */
+  async restoreAuction(auctionId: number, currentPrice: number, durationSeconds: number, ownerId: number, highestBidderId: number | null): Promise<void> {
+    try {
+      const ttlWithBuffer = durationSeconds + 3600;
+
+      const pipeline = this.redis.pipeline();
+      pipeline.set(RedisKey.auctionPrice(auctionId), currentPrice, 'EX', ttlWithBuffer);
+      pipeline.set(RedisKey.auctionActive(auctionId), '1', 'EX', durationSeconds);
+      pipeline.set(RedisKey.auctionOwner(auctionId), ownerId, 'EX', ttlWithBuffer);
+
+      if (highestBidderId !== null) {
+        pipeline.set(RedisKey.auctionBidder(auctionId), highestBidderId, 'EX', ttlWithBuffer);
+      }
+
+      await pipeline.exec();
+      this.logger.log(`Auction ${auctionId} restored: price=${currentPrice}, duration=${durationSeconds}s, owner=${ownerId}, highestBidder=${highestBidderId ?? 'none'}`);
+    } catch (error: unknown) {
+      this.handleError(`Restore auction error for ID "${auctionId}"`, error);
+    }
+  }
+
+  /**
    * Retrieves the ID of the auction's owner.
    * Used to prevent owners from bidding on their own items.
    *
@@ -374,7 +441,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
       const pipeline = this.redis.pipeline();
 
-      if (previousPrice) pipeline.set(RedisKey.auctionPrice(auctionId), previousPrice, 'EX', safeTtl);
+      if (previousPrice !== null) pipeline.set(RedisKey.auctionPrice(auctionId), previousPrice, 'EX', safeTtl);
       else pipeline.del(RedisKey.auctionPrice(auctionId));
 
       if (previousBidderId !== null) {

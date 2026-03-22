@@ -5,6 +5,7 @@ import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UpdateAuctionDto } from './dto';
 import { AuctionsRepository } from './repositories/auctions.repository';
+import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
 import { AuctionStatus } from './enums';
 import { I18nContext } from 'nestjs-i18n';
@@ -20,18 +21,31 @@ export class AuctionsService {
     private readonly auctionsRepository: AuctionsRepository,
     private readonly redisService: RedisService,
     private readonly fileUploadService: FileUploadService,
+    private readonly auctionScheduler: AuctionScheduler,
   ) {}
 
   /**
-   * Create a new auction
-   * @param createAuctionDto - Auction creation data
-   * @param ownerId - User ID of the auction owner
-   * @returns Created auction
+   * Creates a new auction, persists it to the database, and schedules its activation.
+   * * @remarks
+   * All newly created auctions initially receive a `PENDING` status, regardless of their start time.
+   * The actual activation (changing status to `ACTIVE` and initializing Redis) is delegated
+   * to a BullMQ background job (`AuctionStartProcessor`) to ensure transactional consistency.
+   * If the scheduling process fails, a compensation mechanism automatically rolls back
+   * the auction's status to `CANCELED` to prevent "zombie" auctions that exist in the DB
+   * but have no corresponding background jobs.
+   *
+   * @param createAuctionDto - The payload containing auction details (title, price, dates, images).
+   * @param ownerId - The ID of the user creating the auction.
+   * @returns A promise resolving to the fully constructed `AuctionResponse` object.
+   * @throws {BadRequestException} If the provided `primaryImageIndex` is out of bounds.
+   * @throws {Error} Rethrows any error encountered during BullMQ job scheduling after rolling back the DB state.
    */
   async createAuction(createAuctionDto: CreateAuctionDto, ownerId: number): Promise<AuctionResponse> {
     const primaryImageIndex: number = createAuctionDto.primaryImageIndex ?? 0;
 
-    if (primaryImageIndex >= createAuctionDto.imageUrls.length) throw new BadRequestException('error.validation.auction.primaryImageIndex_must_be_valid');
+    if (primaryImageIndex >= createAuctionDto.imageUrls.length) {
+      throw new BadRequestException('error.validation.auction.primaryImageIndex_must_be_valid');
+    }
 
     const primaryImageUrl: string = createAuctionDto.imageUrls[primaryImageIndex];
 
@@ -40,19 +54,31 @@ export class AuctionsService {
       isPrimary: index === primaryImageIndex,
     }));
 
+    const now = new Date();
+    const startTime = createAuctionDto.startTime ? new Date(createAuctionDto.startTime) : now;
+
     const auction: Auction = this.auctionsRepository.create({
       title: createAuctionDto.title,
       description: createAuctionDto.description,
       startingPrice: createAuctionDto.startingPrice,
+      startTime,
       endTime: createAuctionDto.endTime,
       ownerId,
       currentPrice: createAuctionDto.startingPrice,
-      status: AuctionStatus.ACTIVE,
+      status: AuctionStatus.PENDING,
       mainImageUrl: primaryImageUrl,
       images: mappedImages,
     });
 
     const savedAuction: Auction = await this.auctionsRepository.save(auction);
+
+    try {
+      await this.auctionScheduler.scheduleAuctionStart(savedAuction.id, startTime);
+    } catch (error) {
+      this.logger.error(`Auction ${savedAuction.id} scheduling failed — rolling back to CANCELED`, error instanceof Error ? error.stack : String(error));
+      await this.auctionsRepository.update(savedAuction.id, { status: AuctionStatus.CANCELED });
+      throw error;
+    }
 
     return new AuctionResponse(savedAuction);
   }

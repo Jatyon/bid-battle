@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsNotEmpty, Min, IsArray, IsOptional, IsInt, ArrayMinSize } from 'class-validator';
+import { IsString, IsDateString, IsNotEmpty, Min, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize } from 'class-validator';
 import { registerDecorator, ValidationOptions } from 'class-validator';
 import { addHours, isAfter } from 'date-fns';
 
@@ -10,6 +10,7 @@ export class CreateAuctionDto {
   })
   @IsNotEmpty({ message: 'error.validation.auction.title_required' })
   @IsString({ message: 'error.validation.auction.title_must_be_string' })
+  @MaxLength(255, { message: 'error.validation.auction.title_too_long' })
   title: string;
 
   @ApiProperty({
@@ -18,6 +19,7 @@ export class CreateAuctionDto {
   })
   @IsNotEmpty({ message: 'error.validation.auction.description_required' })
   @IsString({ message: 'error.validation.auction.description_must_be_string' })
+  @MaxLength(5000, { message: 'error.validation.auction.description_too_long' })
   description: string;
 
   @ApiProperty({
@@ -28,6 +30,17 @@ export class CreateAuctionDto {
   @IsInt({ message: 'error.validation.auction.starting_price_must_be_integer' })
   @Min(1, { message: 'error.validation.auction.starting_price_must_be_positive' })
   startingPrice: number;
+
+  @ApiProperty({
+    description: 'Auction start time (optional, defaults to now). Must be in the future.',
+    example: '2026-03-20T12:00:00Z',
+    type: 'string',
+    format: 'date-time',
+    required: false,
+  })
+  @IsOptional()
+  @IsDateString({ strict: false }, { message: 'error.validation.auction.start_time_must_be_datetime' })
+  startTime?: string;
 
   @ApiProperty({
     description: 'Auction end time (must be at least 1 hour in the future)',
@@ -49,7 +62,12 @@ export class CreateAuctionDto {
   })
   @IsArray()
   @ArrayMinSize(1, { message: 'error.validation.auction.images_must_have_at_least_one_image' })
-  @IsString({ each: true })
+  @ArrayMaxSize(10, { message: 'error.validation.auction.images_too_many' })
+  @IsString({ each: true, message: 'error.validation.auction.image_url_must_be_string' })
+  @Matches(/^\/uploads\/[\w\-/.]+$/, {
+    each: true,
+    message: 'error.validation.auction.image_url_invalid_format',
+  })
   imageUrls: string[];
 
   @ApiProperty({

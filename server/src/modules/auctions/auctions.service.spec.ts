@@ -15,6 +15,7 @@ import {
 } from '@test/fixtures/auctions.fixtures';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionResponse, AuctionDetailResponse } from './dto';
+import { AuctionScheduler } from './auction.scheduler';
 import { AuctionsService } from './auctions.service';
 import { AuctionImage } from './entities';
 import { AuctionStatus } from './enums';
@@ -26,6 +27,7 @@ describe('AuctionsService', () => {
   let auctionImageRepository: DeepMocked<Repository<AuctionImage>>;
   let redisService: DeepMocked<RedisService>;
   let fileUploadService: DeepMocked<FileUploadService>;
+  let auctionScheduler: DeepMocked<AuctionScheduler>;
 
   const mockManager = { delete: jest.fn(), save: jest.fn() };
 
@@ -51,6 +53,10 @@ describe('AuctionsService', () => {
           provide: FileUploadService,
           useValue: createMock<FileUploadService>(),
         },
+        {
+          provide: AuctionScheduler,
+          useValue: createMock<AuctionScheduler>(),
+        },
       ],
     }).compile();
 
@@ -59,36 +65,45 @@ describe('AuctionsService', () => {
     auctionImageRepository = module.get(getRepositoryToken(AuctionImage));
     redisService = module.get(RedisService);
     fileUploadService = module.get(FileUploadService);
+    auctionScheduler = module.get(AuctionScheduler);
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
   });
 
   describe('createAuction', () => {
-    it('should create auction successfully with first image as primary by default', async () => {
+    it('should create auction successfully with status PENDING and schedule it', async () => {
       const mockDto = createCreateAuctionDtoFixture();
       const mockAuction = createAuctionFixture();
       const savedAuction = { ...mockAuction, id: 1 };
 
       auctionsRepository.create.mockReturnValue(mockAuction);
       auctionsRepository.save.mockResolvedValue(savedAuction);
+      auctionScheduler.scheduleAuctionStart.mockResolvedValue(undefined);
 
       const result = await service.createAuction(mockDto, 1);
 
-      expect(auctionsRepository.create).toHaveBeenCalledWith({
-        title: mockDto.title,
-        description: mockDto.description,
-        startingPrice: mockDto.startingPrice,
-        endTime: mockDto.endTime,
-        ownerId: 1,
-        currentPrice: mockDto.startingPrice,
-        status: AuctionStatus.ACTIVE,
-        mainImageUrl: mockDto.imageUrls[0],
-        images: expect.arrayContaining([
-          { imageUrl: mockDto.imageUrls[0], isPrimary: true },
-          { imageUrl: mockDto.imageUrls[1], isPrimary: false },
-        ]) as unknown as AuctionImage[],
-      });
+      expect(auctionsRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: mockDto.title,
+          description: mockDto.description,
+          startingPrice: mockDto.startingPrice,
+          endTime: mockDto.endTime,
+          ownerId: 1,
+          currentPrice: mockDto.startingPrice,
+          status: AuctionStatus.PENDING,
+          mainImageUrl: mockDto.imageUrls[0],
+          images: expect.arrayContaining([
+            { imageUrl: mockDto.imageUrls[0], isPrimary: true },
+            { imageUrl: mockDto.imageUrls[1], isPrimary: false },
+          ]) as unknown as AuctionImage[],
+        }),
+      );
+
+      expect(auctionsRepository.save).toHaveBeenCalledWith(mockAuction);
+
+      expect(auctionScheduler.scheduleAuctionStart).toHaveBeenCalledWith(savedAuction.id, expect.any(Date));
+
       expect(result).toBeInstanceOf(AuctionResponse);
     });
 
@@ -98,6 +113,7 @@ describe('AuctionsService', () => {
 
       auctionsRepository.create.mockReturnValue(mockAuction);
       auctionsRepository.save.mockResolvedValue({ ...mockAuction, id: 1 });
+      auctionScheduler.scheduleAuctionStart.mockResolvedValue(undefined);
 
       await service.createAuction(mockDto, 1);
 
@@ -118,6 +134,7 @@ describe('AuctionsService', () => {
 
       auctionsRepository.create.mockReturnValue(mockAuction);
       auctionsRepository.save.mockResolvedValue({ ...mockAuction, id: 1 });
+      auctionScheduler.scheduleAuctionStart.mockResolvedValue(undefined);
 
       await service.createAuction(dtoWithoutIndex, 1);
 
@@ -132,7 +149,32 @@ describe('AuctionsService', () => {
       const invalidDto = createCreateAuctionDtoFixture({ primaryImageIndex: 5 });
 
       await expect(service.createAuction(invalidDto, 1)).rejects.toThrow(BadRequestException);
+
       expect(auctionsRepository.create).not.toHaveBeenCalled();
+      expect(auctionsRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should rollback auction to CANCELED status if BullMQ scheduling fails', async () => {
+      const mockDto = createCreateAuctionDtoFixture();
+      const mockAuction = createAuctionFixture();
+      const savedAuction = { ...mockAuction, id: 1 };
+      const schedulingError = new Error('BullMQ connection failed');
+
+      auctionsRepository.create.mockReturnValue(mockAuction);
+      auctionsRepository.save.mockResolvedValue(savedAuction);
+
+      auctionScheduler.scheduleAuctionStart.mockRejectedValue(schedulingError);
+      auctionsRepository.update.mockResolvedValue({
+        raw: [],
+        generatedMaps: [],
+        affected: 1,
+      });
+
+      await expect(service.createAuction(mockDto, 1)).rejects.toThrow(schedulingError);
+
+      expect(auctionsRepository.update).toHaveBeenCalledWith(savedAuction.id, {
+        status: AuctionStatus.CANCELED,
+      });
     });
   });
 
