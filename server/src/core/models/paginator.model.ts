@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaginatorResponse } from './paginator-response.model';
-import { IsOptional, IsInt, Min } from 'class-validator';
+import { IsOptional, IsInt, Min, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -19,14 +19,15 @@ export class Paginator {
   page: number;
 
   @ApiProperty({
-    description: 'Items per page',
+    description: 'Items per page (allowed values: 10, 20, 50)',
     example: 10,
     required: false,
+    enum: [10, 20, 50],
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'error.validation.limit_must_be_integer' })
-  @Min(1, { message: 'error.validation.limit_must_be_at_least_1' })
+  @IsIn([10, 20, 50], { message: 'error.validation.limit_must_be_allowed_value' })
   limit: number = 10;
 
   get skip(): number {

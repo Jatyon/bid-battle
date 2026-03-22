@@ -34,6 +34,11 @@
     "currentPassword_not_empty": "Current password cannot be empty",
     "token_is_string": "Token must be a string",
     "token_not_empty": "Token cannot be empty",
+    "page_must_be_integer": "Page must be an integer.",
+    "page_must_be_at_least_1": "Page must be at least 1.",
+    "limit_must_be_integer": "Limit must be an integer.",
+    "limit_must_be_at_least_1": "Limit must be at least 1.",
+    "limit_must_be_allowed_value": "Invalid number of items per page. Allowed values are: 10, 20, 50.",
 
     "auction": {
       "title_required": "Auction title is required.",
@@ -51,11 +56,7 @@
       "end_time_must_be_in_future": "Auction end time must be a date in the future.",
       "images_must_have_at_least_one_image": "Auction must have at least one image!",
       "primaryImageIndex_must_be_valid": "Primary image index is invalid.",
-      "primary_image_index_must_be_integer": "Primary image index must be an integer.",
-      "page_must_be_integer": "Page must be an integer.",
-      "page_must_be_at_least_1": "Page must be at least 1.",
-      "limit_must_be_integer": "Limit must be an integer.",
-      "limit_must_be_at_least_1": "Limit must be at least 1."
+      "primary_image_index_must_be_integer": "Primary image index must be an integer."
     },
 
     "file": {

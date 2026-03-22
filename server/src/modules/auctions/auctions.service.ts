@@ -99,11 +99,8 @@ export class AuctionsService {
 
     const cacheKey = `auctions:active:${page}:${limit}`;
 
-    if (page === 1) {
-      const cachedData = await this.redisService.getCache<PaginatorResponse<AuctionResponse>>(cacheKey);
-
-      if (cachedData) return cachedData;
-    }
+    const cachedData = await this.redisService.getCache<PaginatorResponse<AuctionResponse>>(cacheKey);
+    if (cachedData) return cachedData;
 
     const [auctions, total] = await this.auctionsRepository.findActiveAuctions(skip, limit);
 
@@ -111,7 +108,7 @@ export class AuctionsService {
 
     const response = paginator.response(items, page, limit, total);
 
-    if (page === 1) await this.redisService.setCache(cacheKey, response, 30);
+    await this.redisService.setCache(cacheKey, response, 30);
 
     return response;
   }
