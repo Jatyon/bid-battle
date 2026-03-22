@@ -283,7 +283,7 @@ export class BidGateway extends BaseGateway {
    * @param finalPrice - (Optional) The final closing price of the auction.
    * @returns A promise that resolves when the socket emissions are completed.
    */
-   notifyAuctionEnd(auctionId: number, winnerId?: number, finalPrice?: number): void {
+  notifyAuctionEnd(auctionId: number, winnerId?: number, finalPrice?: number): void {
     try {
       const auctionEndDto: AuctionEndDto = {
         auctionId,

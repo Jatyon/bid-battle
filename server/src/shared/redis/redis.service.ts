@@ -225,6 +225,24 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async extendAuctionTime(auctionId: number, additionalDurationSeconds: number): Promise<void> {
+    try {
+      const ttlWithBuffer = additionalDurationSeconds + 3600;
+
+      const pipeline = this.redis.pipeline();
+
+      pipeline.expire(RedisKey.auctionPrice(auctionId), ttlWithBuffer);
+      pipeline.expire(RedisKey.auctionActive(auctionId), additionalDurationSeconds);
+      pipeline.expire(RedisKey.auctionOwner(auctionId), ttlWithBuffer);
+      pipeline.expire(RedisKey.auctionBidder(auctionId), ttlWithBuffer);
+
+      await pipeline.exec();
+      this.logger.log(`Auction ${auctionId} extended in Redis. New active TTL: ${additionalDurationSeconds}s`);
+    } catch (error: unknown) {
+      this.handleError(`Extend auction time error for ID "${auctionId}"`, error);
+    }
+  }
+
   /**
    * Restores the state of an active auction in Redis, typically invoked during
    * server reconciliation after a crash or restart.

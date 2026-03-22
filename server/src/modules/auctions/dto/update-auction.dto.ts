@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsOptional } from 'class-validator';
+import { IsString, IsDateString, IsOptional, MaxLength } from 'class-validator';
+import { IsFutureDateString } from './create-auction.dto';
 
 export class UpdateAuctionDto {
   @ApiProperty({
@@ -9,6 +10,7 @@ export class UpdateAuctionDto {
   })
   @IsOptional()
   @IsString({ message: 'error.validation.auction.title_must_be_string' })
+  @MaxLength(255, { message: 'error.validation.auction.title_too_long' })
   title?: string;
 
   @ApiProperty({
@@ -18,10 +20,11 @@ export class UpdateAuctionDto {
   })
   @IsOptional()
   @IsString({ message: 'error.validation.auction.description_must_be_string' })
+  @MaxLength(5000, { message: 'error.validation.auction.description_too_long' })
   description?: string;
 
   @ApiProperty({
-    description: 'Auction end time (can only be extended, not shortened)',
+    description: 'Auction end time (can only be extended, not shortened, must be in the future)',
     example: '2026-03-15T10:00:00Z',
     type: 'string',
     format: 'date-time',
@@ -29,5 +32,6 @@ export class UpdateAuctionDto {
   })
   @IsOptional()
   @IsDateString({ strict: false }, { message: 'error.validation.auction.end_time_must_be_datetime' })
+  @IsFutureDateString(0, { message: 'error.validation.auction.end_time_must_be_in_future' })
   endTime?: string;
 }

@@ -329,29 +329,70 @@ describe('AuctionsService', () => {
   });
 
   describe('updateAuction', () => {
-    it('should update title, description and endTime successfully', async () => {
-      const mockAuction = createAuctionFixture();
-      const updateDto = createUpdateAuctionDtoFixture({
-        endTime: new Date(mockAuction.endTime.getTime() + 60 * 60 * 1000).toISOString(),
-      });
+    it('should update title and description without touching schedule if endTime is not provided', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+      const updateDto = createUpdateAuctionDtoFixture({ endTime: undefined, title: 'New Title' });
+
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue({
-        ...mockAuction,
-        ...updateDto,
-        endTime: new Date(updateDto.endTime!),
-      });
+      auctionsRepository.save.mockResolvedValue({ ...mockAuction, title: 'New Title' });
 
       const result = await service.updateAuction(1, updateDto, 1);
 
-      expect(auctionsRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: updateDto.title,
-          description: updateDto.description,
-          endTime: expect.any(Date) as unknown as Date,
-        }),
-      );
+      expect(auctionsRepository.save).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title' }));
+      expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
+      expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
+      expect(redisService.extendAuctionTime).not.toHaveBeenCalled();
       expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
       expect(result).toBeInstanceOf(AuctionResponse);
+    });
+
+    it('should update endTime for an ACTIVE auction with no bids and update BullMQ/Redis', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+      const futureDate = new Date(mockAuction.endTime.getTime() + 60 * 60 * 1000);
+      const updateDto = createUpdateAuctionDtoFixture({ endTime: futureDate.toISOString() });
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      bidRepository.count.mockResolvedValue(0);
+      auctionsRepository.save.mockResolvedValue({ ...mockAuction, endTime: futureDate });
+
+      auctionScheduler.cancelAuctionEnd.mockResolvedValue(undefined);
+      auctionScheduler.scheduleAuctionEnd.mockResolvedValue(undefined);
+      redisService.extendAuctionTime.mockResolvedValue(undefined);
+
+      await service.updateAuction(1, updateDto, 1);
+
+      expect(bidRepository.count).toHaveBeenCalledWith({ where: { auctionId: 1 } });
+      expect(auctionScheduler.cancelAuctionEnd).toHaveBeenCalledWith(1);
+      expect(auctionScheduler.scheduleAuctionEnd).toHaveBeenCalledWith(1, futureDate);
+      expect(redisService.extendAuctionTime).toHaveBeenCalledWith(1, expect.any(Number));
+    });
+
+    it('should update endTime for a PENDING auction without touching BullMQ/Redis', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
+      const futureDate = new Date(mockAuction.endTime.getTime() + 60 * 60 * 1000);
+      const updateDto = createUpdateAuctionDtoFixture({ endTime: futureDate.toISOString() });
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      auctionsRepository.save.mockResolvedValue({ ...mockAuction, endTime: futureDate });
+
+      await service.updateAuction(1, updateDto, 1);
+
+      expect(bidRepository.count).not.toHaveBeenCalled();
+      expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
+      expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
+      expect(redisService.extendAuctionTime).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException (Anti-fraud) when changing endTime of an ACTIVE auction with existing bids', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+      const futureDate = new Date(mockAuction.endTime.getTime() + 60 * 60 * 1000);
+      const updateDto = createUpdateAuctionDtoFixture({ endTime: futureDate.toISOString() });
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      bidRepository.count.mockResolvedValue(3);
+
+      await expect(service.updateAuction(1, updateDto, 1)).rejects.toThrow(BadRequestException);
+      expect(auctionsRepository.save).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when auction does not exist', async () => {
@@ -368,18 +409,29 @@ describe('AuctionsService', () => {
       expect(auctionsRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when auction status is not ACTIVE', async () => {
-      auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.CANCELED }));
+    it('should throw BadRequestException when auction status is CANCELED or ENDED', async () => {
+      auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.CANCELED, ownerId: 1 }));
 
       await expect(service.updateAuction(1, createUpdateAuctionDtoFixture(), 1)).rejects.toThrow(BadRequestException);
       expect(auctionsRepository.save).not.toHaveBeenCalled();
     });
 
+    it('should throw BadRequestException when new endTime is in the past', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
+      const pastDate = new Date(Date.now() - 60 * 60 * 1000);
+      const invalidDto = createUpdateAuctionDtoFixture({ endTime: pastDate.toISOString() });
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+
+      await expect(service.updateAuction(1, invalidDto, 1)).rejects.toThrow(BadRequestException);
+      expect(auctionsRepository.save).not.toHaveBeenCalled();
+    });
+
     it('should throw BadRequestException when new endTime is not later than current endTime', async () => {
-      const mockAuction = createAuctionFixture();
-      const invalidDto = createUpdateAuctionDtoFixture({
-        endTime: new Date(mockAuction.endTime.getTime() - 1000).toISOString(),
-      });
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
+      const invalidDate = new Date(mockAuction.endTime.getTime() - 1000);
+      const invalidDto = createUpdateAuctionDtoFixture({ endTime: invalidDate.toISOString() });
+
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
 
       await expect(service.updateAuction(1, invalidDto, 1)).rejects.toThrow(BadRequestException);
@@ -387,13 +439,13 @@ describe('AuctionsService', () => {
     });
 
     it('should throw BadRequestException when new endTime equals current endTime', async () => {
-      const mockAuction = createAuctionFixture();
-      const invalidDto = createUpdateAuctionDtoFixture({
-        endTime: mockAuction.endTime.toISOString(),
-      });
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
+      const invalidDto = createUpdateAuctionDtoFixture({ endTime: mockAuction.endTime.toISOString() });
+
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
 
       await expect(service.updateAuction(1, invalidDto, 1)).rejects.toThrow(BadRequestException);
+      expect(auctionsRepository.save).not.toHaveBeenCalled();
     });
   });
 

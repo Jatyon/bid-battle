@@ -182,12 +182,13 @@ export class AuctionsService {
   }
 
   /**
-   * Update an auction
-   * Only the owner can update, and only certain fields can be modified
-   * @param auctionId - Auction ID
-   * @param updateAuctionDto - Update data
-   * @param userId - User ID (must be auction owner)
-   * @returns Updated auction
+   * Updates auction details.
+   * End time can only be extended and only if no bids are placed (for ACTIVE status).
+   * Infrastructure (BullMQ/Redis) is updated only for already ACTIVE auctions.
+   * @param auctionId - Unique ID of the auction to update.
+   * @param updateAuctionDto - Data transfer object containing title, description, or endTime.
+   * @param userId - ID of the user requesting the update (must be the owner).
+   * @returns A promise resolving to the updated AuctionResponse object.
    */
   async updateAuction(auctionId: number, updateAuctionDto: UpdateAuctionDto, userId: number): Promise<AuctionResponse> {
     const auction = await this.auctionsRepository.findOneBy({ id: auctionId });
@@ -196,21 +197,42 @@ export class AuctionsService {
 
     if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.update_forbidden_not_owner');
 
-    if (auction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.update_forbidden_not_active');
+    if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.update_forbidden_not_active');
+
+    let endTimeChanged = false;
 
     if (updateAuctionDto.endTime) {
       const newEndTime = new Date(updateAuctionDto.endTime);
+      const now = new Date();
 
-      if (newEndTime <= auction.endTime) throw new BadRequestException('error.auction.update_forbidden_end_time');
+      if (newEndTime <= now) throw new BadRequestException('auction.error.update_forbidden_end_time_past');
+
+      if (newEndTime <= auction.endTime) throw new BadRequestException('auction.error.update_forbidden_end_time');
+
+      if (auction.status === AuctionStatus.ACTIVE) {
+        const bidCount = await this.bidRepository.count({ where: { auctionId } });
+
+        if (bidCount > 0) throw new BadRequestException('auction.error.update_forbidden_end_time_has_bids');
+      }
 
       auction.endTime = newEndTime;
+      endTimeChanged = true;
     }
 
     if (updateAuctionDto.title) auction.title = updateAuctionDto.title;
-
     if (updateAuctionDto.description) auction.description = updateAuctionDto.description;
 
     const updatedAuction = await this.auctionsRepository.save(auction);
+
+    if (endTimeChanged && updatedAuction.status === AuctionStatus.ACTIVE) {
+      await this.auctionScheduler.cancelAuctionEnd(auctionId);
+      await this.auctionScheduler.scheduleAuctionEnd(auctionId, updatedAuction.endTime);
+
+      const now = new Date();
+      const newDurationSeconds = Math.floor((updatedAuction.endTime.getTime() - now.getTime()) / 1000);
+
+      if (newDurationSeconds > 0) await this.redisService.extendAuctionTime(auctionId, newDurationSeconds);
+    }
 
     await this.invalidateAuctionsCache();
 

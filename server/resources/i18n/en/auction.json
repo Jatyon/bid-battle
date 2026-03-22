@@ -1,5 +1,11 @@
 {
   "info": {
     "update_images_success": "Auction images have been updated successfully."
+  },
+
+  "error": {
+    "update_forbidden_end_time_past": "Cannot set the end time in the past.",
+    "update_forbidden_end_time": "The new end time must be later than the current end time.",
+    "update_forbidden_end_time_has_bids": "Cannot change the end time because bids have already been placed."
   }
 }
