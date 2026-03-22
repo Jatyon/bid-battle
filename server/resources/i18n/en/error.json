@@ -82,6 +82,8 @@
     "update_forbidden_not_owner": "You are not the owner of this auction, so you cannot update it.",
     "update_forbidden_not_active": "Only active auctions can be updated.",
     "update_forbidden_end_time": "The auction end time can only be extended, not shortened.",
+    "update_forbidden_images_has_bids": "Cannot modify images because bids have already been placed.",
+    "invalid_existing_image_urls": "Invalid existing image URLs provided.",
     "update_images_failed": "Failed to update auction images. Please try again later.",
     "too_many_images_#max": "The total number of auction images cannot exceed {max}.",
     "no_images_provided": "You must provide at least one image for the auction."

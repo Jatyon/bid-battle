@@ -265,34 +265,37 @@ export class AuctionsService {
 
     if (!auction) throw new NotFoundException('error.auction.not_found');
     if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.update_forbidden_not_owner');
-    if (auction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.update_forbidden_not_active');
+    if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.update_forbidden_not_active');
 
-    const hasNewFiles: boolean = files && files.length > 0;
-    const hasExistingUrls: boolean = existingImageUrls && existingImageUrls.length > 0;
+    if (auction.status === AuctionStatus.ACTIVE) {
+      const bidCount = await this.bidRepository.count({ where: { auctionId } });
+      if (bidCount > 0) throw new BadRequestException('error.auction.update_forbidden_images_has_bids');
+    }
+
+    const hasNewFiles = files.length > 0;
+    const hasExistingUrls = existingImageUrls.length > 0;
 
     if (!hasNewFiles && !hasExistingUrls) throw new BadRequestException('error.auction.no_images_provided');
 
     const allExisting = await this.auctionImageRepository.find({ where: { auctionId } });
+    const existingAuctionUrls = allExisting.map((img) => img.imageUrl);
 
-    const existingAuctionUrls: string[] = allExisting.map((img) => img.imageUrl);
-    const invalidUrls: string[] = existingImageUrls.filter((url) => !existingAuctionUrls.includes(url));
+    const invalidUrls = existingImageUrls.filter((url) => !existingAuctionUrls.includes(url));
+    if (invalidUrls.length > 0) throw new BadRequestException('error.auction.invalid_existing_image_urls');
 
-    if (invalidUrls.length > 0) throw new BadRequestException('error.validation.auction.invalid_existing_image_urls');
+    const toKeep = allExisting.filter((img) => existingImageUrls.includes(img.imageUrl));
+    const toDelete = allExisting.filter((img) => !existingImageUrls.includes(img.imageUrl));
+    const oldPathsToDelete = toDelete.map((img) => img.imageUrl.replace('/uploads/', ''));
 
-    const toKeep: AuctionImage[] = allExisting.filter((img) => existingImageUrls.includes(img.imageUrl));
-    const toDelete: AuctionImage[] = allExisting.filter((img) => !existingImageUrls.includes(img.imageUrl));
-    const oldPathsToDelete: string[] = toDelete.map((img) => img.imageUrl.replace('/uploads/', ''));
-
-    const MAX_IMAGES: number = 10;
-    const totalCount: number = toKeep.length + (hasNewFiles ? files.length : 0);
+    const MAX_IMAGES = 10;
+    const totalCount = toKeep.length + files.length;
 
     if (totalCount > MAX_IMAGES) throw new BadRequestException(i18n.t('error.auction.too_many_images_#max', { args: { max: MAX_IMAGES } }));
 
     const uploadedFiles = hasNewFiles ? await this.fileUploadService.uploadMultiple(files, this.fileUploadService.getAuctionImageUploadOptions(), i18n) : [];
 
     const allUrls = [...toKeep.map((img) => img.imageUrl), ...uploadedFiles.map((f) => f.url)];
-
-    const primaryIndex: number = primaryImageIndex ?? 0;
+    const primaryIndex = primaryImageIndex ?? 0;
 
     if (primaryIndex >= allUrls.length) throw new BadRequestException('error.validation.auction.primaryImageIndex_must_be_valid');
 
@@ -301,7 +304,7 @@ export class AuctionsService {
         if (toDelete.length > 0) await em.delete(AuctionImage, { id: In(toDelete.map((img) => img.id)) });
 
         for (const img of toKeep) {
-          const newIsPrimary: boolean = allUrls.indexOf(img.imageUrl) === primaryIndex;
+          const newIsPrimary = allUrls.indexOf(img.imageUrl) === primaryIndex;
 
           if (img.isPrimary !== newIsPrimary) {
             img.isPrimary = newIsPrimary;

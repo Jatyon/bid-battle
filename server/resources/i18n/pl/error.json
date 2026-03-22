@@ -80,6 +80,8 @@
     "update_forbidden_not_owner": "Nie jesteś właścicielem tej aukcji, więc nie możesz jej aktualizować.",
     "update_forbidden_not_active": "Można aktualizować tylko aktywne aukcje.",
     "update_forbidden_end_time": "Czas zakończenia aukcji można tylko wydłużyć, nie można go skrócić.",
+    "update_forbidden_images_has_bids": "Nie można zmienić zdjęć, ponieważ licytacja już się rozpoczęła.",
+    "invalid_existing_image_urls": "Przesłano nieprawidłowe adresy URL istniejących zdjęć.",
     "update_images_failed": "Nie udało się zaktualizować zdjęć aukcji. Spróbuj ponownie później.",
     "too_many_images_#max": "Łączna liczba zdjęć aukcji nie może przekraczać {max}.",
     "no_images_provided": "Musisz dostarczyć co najmniej jedno zdjęcie dla aukcji."

@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe, Delete, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse, Paginator, PaginatorResponse } from '@core/models';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
@@ -110,15 +110,18 @@ export class AuctionsController {
   @HttpCode(200)
   @Patch(':id/images')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
+  @UseInterceptors(FilesInterceptor('images', 10))
   async updateAuctionImages(
     @Param('id', ParseIntPipe) auctionId: number,
-    @UploadedFiles() files: { images?: Express.Multer.File[] },
+    @UploadedFiles() files: Express.Multer.File[],
     @Body() uploadDto: UpdateAuctionImagesDto,
     @CurrentUser() user: User,
     @I18n() i18n: I18nContext,
   ): Promise<MessageResponse> {
-    await this.auctionsService.updateAuctionImages(auctionId, user.id, files?.images ?? [], uploadDto.existingImageUrls ?? [], uploadDto.primaryImageIndex, i18n);
+    const newFiles = files || [];
+    const existingUrls = uploadDto.existingImageUrls || [];
+
+    await this.auctionsService.updateAuctionImages(auctionId, user.id, newFiles, existingUrls, uploadDto.primaryImageIndex, i18n);
 
     return {
       message: i18n.t('auction.info.update_images_success'),
