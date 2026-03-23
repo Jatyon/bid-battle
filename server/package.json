@@ -148,7 +148,9 @@
       ".mock.ts",
       "src/core/decorators/api-standard-response.decorator.ts",
       "src/database/migrations",
-      "src/database/seeds"
+      "src/database/seeds",
+      "base.gateway.ts",
+      "big-int.transformer.ts"
     ]
   }
 }
