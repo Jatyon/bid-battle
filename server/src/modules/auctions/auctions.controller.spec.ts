@@ -209,7 +209,7 @@ describe('AuctionsController', () => {
 
       service.updateAuctionImages.mockResolvedValue(undefined);
 
-      const result = await controller.updateAuctionImages(1, { images: [] }, updateDto, mockUser, mockI18n);
+      const result = await controller.updateAuctionImages(1, [], updateDto, mockUser, mockI18n);
 
       expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, [], updateDto.existingImageUrls, updateDto.primaryImageIndex, mockI18n);
       expect(result).toHaveProperty('message');
@@ -224,7 +224,7 @@ describe('AuctionsController', () => {
 
       service.updateAuctionImages.mockResolvedValue(undefined);
 
-      await controller.updateAuctionImages(1, { images: newFiles }, updateDto, mockUser, mockI18n);
+      await controller.updateAuctionImages(1, newFiles, updateDto, mockUser, mockI18n);
 
       expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, newFiles, updateDto.existingImageUrls, updateDto.primaryImageIndex, mockI18n);
     });
@@ -232,7 +232,7 @@ describe('AuctionsController', () => {
     it('should propagate NotFoundException when auction does not exist', async () => {
       service.updateAuctionImages.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.updateAuctionImages(999, { images: [] }, {} as UpdateAuctionImagesDto, mockUser, mockI18n)).rejects.toThrow(NotFoundException);
+      await expect(controller.updateAuctionImages(999, [], {} as UpdateAuctionImagesDto, mockUser, mockI18n)).rejects.toThrow(NotFoundException);
     });
   });
 });
