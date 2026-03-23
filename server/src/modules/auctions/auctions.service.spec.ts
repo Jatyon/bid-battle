@@ -216,15 +216,17 @@ describe('AuctionsService', () => {
       expect(result).toBeInstanceOf(PaginatorResponse);
     });
 
-    it('should skip cache check and not cache result for pages other than first', async () => {
+    it('should use cache for pages other than first as well', async () => {
       mockPaginator.page = 2;
+      redisService.getCache.mockResolvedValue(null);
       auctionsRepository.findActiveAuctions.mockResolvedValue([[createAuctionFixture()], 1]);
 
-      await service.findActiveAuctions(mockPaginator);
+      const result = await service.findActiveAuctions(mockPaginator);
 
-      expect(redisService.getCache).not.toHaveBeenCalled();
+      expect(redisService.getCache).toHaveBeenCalledWith('auctions:active:2:10');
       expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(10, 10);
-      expect(redisService.setCache).not.toHaveBeenCalled();
+      expect(redisService.setCache).toHaveBeenCalledWith('auctions:active:2:10', expect.any(Object), 30);
+      expect(result).toBeDefined();
     });
   });
 
@@ -465,6 +467,10 @@ describe('AuctionsService', () => {
       size: 12345,
       mimetype: 'image/jpeg',
     } as IUploadedFile;
+
+    beforeEach(() => {
+      bidRepository.count.mockResolvedValue(0);
+    });
 
     it('should throw NotFoundException when auction does not exist', async () => {
       auctionsRepository.findOneBy.mockResolvedValue(null);
