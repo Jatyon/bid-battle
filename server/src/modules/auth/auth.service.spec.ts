@@ -10,6 +10,8 @@ import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, Auth
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import * as bcrypt from 'bcrypt';
+import { createJwtPayload } from '@test/fixtures/auth.fixtures';
+import { IAuthJwt } from './interfaces';
 
 jest.mock('bcrypt', () => ({
   genSalt: jest.fn(),
@@ -29,6 +31,7 @@ describe('AuthService', () => {
   const mockUser = createUserFixture();
   const mockUserToken = createUserTokenFixture();
   const mockUserWithoutPassword = createUserFixture({ password: undefined });
+  const mockPayload = createJwtPayload();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -66,21 +69,43 @@ describe('AuthService', () => {
   });
 
   describe('validateJwtUser', () => {
-    const payload = { sub: 1, email: 'test@example.com' };
+    const currentTime = new Date();
+    const currentTimeSeconds = Math.floor(currentTime.getTime() / 1000);
 
-    it('should return user if they exist', async () => {
-      usersService.findOneBy.mockResolvedValue(mockUser);
+    it('should return user if they exist and password was never changed', async () => {
+      const mockPayload = { sub: 1, iat: currentTimeSeconds } as IAuthJwt;
+      const userWithoutPasswordChange = createUserFixture({ passwordChangedAt: null });
+      usersService.findOneBy.mockResolvedValue(userWithoutPasswordChange);
 
-      const result = await authService.validateJwtUser(payload, mockI18nService);
+      const result = await authService.validateJwtUser(mockPayload, mockI18nService);
 
-      expect(usersService.findOneBy).toHaveBeenCalledWith({ id: payload.sub });
-      expect(result).toEqual(mockUser);
+      expect(usersService.findOneBy).toHaveBeenCalledWith({ id: mockPayload.sub });
+      expect(result).toEqual(userWithoutPasswordChange);
     });
 
     it('should throw UnauthorizedException if user is not found', async () => {
+      const mockPayload = { sub: 1 } as IAuthJwt;
       usersService.findOneBy.mockResolvedValue(null);
 
-      await expect(authService.validateJwtUser(payload, mockI18nService)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.validateJwtUser(mockPayload, mockI18nService)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException if token was issued BEFORE password was changed', async () => {
+      const mockPayloadOld = { sub: 1, iat: currentTimeSeconds - 3600 } as IAuthJwt;
+      const userWithRecentPasswordChange = createUserFixture({ passwordChangedAt: new Date(currentTime.getTime() - 1800 * 1000) });
+      usersService.findOneBy.mockResolvedValue(userWithRecentPasswordChange);
+
+      await expect(authService.validateJwtUser(mockPayloadOld, mockI18nService)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should return user if token was issued AFTER password was changed', async () => {
+      const mockPayloadNew = { sub: 1, iat: currentTimeSeconds } as IAuthJwt;
+      const userWithOldPasswordChange = createUserFixture({ passwordChangedAt: new Date(currentTime.getTime() - 3600 * 1000) });
+      usersService.findOneBy.mockResolvedValue(userWithOldPasswordChange);
+
+      const result = await authService.validateJwtUser(mockPayloadNew, mockI18nService);
+
+      expect(result).toEqual(userWithOldPasswordChange);
     });
   });
 
@@ -139,7 +164,6 @@ describe('AuthService', () => {
 
   describe('refreshToken', () => {
     const refreshDto: RefreshTokenDto = { refreshToken: 'valid_refresh_token' };
-    const jwtPayload = { sub: 1, email: 'test@example.com' };
 
     it('should throw UnauthorizedException when JWT verification fails', async () => {
       jwtService.verifyAsync.mockRejectedValue(new Error('Invalid signature'));
@@ -148,14 +172,14 @@ describe('AuthService', () => {
     });
 
     it('pshould throw UnauthorizedException when user exist', async () => {
-      jwtService.verifyAsync.mockResolvedValue(jwtPayload);
+      jwtService.verifyAsync.mockResolvedValue(mockPayload);
       usersService.findOneBy.mockResolvedValue(null);
 
       await expect(authService.refreshToken(refreshDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should generate new token pair for valid refresh token', async () => {
-      jwtService.verifyAsync.mockResolvedValue(jwtPayload);
+      jwtService.verifyAsync.mockResolvedValue(mockPayload);
       usersService.findOneBy.mockResolvedValue(mockUser);
       jwtService.signAsync.mockResolvedValueOnce('new_access_token').mockResolvedValueOnce('new_refresh_token');
 
@@ -206,7 +230,7 @@ describe('AuthService', () => {
       expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.PASSWORD_RESET, mockI18nContext);
       expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 'random_salt');
-      expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password' });
+      expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
       expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(mockUserToken.id);
       expect(mailService.sendPasswordChangedEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName);
     });
@@ -247,20 +271,22 @@ describe('AuthService', () => {
       await authService.changePassword('test@example.com', dto, mockI18nContext);
 
       expect(bcrypt.compare).toHaveBeenCalledWith(dto.currentPassword, userWithPass.password);
-      expect(usersService.updateBy).toHaveBeenCalledWith({ email: 'test@example.com' }, { password: 'hashed_new_password' });
+      expect(usersService.updateBy).toHaveBeenCalledWith({ email: 'test@example.com' }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
     });
 
-    it('should allow setting a password without currentPassword if user has NO password (e.g. Google login)', async () => {
+    it('should throw BadRequestException if user has NO password (e.g. Google login)', async () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUserWithoutPassword);
-      (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
 
-      const noCurrentPassDto = { password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' } as AuthChangePasswordDto;
+      const dto = {
+        password: 'NewPassword123!',
+        passwordRepeat: 'NewPassword123!',
+      } as AuthChangePasswordDto;
 
-      await authService.changePassword('test@example.com', noCurrentPassDto, mockI18nContext);
+      await expect(authService.changePassword('test@example.com', dto, mockI18nContext)).rejects.toThrow(BadRequestException);
 
-      expect(bcrypt.compare).not.toHaveBeenCalled();
-      expect(usersService.updateBy).toHaveBeenCalledWith({ email: 'test@example.com' }, { password: 'hashed_new_password' });
+      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(usersService.updateBy).not.toHaveBeenCalled();
+      expect(usersTokenService.revokeAllRefreshTokens).not.toHaveBeenCalled();
     });
   });
 
