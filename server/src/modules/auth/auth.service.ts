@@ -8,6 +8,7 @@ import { IAuthJwtPayload } from './interfaces';
 import { AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
+import { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -67,7 +68,9 @@ export class AuthService {
     let payload: IAuthJwtPayload;
 
     try {
-      payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken);
+      payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
+        secret: this.configService.jwt.refreshSecret,
+      });
     } catch {
       throw new UnauthorizedException(i18n.t(`auth.errors.refresh_token_not_recognized`));
     }
@@ -75,6 +78,12 @@ export class AuthService {
     const user = await this.usersService.findOneBy({ email: payload.email, id: payload.sub });
 
     if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
+
+    const storedToken = await this.usersTokenService.findActiveRefreshToken(refreshTokenDto.refreshToken, user.id);
+
+    if (!storedToken) throw new UnauthorizedException(i18n.t('auth.errors.refresh_token_not_recognized'));
+
+    await this.usersTokenService.markTokenAsUsed(storedToken.id);
 
     return this.generateAuthTokens(user);
   }
@@ -151,12 +160,15 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.jwt.tokenLife,
+        expiresIn: this.configService.jwt.tokenLife as StringValue,
       }),
       this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.jwt.refreshTokenLife,
+        secret: this.configService.jwt.refreshSecret,
+        expiresIn: this.configService.jwt.refreshTokenLife as StringValue,
       }),
     ]);
+
+    await this.usersTokenService.saveRefreshToken(user, refreshToken, this.configService.jwt.refreshTokenLife as StringValue);
 
     return {
       accessToken,

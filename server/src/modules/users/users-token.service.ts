@@ -4,9 +4,10 @@ import { Cron } from '@nestjs/schedule';
 import { User, UserToken } from './entities';
 import { UserTokenEnum } from './enums';
 import { LessThan, Repository } from 'typeorm';
-import { addMinutes, isPast } from 'date-fns';
+import { addMilliseconds, addMinutes, isPast } from 'date-fns';
 import { I18nContext } from 'nestjs-i18n';
 import * as crypto from 'crypto';
+import ms from 'ms';
 
 @Injectable()
 export class UsersTokenService {
@@ -24,6 +25,24 @@ export class UsersTokenService {
     const newToken = this.tokenRepository.create({
       token,
       type,
+      user,
+      userId: user.id,
+      expiresAt,
+    });
+
+    return await this.tokenRepository.save(newToken);
+  }
+
+  async saveRefreshToken(user: User, jwtToken: string, expiresIn: string): Promise<UserToken> {
+    const msValue = (ms as unknown as (v: string) => number | undefined)(expiresIn);
+
+    if (msValue === undefined) throw new Error('Invalid expiresIn string');
+
+    const expiresAt = addMilliseconds(new Date(), msValue);
+
+    const newToken = this.tokenRepository.create({
+      token: this.hashToken(jwtToken),
+      type: UserTokenEnum.REFRESH_TOKEN,
       user,
       userId: user.id,
       expiresAt,
@@ -71,6 +90,27 @@ export class UsersTokenService {
 
   async deleteAllUserTokens(userId: number): Promise<void> {
     await this.tokenRepository.delete({ userId });
+  }
+
+  async findActiveRefreshToken(token: string, userId: number): Promise<UserToken | null> {
+    const tokenEntity = await this.tokenRepository.findOne({
+      where: {
+        token: this.hashToken(token),
+        type: UserTokenEnum.REFRESH_TOKEN,
+        userId,
+        isUsed: false,
+      },
+    });
+
+    if (!tokenEntity) return null;
+
+    if (isPast(tokenEntity.expiresAt)) return null;
+
+    return tokenEntity;
+  }
+
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
   }
 
   @Cron('30 3 * * *')

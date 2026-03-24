@@ -87,7 +87,7 @@ describe('AppConfigService', () => {
       const config = service.jwt;
 
       expect(config.secret).toBe('super-secret');
-      expect(config.tokenLife).toBe(3600);
+      expect(config.tokenLife).toBe('1d');
     });
   });
 

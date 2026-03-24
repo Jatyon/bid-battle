@@ -46,8 +46,8 @@ describe('AuthService', () => {
             },
             jwt: {
               saltOrRounds: 10,
-              tokenLife: 3600,
-              refreshTokenLife: 7 * 24 * 3600,
+              tokenLife: '1d',
+              refreshTokenLife: '7d',
             },
           }),
         },

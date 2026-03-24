@@ -58,9 +58,10 @@ export class AppConfigService {
 
   get jwt(): IConfigJWT {
     return {
-      tokenLife: this.configService.get<number>('JWT_EXPIRES_IN', 3600),
-      refreshTokenLife: this.configService.get<number>('JWT_REFRESH_EXPIRES_IN', 7 * 24 * 3600),
+      tokenLife: this.configService.get<string>('JWT_EXPIRES_IN', '1d'),
+      refreshTokenLife: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
       secret: this.configService.get<string>('JWT_SECRET', 'defaultSecret'),
+      refreshSecret: this.configService.get<string>('JWT_REFRESH_SECRET', 'defaultRefreshSecret'),
       saltOrRounds: this.configService.get<number>('JWT_SALT_OR_ROUNDS', 10),
     };
   }

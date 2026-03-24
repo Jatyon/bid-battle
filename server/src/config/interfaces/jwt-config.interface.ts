@@ -1,6 +1,7 @@
 export interface IConfigJWT {
-  tokenLife: number;
-  refreshTokenLife: number;
+  tokenLife: string;
+  refreshTokenLife: string;
   secret: string;
+  refreshSecret: string;
   saltOrRounds: number;
 }
