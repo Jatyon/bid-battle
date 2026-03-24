@@ -4,7 +4,7 @@ import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
 import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto } from './dto';
-import { IAuthJwtPayload } from './interfaces';
+import { IAuthJwt, IAuthJwtPayload } from './interfaces';
 import { AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
@@ -22,10 +22,16 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateJwtUser(payload: IAuthJwtPayload, i18n: I18nService): Promise<User> {
+  async validateJwtUser(payload: IAuthJwt, i18n: I18nService): Promise<User> {
     const user = await this.usersService.findOneBy({ id: payload.sub });
 
     if (!user) throw new UnauthorizedException(i18n.t('users.user_not_found'));
+
+    if (user.passwordChangedAt && payload.iat != null) {
+      const passwordChangedAtSeconds = Math.floor(user.passwordChangedAt.getTime() / 1000);
+
+      if (payload.iat < passwordChangedAtSeconds) throw new UnauthorizedException(i18n.t('auth.errors.token_invalidated_password_changed'));
+    }
 
     return user;
   }
@@ -115,6 +121,7 @@ export class AuthService {
       { id: tokenEntity.userId },
       {
         password: hashedPassword,
+        passwordChangedAt: new Date(),
       },
     );
 
@@ -128,13 +135,13 @@ export class AuthService {
 
     if (!user) throw new NotFoundException(i18n.t('users.user_not_found'));
 
-    if (user.password) {
-      if (!changePasswordDto.currentPassword) throw new BadRequestException(i18n.t('error.validation.currentPassword_is_string'));
+    if (!user.password) throw new BadRequestException(i18n.t('auth.errors.oauth_account_use_reset_password'));
 
-      const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+    if (!changePasswordDto.currentPassword) throw new BadRequestException(i18n.t('error.validation.currentPassword_is_string'));
 
-      if (!isPasswordValid) throw new BadRequestException(i18n.t('auth.errors.the_current_password_incorrect'));
-    }
+    const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+
+    if (!isPasswordValid) throw new BadRequestException(i18n.t('auth.errors.the_current_password_incorrect'));
 
     const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
     const hashedPassword: string = await bcrypt.hash(changePasswordDto.password, salt);
@@ -143,8 +150,11 @@ export class AuthService {
       { email },
       {
         password: hashedPassword,
+        passwordChangedAt: new Date(),
       },
     );
+
+    await this.usersTokenService.revokeAllRefreshTokens(user.id);
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {

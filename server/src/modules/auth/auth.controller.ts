@@ -1,5 +1,5 @@
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
@@ -96,6 +96,7 @@ export class AuthController {
   @ApiBearerAuth('jwt-auth')
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('change-password')
   async changePassword(@CurrentUser() user: User, @Body() changePasswordDto: AuthChangePasswordDto, @I18n() i18n: I18nContext) {
     await this.authService.changePassword(user.email, changePasswordDto, i18n);
@@ -110,6 +111,7 @@ export class AuthController {
   @ApiBearerAuth('jwt-auth')
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(ClassSerializerInterceptor)
   @Get('me')
   getMe(@CurrentUser() user: User): User {
     return user;

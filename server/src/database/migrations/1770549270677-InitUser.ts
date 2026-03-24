@@ -47,6 +47,11 @@ export class InitUsers1770549270677 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'password_changed_at',
+            type: 'timestamp',
+            isNullable: true,
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             default: 'now()',
@@ -67,10 +72,7 @@ export class InitUsers1770549270677 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndices('users', [
-      new TableIndex({ name: 'IDX_USERS_EMAIL', columnNames: ['email'] }),
-      new TableIndex({ name: 'IDX_USERS_DELETED_AT', columnNames: ['deleted_at'] }),
-    ]);
+    await queryRunner.createIndices('users', [new TableIndex({ name: 'IDX_USERS_DELETED_AT', columnNames: ['deleted_at'] })]);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

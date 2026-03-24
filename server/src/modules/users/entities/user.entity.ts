@@ -35,6 +35,10 @@ export class User extends BaseEntity {
   @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
   lastLoginAt: Date;
 
+  @Exclude()
+  @Column({ name: 'password_changed_at', type: 'timestamp', nullable: true })
+  passwordChangedAt?: Date | null;
+
   @ApiProperty({ description: 'Soft delete timestamp', nullable: true, type: 'string', format: 'date-time' })
   @Index()
   @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', nullable: true })

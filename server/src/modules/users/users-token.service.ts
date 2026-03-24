@@ -109,6 +109,10 @@ export class UsersTokenService {
     return tokenEntity;
   }
 
+  async revokeAllRefreshTokens(userId: number): Promise<void> {
+    await this.tokenRepository.update({ userId, type: UserTokenEnum.REFRESH_TOKEN, isUsed: false }, { isUsed: true, usedAt: new Date() });
+  }
+
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
