@@ -21,7 +21,7 @@ export class InitUserTokens1770657147765 implements MigrationInterface {
           {
             name: 'type',
             type: 'enum',
-            enum: ['password_reset'],
+            enum: ['password_reset', 'refresh_token'],
           },
           {
             name: 'user_id',
@@ -70,6 +70,13 @@ export class InitUserTokens1770657147765 implements MigrationInterface {
       new TableIndex({
         columnNames: ['user_id'],
         name: 'IDX_USER_TOKENS_USER_ID',
+      }),
+    );
+    await queryRunner.createIndex(
+      'user_tokens',
+      new TableIndex({
+        columnNames: ['expires_at'],
+        name: 'IDX_USER_TOKENS_EXPIRES_AT',
       }),
     );
 
