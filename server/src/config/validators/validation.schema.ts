@@ -58,8 +58,4 @@ export const validationSchema = Joi.object({
   // SOCKET
   WS_RATE_LIMIT_MS: Joi.number().default(10000),
   WS_RATE_LIMIT_MAX: Joi.number().default(10),
-
-  // STRIPE
-  STRIPE_SECRET_KEY: Joi.string().required(),
-  STRIPE_CURRENCY: Joi.string().default('usd'),
 });

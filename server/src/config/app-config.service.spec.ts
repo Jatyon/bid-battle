@@ -114,14 +114,4 @@ describe('AppConfigService', () => {
       expect(config.port).toBe(6379);
     });
   });
-
-  describe('stripe', () => {
-    it('should return stripe config', () => {
-      configService.get.mockReturnValue('sk_test_123');
-
-      const config = service.stripe;
-
-      expect(config.secretKey).toBe('sk_test_123');
-    });
-  });
 });

@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { StorageType } from '@shared/file-upload';
-import { IConfigApp, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IConfigStripe, IDatabaseConfig } from './interfaces';
+import { IConfigApp, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IDatabaseConfig } from './interfaces';
 import { DatabaseType } from 'typeorm';
 
 @Injectable()
@@ -103,12 +103,5 @@ export class AppConfigService {
         maxEvents: this.configService.get<number>('WS_RATE_LIMIT_MAX', 10),
       };
     }
-  }
-
-  get stripe(): IConfigStripe {
-    return {
-      secretKey: this.configService.get<string>('STRIPE_SECRET_KEY', ''),
-      currency: this.configService.get<string>('STRIPE_CURRENCY', 'usd'),
-    };
   }
 }

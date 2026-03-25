@@ -71,8 +71,6 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_TTL: ${REDIS_TTL}
 
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_CURRENCY: ${STRIPE_CURRENCY}
     depends_on:
       - mysql
       - redis
