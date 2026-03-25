@@ -1,5 +1,5 @@
 import { Match } from '@core/decorators/validator/match.decorator';
-import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AuthRegisterDto {
@@ -7,18 +7,22 @@ export class AuthRegisterDto {
     description: 'User first name',
     example: 'John',
     minLength: 1,
+    maxLength: 255,
   })
   @IsString({ message: 'error.validation.first_name_is_string' })
   @IsNotEmpty({ message: 'error.validation.first_name_not_empty' })
+  @MaxLength(255, { message: 'error.validation.first_name_too_long' })
   firstName: string;
 
   @ApiProperty({
     description: 'User last name',
     example: 'Doe',
     minLength: 1,
+    maxLength: 255,
   })
   @IsString({ message: 'error.validation.last_name_is_string' })
   @IsNotEmpty({ message: 'error.validation.last_name_not_empty' })
+  @MaxLength(255, { message: 'error.validation.last_name_too_long' })
   lastName: string;
 
   @ApiProperty({

@@ -37,6 +37,8 @@
     "limit_must_be_integer": "Limit musi być liczbą całkowitą",
     "limit_must_be_at_least_1": "Limit musi być co najmniej 1",
     "limit_must_be_allowed_value": "Nieprawidłowa liczba elementów na stronę. Dozwolone wartości to: 10, 20, 50.",
+    "first_name_too_long": "Imię jest za długie",
+    "last_name_too_long": "Nazwisko jest za długie",
 
     "auction": {
       "title_required": "Tytuł aukcji jest wymagany.",
