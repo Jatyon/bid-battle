@@ -6,9 +6,11 @@ import { LoggingInterceptor, TimeoutInterceptor, TransformInterceptor } from '@c
 import { HttpExceptionFilter } from '@core/filters/http-exception.filter';
 import { setupSecurity, setupSwagger, winstonConfig } from '@config/config';
 import { AppConfigService } from '@config/config.service';
+import { Request, Response, NextFunction } from 'express';
 import { WinstonModule } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
 import compression from 'compression';
+import * as path from 'path';
 import helmet from 'helmet';
 
 async function bootstrap() {
@@ -30,6 +32,20 @@ async function bootstrap() {
   });
 
   app.use(compression());
+
+  // Static file guard — block path traversal and directory listing attempts on /uploads
+  app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+    const requestedPath = req.path;
+    const normalizedPath = path.normalize(requestedPath);
+
+    if (normalizedPath !== requestedPath) return res.status(403).json({ statusCode: 403, message: 'Forbidden' });
+
+    const lastSegment = path.basename(normalizedPath);
+
+    if (!lastSegment.includes('.')) return res.status(403).json({ statusCode: 403, message: 'Forbidden' });
+
+    next();
+  });
 
   app.setGlobalPrefix('api');
 
