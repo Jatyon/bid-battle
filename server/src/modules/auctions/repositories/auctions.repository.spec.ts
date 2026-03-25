@@ -3,7 +3,7 @@ import { AuctionsRepository } from './auctions.repository';
 import { AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, FindOperator } from 'typeorm';
 
 describe('AuctionsRepository', () => {
   let repository: AuctionsRepository;
@@ -30,7 +30,7 @@ describe('AuctionsRepository', () => {
   });
 
   describe('findActiveAuctions', () => {
-    it('should call inherited findAndCount with correct criteria and pagination', async () => {
+    it('should call inherited findAndCount with correct criteria, endTime filter and pagination', async () => {
       const skip = 10;
       const take = 20;
 
@@ -42,7 +42,10 @@ describe('AuctionsRepository', () => {
       const result = await repository.findActiveAuctions(skip, take);
 
       expect(repository.findAndCount).toHaveBeenCalledWith({
-        where: { status: AuctionStatus.ACTIVE },
+        where: {
+          status: AuctionStatus.ACTIVE,
+          endTime: expect.any(FindOperator) as never,
+        },
         relations: ['owner', 'winner'],
         skip,
         take,
@@ -50,6 +53,14 @@ describe('AuctionsRepository', () => {
       });
 
       expect(result).toEqual(mockResult);
+    });
+
+    it('should return empty array and zero count when no active auctions exist', async () => {
+      jest.spyOn(repository, 'findAndCount').mockResolvedValue([[], 0]);
+
+      const result = await repository.findActiveAuctions(0, 10);
+
+      expect(result).toEqual([[], 0]);
     });
   });
 

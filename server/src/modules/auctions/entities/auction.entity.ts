@@ -16,7 +16,7 @@ export class Auction extends BaseEntity {
   @Column({ name: 'title', type: 'varchar', length: 255 })
   title: string;
 
-  @ApiProperty({ description: 'Auction description' })
+  @ApiProperty({ description: 'Auction description', example: 'A rare vintage watch from 1950s in excellent condition' })
   @Column({ name: 'description', type: 'text' })
   description: string;
 
@@ -63,7 +63,11 @@ export class Auction extends BaseEntity {
   @JoinColumn({ name: 'owner_id', referencedColumnName: 'id' })
   owner: User;
 
-  @ApiProperty({ description: 'Winner user ID', example: 2, nullable: true })
+  @ApiProperty({
+    description: 'Winner user ID (null if auction is still active or no bids)',
+    example: 2,
+    nullable: true,
+  })
   @Index()
   @Column({ name: 'winner_id', type: 'int', unsigned: true, nullable: true })
   @RelationId((auction: Auction) => auction.winner)

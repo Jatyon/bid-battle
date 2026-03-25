@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuctionStatus } from '../enums';
 import { Auction } from '../entities';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, MoreThan, Repository } from 'typeorm';
 
 @Injectable()
 export class AuctionsRepository extends Repository<Auction> {
@@ -11,7 +11,7 @@ export class AuctionsRepository extends Repository<Auction> {
 
   findActiveAuctions(skip: number, take: number): Promise<[Auction[], number]> {
     return this.findAndCount({
-      where: { status: AuctionStatus.ACTIVE },
+      where: { status: AuctionStatus.ACTIVE, endTime: MoreThan(new Date()) },
       relations: ['owner', 'winner'],
       skip,
       take,
