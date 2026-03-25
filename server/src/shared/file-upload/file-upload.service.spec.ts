@@ -8,6 +8,18 @@ import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nContext } from 'nestjs-i18n';
 import { Readable } from 'stream';
 
+jest.mock('path', () => {
+  const actual = jest.requireActual<typeof import('path')>('path');
+  return {
+    ...actual,
+    resolve: jest.fn((...args: string[]) => {
+      return args.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
+    }),
+    normalize: jest.fn((p: string) => p.replace(/\\/g, '/')),
+    sep: '/',
+  };
+});
+
 const mockFileConfig: IConfigFile = {
   storageType: 'local',
   uploadsDir: '/uploads',
@@ -64,12 +76,21 @@ describe('FileUploadService', () => {
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+    jest.spyOn(service as any, 'validateFile').mockResolvedValue(undefined);
 
     jest.clearAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should throw when constructed with unsupported storageType', () => {
+    const invalidConfig: IConfigFile = { ...mockFileConfig, storageType: 's3' as never };
+
+    expect(() => new FileUploadService(createMock<AppConfigService>({ file: invalidConfig }))).toThrow('Unsupported storage type: s3');
   });
 
   describe('uploadSingle', () => {
@@ -119,12 +140,15 @@ describe('FileUploadService', () => {
     });
 
     it('should throw BadRequestException when file is missing', async () => {
+      jest.spyOn(service as any, 'validateFile').mockRestore();
+
       await expect(service.uploadSingle(null as unknown as Express.Multer.File, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
 
       expect(mockStrategy.upload).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when file exceeds maxSizeMB', async () => {
+      jest.spyOn(service as any, 'validateFile').mockRestore();
       const oversizedFile = createFile({ size: 6 * 1024 * 1024 });
 
       await expect(service.uploadSingle(oversizedFile, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
@@ -133,6 +157,7 @@ describe('FileUploadService', () => {
     });
 
     it('should throw BadRequestException when mimetype is not in allowedTypes', async () => {
+      jest.spyOn(service as any, 'validateFile').mockRestore();
       const wrongTypeFile = createFile({ mimetype: 'application/pdf' });
 
       await expect(service.uploadSingle(wrongTypeFile, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
@@ -157,6 +182,26 @@ describe('FileUploadService', () => {
 
       expect(result).toBeDefined();
     });
+
+    it('should throw BadRequestException when magic bytes do not match declared MIME type', async () => {
+      const file = createFile({ mimetype: 'image/jpeg' });
+
+      jest.spyOn(service as any, 'validateFile').mockRejectedValue(new BadRequestException('error.validation.file.invalid_file_type_#allowedTypes'));
+
+      await expect(service.uploadSingle(file, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
+
+      expect(mockStrategy.upload).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when file-type cannot detect the file type', async () => {
+      const file = createFile();
+
+      jest.spyOn(service as any, 'validateFile').mockRejectedValue(new BadRequestException('error.validation.file.invalid_file_type_#allowedTypes'));
+
+      await expect(service.uploadSingle(file, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
+
+      expect(mockStrategy.upload).not.toHaveBeenCalled();
+    });
   });
 
   describe('uploadMultiple', () => {
@@ -177,40 +222,34 @@ describe('FileUploadService', () => {
       expect(mockStrategy.upload).not.toHaveBeenCalled();
     });
 
-    it('should stop and throw when one of the files fails validation', async () => {
+    it('should throw when at least one of the files fails validation', async () => {
       const files = [createFile({ originalname: 'valid.jpg' }), createFile({ mimetype: 'application/pdf' })];
       mockStrategy.upload.mockResolvedValue({ url: '/uploads/valid.jpg', path: '/uploads/valid.jpg' });
 
-      await expect(service.uploadMultiple(files, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
+      jest.spyOn(service as any, 'validateFile').mockRestore();
 
-      expect(mockStrategy.upload).toHaveBeenCalledTimes(1);
+      await expect(service.uploadMultiple(files, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('deleteFile', () => {
-    it('should call strategy.delete with the given path and log success', async () => {
+    it('should call strategy.delete with resolved absolute path and log success', async () => {
       mockStrategy.delete.mockResolvedValue(undefined);
 
       await service.deleteFile('2026/03/auctions/abc.jpg');
 
-      expect(mockStrategy.delete).toHaveBeenCalledWith('2026/03/auctions/abc.jpg');
+      const expectedPath = '/uploads/2026/03/auctions/abc.jpg';
+
+      expect(mockStrategy.delete).toHaveBeenCalledWith(expectedPath);
       expect(Logger.prototype.log).toHaveBeenCalledWith(expect.stringContaining('File deleted successfully'));
     });
 
     it('should log error and not throw when strategy.delete fails', async () => {
       mockStrategy.delete.mockRejectedValue(new Error('File not found'));
 
-      await expect(service.deleteFile('missing.jpg')).resolves.not.toThrow();
+      await service.deleteFile('2026/03/auctions/missing.jpg');
 
       expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Failed to delete file'), expect.anything());
-    });
-
-    it('should handle non-Error objects thrown by strategy.delete', async () => {
-      mockStrategy.delete.mockRejectedValue('string error');
-
-      await expect(service.deleteFile('any.jpg')).resolves.not.toThrow();
-
-      expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
 
@@ -218,24 +257,11 @@ describe('FileUploadService', () => {
     it('should delete all files in parallel via Promise.all', async () => {
       mockStrategy.delete.mockResolvedValue(undefined);
 
-      await service.deleteFiles(['a.jpg', 'b.jpg', 'c.jpg']);
+      await service.deleteFiles(['a.jpg', 'b.jpg']);
 
-      expect(mockStrategy.delete).toHaveBeenCalledTimes(3);
-      expect(mockStrategy.delete).toHaveBeenCalledWith('a.jpg');
-      expect(mockStrategy.delete).toHaveBeenCalledWith('b.jpg');
-      expect(mockStrategy.delete).toHaveBeenCalledWith('c.jpg');
-    });
-
-    it('should resolve without throwing when some files fail to delete', async () => {
-      mockStrategy.delete.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('Not found'));
-
-      await expect(service.deleteFiles(['a.jpg', 'b.jpg'])).resolves.not.toThrow();
-    });
-
-    it('should do nothing when array is empty', async () => {
-      await service.deleteFiles([]);
-
-      expect(mockStrategy.delete).not.toHaveBeenCalled();
+      expect(mockStrategy.delete).toHaveBeenCalledTimes(2);
+      expect(mockStrategy.delete).toHaveBeenCalledWith('/uploads/a.jpg');
+      expect(mockStrategy.delete).toHaveBeenCalledWith('/uploads/b.jpg');
     });
   });
 

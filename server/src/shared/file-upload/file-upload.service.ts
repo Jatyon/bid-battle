@@ -4,7 +4,8 @@ import { IConfigFile } from '@config/interfaces';
 import { IUploadedFile, IUploadOptions, IStorageStrategy } from './interfaces';
 import { LocalStorageStrategy } from './strategies';
 import { I18nContext } from 'nestjs-i18n';
-import { join, extname } from 'path';
+import { join, extname, resolve, normalize } from 'path';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class FileUploadService {
@@ -27,10 +28,20 @@ export class FileUploadService {
   }
 
   /**
-   * Upload a single file
+   * Uploads a single file to the configured storage backend.
+   *
+   * Validates the file (size, MIME type, magic bytes) before writing it to storage.
+   * The destination path is automatically generated from the current date and `subDir`.
+   *
+   * @param file - Multer file object to upload.
+   * @param options - Upload constraints: `maxSizeMB`, `allowedTypes`, `subDir`.
+   * @param i18n - i18n context used for translating error messages.
+   * @returns Metadata about the uploaded file (`filename`, `path`, `url`, `size`, `mimetype`).
+   * @throws {BadRequestException} When validation fails (missing file, size exceeded, wrong type).
+   * @throws {InternalServerErrorException} When the storage backend fails to write the file.
    */
   async uploadSingle(file: Express.Multer.File, options: IUploadOptions, i18n: I18nContext): Promise<IUploadedFile> {
-    this.validateFile(file, options, i18n);
+    await this.validateFile(file, options, i18n);
 
     const uploadPath: string = this.generateUploadPath(options.subDir);
     const filename: string = this.generateFilename(file.originalname);
@@ -57,25 +68,41 @@ export class FileUploadService {
   }
 
   /**
-   * Upload multiple files
+   * Uploads multiple files in parallel using `uploadSingle` for each.
+   *
+   * @param files - Array of Multer file objects to upload.
+   * @param options - Upload constraints applied to every file.
+   * @param i18n - i18n context used for translating error messages.
+   * @returns Array of upload result metadata, in the same order as the input files.
+   * @throws {BadRequestException} When any file fails validation.
+   * @throws {InternalServerErrorException} When the storage backend fails for any file.
    */
   async uploadMultiple(files: Express.Multer.File[], options: IUploadOptions, i18n: I18nContext): Promise<IUploadedFile[]> {
-    const results: IUploadedFile[] = [];
-
-    for (const file of files) {
-      const uploaded = await this.uploadSingle(file, options, i18n);
-      results.push(uploaded);
-    }
-
-    return results;
+    return Promise.all(files.map((file) => this.uploadSingle(file, options, i18n)));
   }
 
   /**
-   * Delete a file by its relative path (from uploads dir)
+   * Deletes a file by its relative path within the uploads directory.
+   *
+   * Guards against path traversal attacks by resolving the full path and verifying
+   * it remains within `uploadsDir`. Paths that escape the uploads root are silently
+   * blocked and logged as errors. Deletion failures are also caught and logged
+   * without re-throwing, so callers are not interrupted by missing files.
+   *
+   * @param relativePath - Path relative to the uploads root, e.g. `auctions/photo.jpg`.
    */
   async deleteFile(relativePath: string): Promise<void> {
     try {
-      await this.storageStrategy.delete(relativePath);
+      const uploadsBaseDir = resolve(this.config.uploadsDir);
+      const normalizedRelative = normalize(relativePath);
+      const resolvedPath = resolve(uploadsBaseDir, normalizedRelative);
+
+      if (!resolvedPath.startsWith(uploadsBaseDir + '/') && resolvedPath !== uploadsBaseDir) {
+        this.logger.error(`Path traversal attempt blocked: "${relativePath}" resolved to "${resolvedPath}"`);
+        return;
+      }
+
+      await this.storageStrategy.delete(resolvedPath);
       this.logger.log(`File deleted successfully: ${relativePath}`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -85,13 +112,30 @@ export class FileUploadService {
   }
 
   /**
-   * Delete multiple files
+   * Deletes multiple files in parallel using `deleteFile` for each.
+   *
+   * @param relativePaths - Array of relative paths to delete.
    */
   async deleteFiles(relativePaths: string[]): Promise<void> {
     await Promise.all(relativePaths.map((path) => this.deleteFile(path)));
   }
 
-  private validateFile(file: Express.Multer.File, options: IUploadOptions, i18n: I18nContext): void {
+  /**
+   * Validates a file against the provided upload options.
+   *
+   * Performs a three-step check:
+   * 1. **Presence** — rejects missing files.
+   * 2. **Size** — rejects files exceeding `options.maxSizeMB`.
+   * 3. **MIME type** — checks both the declared `Content-Type` header and the actual
+   *    magic bytes from the file buffer. This two-step verification prevents spoofing
+   *    by clients that forge the `Content-Type` header in multipart requests.
+   *
+   * @param file - Multer file object to validate.
+   * @param options - Constraints to validate against.
+   * @param i18n - i18n context for translating error messages.
+   * @throws {BadRequestException} When any of the three checks fails.
+   */
+  private async validateFile(file: Express.Multer.File, options: IUploadOptions, i18n: I18nContext): Promise<void> {
     if (!file) throw new BadRequestException(i18n.t('error.validation.file.no_file_provided'));
 
     const maxSizeBytes: number = options.maxSizeMB * 1024 * 1024;
@@ -100,8 +144,25 @@ export class FileUploadService {
 
     if (!options.allowedTypes.includes(file.mimetype))
       throw new BadRequestException(i18n.t('error.validation.file.invalid_file_type_#allowedTypes', { args: { allowedTypes: options.allowedTypes.join(', ') } }));
+
+    const { fileTypeFromBuffer } = await import('file-type');
+    const detected = await fileTypeFromBuffer(file.buffer);
+
+    if (!detected || !options.allowedTypes.includes(detected.mime)) {
+      this.logger.warn(`Magic bytes mismatch: declared=${file.mimetype}, detected=${detected?.mime ?? 'unknown'}, filename=${file.originalname}`);
+      throw new BadRequestException(i18n.t('error.validation.file.invalid_file_type_#allowedTypes', { args: { allowedTypes: options.allowedTypes.join(', ') } }));
+    }
   }
 
+  /**
+   * Builds the absolute destination directory path for an uploaded file.
+   *
+   * The path is composed of `uploadsDir / year / month / subDir`,
+   * where year and month are derived from the current date.
+   *
+   * @param subDir - Subdirectory name that groups uploads by context, e.g. `auctions`.
+   * @returns Absolute path to the target upload directory.
+   */
   private generateUploadPath(subDir: string): string {
     const now = new Date();
     const year = now.getFullYear().toString();
@@ -113,14 +174,27 @@ export class FileUploadService {
     return join(...pathParts);
   }
 
+  /**
+   * Generates a random filename while preserving the original file extension.
+   *
+   * Uses 8 random bytes (16 hex characters) to avoid collisions and prevent
+   * user-controlled filenames from reaching the filesystem.
+   *
+   * @param originalName - Original filename from the upload, used only to extract the extension.
+   * @returns A randomised filename, e.g. `a3f8c21d9b0e4f12.jpg`.
+   */
   private generateFilename(originalName: string): string {
     const ext: string = extname(originalName);
-    const timestamp: number = Date.now();
-    const random: string = Math.random().toString(36).substring(2, 8);
+    const random: string = crypto.randomBytes(8).toString('hex');
 
-    return `${timestamp}-${random}${ext}`;
+    return `${random}${ext}`;
   }
 
+  /**
+   * Returns the upload options for auction images, as defined in app configuration.
+   *
+   * @returns `IUploadOptions` with `subDir` set to `auctions`.
+   */
   getAuctionImageUploadOptions(): IUploadOptions {
     return {
       maxSizeMB: this.config.auctionImageMaxSizeMB,
@@ -129,6 +203,11 @@ export class FileUploadService {
     };
   }
 
+  /**
+   * Returns the upload options for user avatars, as defined in app configuration.
+   *
+   * @returns `IUploadOptions` with `subDir` set to `avatars`.
+   */
   getAvatarUploadOptions(): IUploadOptions {
     return {
       maxSizeMB: this.config.avatarMaxSizeMB,
