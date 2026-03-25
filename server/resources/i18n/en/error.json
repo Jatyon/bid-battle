@@ -56,7 +56,8 @@
       "end_time_must_be_in_future": "Auction end time must be a date in the future.",
       "images_must_have_at_least_one_image": "Auction must have at least one image!",
       "primaryImageIndex_must_be_valid": "Primary image index is invalid.",
-      "primary_image_index_must_be_integer": "Primary image index must be an integer."
+      "primary_image_index_must_be_integer": "Primary image index must be an integer.",
+      "image_url_invalid_format": "Image URL is in an invalid format."
     },
 
     "file": {

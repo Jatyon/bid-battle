@@ -258,6 +258,24 @@ describe('AuctionsService', () => {
       await expect(service.findOne(1)).rejects.toThrow(NotFoundException);
       expect(redisService.getLivePrice).not.toHaveBeenCalled();
     });
+
+    it('should throw NotFoundException when auction is CANCELED and requesting user is not the owner', async () => {
+      const canceledAuction = createAuctionFixture({ status: AuctionStatus.CANCELED, ownerId: 1 });
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(canceledAuction);
+
+      await expect(service.findOne(canceledAuction.id, 2)).rejects.toThrow(NotFoundException);
+      expect(redisService.getLivePrice).not.toHaveBeenCalled();
+    });
+
+    it('should return canceled auction when requesting user is the owner', async () => {
+      const canceledAuction = createAuctionFixture({ status: AuctionStatus.CANCELED, ownerId: 1 });
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(canceledAuction);
+      redisService.getLivePrice.mockResolvedValue(null);
+
+      const result = await service.findOne(canceledAuction.id, 1);
+
+      expect(result).toBeInstanceOf(AuctionDetailResponse);
+    });
   });
 
   describe('cancelAuction', () => {
@@ -448,6 +466,22 @@ describe('AuctionsService', () => {
 
       await expect(service.updateAuction(1, invalidDto, 1)).rejects.toThrow(BadRequestException);
       expect(auctionsRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should save auction without changes when DTO contains no fields', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+      const emptyDto = createUpdateAuctionDtoFixture({ title: undefined, description: undefined, endTime: undefined });
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      auctionsRepository.save.mockResolvedValue(mockAuction);
+
+      const result = await service.updateAuction(1, emptyDto, 1);
+
+      expect(auctionsRepository.save).toHaveBeenCalledWith(mockAuction);
+      expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
+      expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
+      expect(redisService.extendAuctionTime).not.toHaveBeenCalled();
+      expect(result).toBeInstanceOf(AuctionResponse);
     });
   });
 

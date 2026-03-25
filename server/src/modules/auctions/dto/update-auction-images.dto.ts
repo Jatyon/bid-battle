@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsArray, IsString, IsInt, Min } from 'class-validator';
+import { IsOptional, IsArray, IsString, IsInt, Min, Matches } from 'class-validator';
 import { Transform, TransformFnParams } from 'class-transformer';
 
 export class UpdateAuctionImagesDto {
@@ -22,6 +22,10 @@ export class UpdateAuctionImagesDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @Matches(/^\/uploads\/[\w\-/.]+$/, {
+    each: true,
+    message: 'error.validation.auction.image_url_invalid_format',
+  })
   @Transform(({ value }: TransformFnParams) => {
     if (Array.isArray(value)) return value as string[];
     if (typeof value !== 'string') return [];

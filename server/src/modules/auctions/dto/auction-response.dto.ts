@@ -41,6 +41,14 @@ export class AuctionResponse {
   currentPrice: number;
 
   @ApiProperty({
+    description: 'Auction start time',
+    example: '2024-03-10T08:00:00Z',
+    type: 'string',
+    format: 'date-time',
+  })
+  startTime: Date;
+
+  @ApiProperty({
     description: 'Auction end time',
     example: '2024-03-10T10:00:00Z',
     type: 'string',
@@ -84,7 +92,6 @@ export class AuctionResponse {
     description: 'Winner user details',
     example: {
       id: 2,
-      email: 'winner@example.com',
       firstName: 'Jane',
       lastName: 'Smith',
     },
@@ -115,6 +122,7 @@ export class AuctionResponse {
     this.mainImageUrl = auction.mainImageUrl;
     this.startingPrice = auction.startingPrice;
     this.currentPrice = auction.currentPrice;
+    this.startTime = auction.startTime;
     this.endTime = auction.endTime;
     this.status = auction.status;
     this.ownerId = auction.ownerId;
@@ -125,7 +133,6 @@ export class AuctionResponse {
     if (includeOwner && auction.owner)
       this.owner = {
         id: auction.owner.id,
-        email: auction.owner.email,
         firstName: auction.owner.firstName,
         lastName: auction.owner.lastName,
         avatar: auction.owner.avatar,
@@ -134,7 +141,6 @@ export class AuctionResponse {
     if (includeWinner && auction.winner)
       this.winner = {
         id: auction.winner.id,
-        email: auction.winner.email,
         firstName: auction.winner.firstName,
         lastName: auction.winner.lastName,
         avatar: auction.winner.avatar,

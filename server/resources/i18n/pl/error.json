@@ -54,7 +54,8 @@
       "end_time_must_be_in_future": "Czas zakończenia aukcji musi być datą w przyszłości.",
       "images_must_have_at_least_one_image": "Aukcja musi posiadać przynajmniej jedno zdjęcie!",
       "primaryImageIndex_must_be_valid": "Indeks głównego zdjęcia jest nieprawidłowy.",
-      "primary_image_index_must_be_integer": "Indeks głównego zdjęcia musi być liczbą całkowitą."
+      "primary_image_index_must_be_integer": "Indeks głównego zdjęcia musi być liczbą całkowitą.",
+      "image_url_invalid_format": "Adres URL zdjęcia jest w nieprawidłowym formacie."
     },
 
     "file": {

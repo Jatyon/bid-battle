@@ -1,4 +1,5 @@
 import { Auction, AuctionDetailResponse, AuctionImage, AuctionResponse, AuctionStatus, CreateAuctionDto, UpdateAuctionDto } from '@modules/auctions';
+export { createMockFilesFixture } from './file.fixtures';
 import { createUserFixture } from './users.fixtures';
 
 export const createAuctionFixture = (overrides?: Partial<Auction>): Auction => ({
@@ -7,11 +8,15 @@ export const createAuctionFixture = (overrides?: Partial<Auction>): Auction => (
   description: 'Test Description',
   startingPrice: 100,
   currentPrice: 100,
+  startTime: new Date(),
   endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
+  startedAt: null,
+  endedAt: null,
   ownerId: 1,
   status: AuctionStatus.ACTIVE,
   mainImageUrl: '/uploads/image1.jpg',
   images: [],
+  bids: [],
   createdAt: new Date(),
   updatedAt: new Date(),
   owner: createUserFixture(),
@@ -60,18 +65,4 @@ export const createAuctionDetailResponseFixture = (overrides?: Partial<Auction>)
     ...overrides,
   });
   return new AuctionDetailResponse(auction);
-};
-
-export const createMockFilesFixture = (count = 1): Express.Multer.File[] => {
-  return Array.from({ length: count }, (_, i) => ({
-    fieldname: 'images',
-    originalname: `test${i + 1}.jpg`,
-    encoding: '7bit',
-    mimetype: 'image/jpeg',
-    size: 12345,
-    destination: '/tmp',
-    filename: `test${i + 1}.jpg`,
-    path: `/tmp/test${i + 1}.jpg`,
-    buffer: Buffer.from(''),
-  })) as Express.Multer.File[];
 };
