@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagg
 import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse, Paginator, PaginatorResponse } from '@core/models';
+import { OptionalJwtAuthGuard } from '@modules/auth/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
@@ -71,9 +72,10 @@ export class AuctionsController {
   })
   @ApiStandardResponse(AuctionDetailResponse, false)
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  async getAuction(@Param('id', ParseIntPipe) auctionId: number): Promise<AuctionDetailResponse> {
-    return this.auctionsService.findOne(auctionId);
+  async getAuction(@Param('id', ParseIntPipe) auctionId: number, @CurrentUser() user?: User): Promise<AuctionDetailResponse> {
+    return this.auctionsService.findOne(auctionId, user?.id);
   }
 
   @ApiOperation({

@@ -97,7 +97,7 @@ describe('AuctionsController', () => {
 
       const result = await controller.getAuction(1);
 
-      expect(service.findOne).toHaveBeenCalledWith(1);
+      expect(service.findOne).toHaveBeenCalledWith(1, undefined);
       expect(result).toBe(mockResponse);
     });
 
@@ -105,6 +105,16 @@ describe('AuctionsController', () => {
       service.findOne.mockRejectedValue(new NotFoundException());
 
       await expect(controller.getAuction(999)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should call service.findOne without requestingUserId (public endpoint has no CurrentUser)', async () => {
+      const mockResponse = createAuctionDetailResponseFixture();
+      service.findOne.mockResolvedValue(mockResponse);
+
+      await controller.getAuction(1);
+
+      expect(service.findOne).toHaveBeenCalledWith(1, undefined);
+      expect(service.findOne).not.toHaveBeenCalledWith(1, expect.anything());
     });
   });
 
@@ -233,6 +243,30 @@ describe('AuctionsController', () => {
       service.updateAuctionImages.mockRejectedValue(new NotFoundException());
 
       await expect(controller.updateAuctionImages(999, [], {} as UpdateAuctionImagesDto, mockUser, mockI18n)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should normalize undefined files to empty array before calling service', async () => {
+      const updateDto: UpdateAuctionImagesDto = {
+        existingImageUrls: ['/uploads/existing.jpg'],
+        primaryImageIndex: 0,
+      };
+
+      service.updateAuctionImages.mockResolvedValue(undefined);
+
+      await controller.updateAuctionImages(1, undefined as unknown as Express.Multer.File[], updateDto, mockUser, mockI18n);
+
+      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, [], updateDto.existingImageUrls, updateDto.primaryImageIndex, mockI18n);
+    });
+
+    it('should normalize undefined existingImageUrls to empty array before calling service', async () => {
+      const updateDto = { primaryImageIndex: 0 } as UpdateAuctionImagesDto;
+      const newFiles = createMockFilesFixture(1);
+
+      service.updateAuctionImages.mockResolvedValue(undefined);
+
+      await controller.updateAuctionImages(1, newFiles, updateDto, mockUser, mockI18n);
+
+      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, newFiles, [], updateDto.primaryImageIndex, mockI18n);
     });
   });
 });
