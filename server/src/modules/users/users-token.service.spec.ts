@@ -1,23 +1,18 @@
 import { BadRequestException, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { createUserFixture } from '@test/fixtures/users.fixtures';
+import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { UsersTokenService } from './users-token.service';
 import { UserToken } from './entities';
 import { UserTokenEnum } from './enums';
-import { createMock } from '@golevelup/ts-jest';
+import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { addMinutes, subMinutes } from 'date-fns';
 import { Repository, LessThan } from 'typeorm';
-import * as crypto from 'crypto';
-
-jest.mock('crypto', () => ({
-  randomBytes: jest.fn(),
-}));
 
 describe('UsersTokenService', () => {
   let service: UsersTokenService;
-  let tokenRepository: jest.Mocked<Repository<UserToken>>;
+  let tokenRepository: DeepMocked<Repository<UserToken>>;
 
   const mockI18nContext = createMockI18nContext();
   const mockUser = createUserFixture();
@@ -57,8 +52,6 @@ describe('UsersTokenService', () => {
       tokenRepository.create.mockReturnValue(createdToken);
       tokenRepository.save.mockResolvedValue(createdToken);
 
-      jest.spyOn(crypto, 'randomBytes').mockImplementation(() => Buffer.from('mockedbytes'));
-
       const result = await service.generateToken(mockUser, UserTokenEnum.PASSWORD_RESET, expiresInMinutes);
 
       expect(tokenRepository.create).toHaveBeenCalledWith({
@@ -70,6 +63,63 @@ describe('UsersTokenService', () => {
       });
       expect(tokenRepository.save).toHaveBeenCalledWith(createdToken);
       expect(result).toEqual(createdToken);
+    });
+
+    it('should use default expiresInMinutes of 15 when not provided', async () => {
+      const expectedExpiresAt = addMinutes(mockDate, 15);
+      const createdToken = createUserTokenFixture();
+
+      tokenRepository.create.mockReturnValue(createdToken);
+      tokenRepository.save.mockResolvedValue(createdToken);
+
+      await service.generateToken(mockUser, UserTokenEnum.PASSWORD_RESET);
+
+      expect(tokenRepository.create).toHaveBeenCalledWith(expect.objectContaining({ expiresAt: expectedExpiresAt }));
+    });
+  });
+
+  describe('saveRefreshToken', () => {
+    it('should hash the jwt token and save it with computed expiresAt', async () => {
+      const jwtToken = 'some.jwt.token';
+      const expiresIn = '7d';
+      const createdToken = createUserTokenFixture({ type: UserTokenEnum.REFRESH_TOKEN });
+
+      tokenRepository.create.mockReturnValue(createdToken);
+      tokenRepository.save.mockResolvedValue(createdToken);
+
+      const result = await service.saveRefreshToken(mockUser, jwtToken, expiresIn);
+
+      expect(tokenRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: UserTokenEnum.REFRESH_TOKEN,
+          user: mockUser,
+          userId: mockUser.id,
+          token: expect.any(String) as string,
+          expiresAt: expect.any(Date) as Date,
+        }),
+      );
+      expect(tokenRepository.save).toHaveBeenCalledWith(createdToken);
+      expect(result).toEqual(createdToken);
+    });
+
+    it('should throw when expiresIn string is invalid', async () => {
+      await expect(service.saveRefreshToken(mockUser, 'token', 'invalid')).rejects.toThrow('Invalid expiresIn string');
+
+      expect(tokenRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should store a hash of the token, not the raw value', async () => {
+      const jwtToken = 'raw-jwt-token';
+      const createdToken = createUserTokenFixture({ type: UserTokenEnum.REFRESH_TOKEN });
+
+      tokenRepository.create.mockReturnValue(createdToken);
+      tokenRepository.save.mockResolvedValue(createdToken);
+
+      await service.saveRefreshToken(mockUser, jwtToken, '7d');
+
+      const createCall = tokenRepository.create.mock.calls[0][0] as Partial<UserToken>;
+      expect(createCall.token).not.toBe(jwtToken);
+      expect(createCall.token).toHaveLength(64);
     });
   });
 
@@ -151,6 +201,66 @@ describe('UsersTokenService', () => {
       expect(tokenRepository.delete).toHaveBeenCalledWith({
         userId: mockUser.id,
       });
+    });
+  });
+
+  describe('findActiveRefreshToken', () => {
+    it('should return null when token is not found', async () => {
+      tokenRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.findActiveRefreshToken('raw-token', mockUser.id);
+
+      expect(result).toBeNull();
+      expect(tokenRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          type: UserTokenEnum.REFRESH_TOKEN,
+          userId: mockUser.id,
+          isUsed: false,
+        },
+      });
+    });
+
+    it('should return null when token is found but expired', async () => {
+      const expiredToken = createUserTokenFixture({
+        type: UserTokenEnum.REFRESH_TOKEN,
+        expiresAt: subMinutes(mockDate, 5),
+      });
+      tokenRepository.findOne.mockResolvedValue(expiredToken);
+
+      const result = await service.findActiveRefreshToken('raw-token', mockUser.id);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return token entity when token is valid and not expired', async () => {
+      const validToken = createUserTokenFixture({
+        type: UserTokenEnum.REFRESH_TOKEN,
+        expiresAt: addMinutes(mockDate, 60),
+      });
+      tokenRepository.findOne.mockResolvedValue(validToken);
+
+      const result = await service.findActiveRefreshToken('raw-token', mockUser.id);
+
+      expect(result).toEqual(validToken);
+    });
+
+    it('should search by hashed token, not raw value', async () => {
+      const rawToken = 'raw-jwt-token';
+      tokenRepository.findOne.mockResolvedValue(null);
+
+      await service.findActiveRefreshToken(rawToken, mockUser.id);
+
+      const callArg = tokenRepository.findOne.mock.calls[0][0] as { where: Partial<UserToken> };
+      expect(callArg.where.token).not.toBe(rawToken);
+      expect(callArg.where.token).toHaveLength(64);
+    });
+  });
+
+  describe('revokeAllRefreshTokens', () => {
+    it('should mark all active refresh tokens of a user as used', async () => {
+      await service.revokeAllRefreshTokens(mockUser.id);
+
+      expect(tokenRepository.update).toHaveBeenCalledWith({ userId: mockUser.id, type: UserTokenEnum.REFRESH_TOKEN, isUsed: false }, { isUsed: true, usedAt: mockDate });
     });
   });
 
