@@ -213,6 +213,7 @@ describe('UsersTokenService', () => {
       expect(result).toBeNull();
       expect(tokenRepository.findOne).toHaveBeenCalledWith({
         where: {
+          token: expect.any(String) as string,
           type: UserTokenEnum.REFRESH_TOKEN,
           userId: mockUser.id,
           isUsed: false,
