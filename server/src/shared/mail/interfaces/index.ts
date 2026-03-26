@@ -1,3 +1,4 @@
+export * from './mail-email-verification.interface';
 export * from './mail-options-template.interface';
 export * from './mail-forgot-password.interface';
 export * from './mail-user-data.interface';

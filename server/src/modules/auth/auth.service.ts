@@ -52,7 +52,9 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    await this.usersService.save(user);
+    const savedUser = await this.usersService.save(user);
+
+    await this.sendVerificationEmail(savedUser, i18n);
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto, i18n: I18nContext): Promise<void> {
@@ -71,6 +73,8 @@ export class AuthService {
     const user = await this.validateUser(authLoginDto.email, authLoginDto.password);
 
     if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
+
+    if (!user.isEmailVerified) throw new UnauthorizedException(i18n.t('auth.errors.email_not_verified'));
 
     await this.usersService.updateBy(
       { id: user.id },
@@ -196,5 +200,11 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  private async sendVerificationEmail(user: User, i18n: I18nContext): Promise<void> {
+    const verificationToken = await this.usersTokenService.generateToken(user, UserTokenEnum.EMAIL_VERIFICATION, this.configService.app.emailVerificationExpiresInMin);
+
+    await this.mailService.sendEmailVerificationEmail(user.email, i18n.lang, user.concatName, this.configService.app.emailVerificationExpiresInMin, verificationToken.token);
   }
 }

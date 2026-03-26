@@ -2,7 +2,8 @@
   "subjects": {
     "test": "Test mail",
     "forgot-password": "Account Recovery",
-    "reset-password": "Change password"
+    "reset-password": "Change password",
+    "verify-email": "Confirm your email address"
   },
   "footer": {
     "rights": "All rights reserved."
