@@ -2,7 +2,8 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from
 import { Logger, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { BaseGateway } from '@core/gateways/base.gateway';
-import { AuthService, IAuthJwtPayload, type IAuthSocket, WsJwtGuard } from '@modules/auth';
+import { AuthService, IAuthJwtPayload, type IAuthSocket } from '@modules/auth';
+import { WsJwtGuard } from '@modules/auth/guards/ws-jwt.guard';
 import { UsersService } from '@modules/users';
 import { RedisService } from '@shared/redis';
 import { AuctionEndDto, AuctionEventDto, AuctionIdDto, AuctionStateDto, NewHighestBidDto, PlaceBidDto } from './dto';

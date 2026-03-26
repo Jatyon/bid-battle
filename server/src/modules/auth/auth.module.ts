@@ -4,8 +4,9 @@ import { UsersModule, UsersService, UsersTokenService } from '@modules/users';
 import { JwtConfigProvider } from './providers/jwt-config.provider';
 import { AuthJwtStrategy } from './strategies/auth-jwt.strategy';
 import { AuthController } from './auth.controller';
+import { WsJwtGuard } from './guards/ws-jwt.guard';
 import { AuthService } from './auth.service';
-import { WsJwtGuard } from './guards';
+
 
 @Module({
   controllers: [AuthController],
