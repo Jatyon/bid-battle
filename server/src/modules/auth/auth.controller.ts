@@ -3,7 +3,7 @@ import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { AuthTokens } from './models';
@@ -101,6 +101,19 @@ export class AuthController {
   async changePassword(@CurrentUser() user: User, @Body() changePasswordDto: AuthChangePasswordDto, @I18n() i18n: I18nContext) {
     await this.authService.changePassword(user.email, changePasswordDto, i18n);
     return { message: i18n.t('auth.info.password_successfully_changed') };
+  }
+
+  @ApiOperation({
+    summary: 'Verify email address',
+    description: 'Confirm email address using the token received in the registration email',
+  })
+  @ApiStandardResponse(MessageResponse, false)
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto, @I18n() i18n: I18nContext): Promise<MessageResponse> {
+    await this.authService.verifyEmail(verifyEmailDto, i18n);
+    return { message: i18n.t('auth.info.email_verified_successfully') };
   }
 
   @ApiOperation({

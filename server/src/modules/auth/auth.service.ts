@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
 import { MailService } from '@shared/mail';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto } from './dto';
 import { IAuthJwt, IAuthJwtPayload } from './interfaces';
 import { AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
@@ -53,6 +53,18 @@ export class AuthService {
     });
 
     await this.usersService.save(user);
+  }
+
+  async verifyEmail(verifyEmailDto: VerifyEmailDto, i18n: I18nContext): Promise<void> {
+    const tokenEntity = await this.usersTokenService.verifyToken(verifyEmailDto.token, UserTokenEnum.EMAIL_VERIFICATION, i18n);
+
+    const user = tokenEntity.user;
+
+    if (user.isEmailVerified) throw new BadRequestException(i18n.t('auth.errors.email_already_verified'));
+
+    await this.usersService.updateBy({ id: user.id }, { isEmailVerified: true });
+
+    await this.usersTokenService.markTokenAsUsed(tokenEntity.id);
   }
 
   async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<AuthTokens> {
