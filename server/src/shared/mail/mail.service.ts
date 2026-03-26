@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
-import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData } from './interfaces';
+import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData, IMailAuctionWinner, IMailAuctionOwner } from './interfaces';
 import { MailContext } from './types';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
@@ -80,6 +80,52 @@ export class MailService {
       to: email,
       subject,
       template: `./${lang}/reset-password`,
+      context,
+    });
+  }
+
+  async sendAuctionWinnerEmail(email: string, lang: string, userName: string, auctionTitle: string, finalPrice: number, auctionId: number): Promise<void> {
+    const subject = this.i18n.t('mail.subjects.auction-winner', { lang });
+    const footerTranslations = this.getFooterTranslations(lang);
+
+    const context: MailContext<IMailAuctionWinner> = {
+      appName: this.appName,
+      appUrl: this.appUrl,
+      footer: footerTranslations,
+      userName,
+      auctionTitle,
+      finalPrice,
+      auctionUrl: `${this.appUrl}/auctions/${auctionId}`,
+    };
+
+    await this.sendCriticalEmail({
+      to: email,
+      subject,
+      template: `./${lang}/auction-winner`,
+      context,
+    });
+  }
+
+  async sendAuctionOwnerEmail(email: string, lang: string, userName: string, auctionTitle: string, finalPrice: number, auctionId: number, winnerName?: string): Promise<void> {
+    const subject = this.i18n.t('mail.subjects.auction-owner', { lang });
+    const footerTranslations = this.getFooterTranslations(lang);
+
+    const context: MailContext<IMailAuctionOwner> = {
+      appName: this.appName,
+      appUrl: this.appUrl,
+      footer: footerTranslations,
+      userName,
+      auctionTitle,
+      finalPrice,
+      auctionUrl: `${this.appUrl}/auctions/${auctionId}`,
+      hasWinner: !!winnerName,
+      winnerName,
+    };
+
+    await this.sendCriticalEmail({
+      to: email,
+      subject,
+      template: `./${lang}/auction-owner`,
       context,
     });
   }

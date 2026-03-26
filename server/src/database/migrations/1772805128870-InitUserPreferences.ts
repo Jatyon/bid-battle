@@ -15,7 +15,7 @@ export class InitUserPreferences1772805128870 implements MigrationInterface {
             name: 'lang',
             type: 'enum',
             enum: ['en', 'pl'],
-            default: 'en',
+            default: "'en'",
           },
           {
             name: 'notify_on_outbid',

@@ -7,7 +7,6 @@ import { AuthController } from './auth.controller';
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 import { AuthService } from './auth.service';
 
-
 @Module({
   controllers: [AuthController],
   imports: [

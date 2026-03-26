@@ -2,7 +2,9 @@
   "subjects": {
     "test": "Testowy mail",
     "forgot-password": "Odzyskiwanie dostępu do konta",
-    "reset-password": "Zmiana hasła"
+    "reset-password": "Zmiana hasła",
+    "auction-winner": "Wygrałeś aukcję!",
+    "auction-owner": "Twoja aukcja dobiegła końca"
   },
   "footer": {
     "rights": "Wszelkie prawa zastrzeżone."
