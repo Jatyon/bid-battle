@@ -1,5 +1,6 @@
 import { Entity, Column, OneToOne, JoinColumn, PrimaryColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Language } from '@core/enums/language.enum';
 import { User } from './user.entity';
 
 @Entity({ name: 'user_preferences' })
@@ -10,6 +11,14 @@ export class UserPreferences {
   })
   @PrimaryColumn({ name: 'user_id', type: 'int' })
   userId: number;
+
+  @Column({
+    name: 'lang',
+    type: 'enum',
+    enum: Language,
+    default: Language.EN,
+  })
+  lang: string;
 
   @ApiProperty({
     description: 'Whether to notify user when someone outbids them',

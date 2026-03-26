@@ -12,6 +12,12 @@ export class InitUserPreferences1772805128870 implements MigrationInterface {
             isPrimary: true,
           },
           {
+            name: 'lang',
+            type: 'enum',
+            enum: ['en', 'pl'],
+            default: 'en',
+          },
+          {
             name: 'notify_on_outbid',
             type: 'boolean',
             default: true,
