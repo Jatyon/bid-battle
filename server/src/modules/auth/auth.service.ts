@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
 import { MailService } from '@shared/mail';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { IAuthJwt, IAuthJwtPayload } from './interfaces';
 import { AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
@@ -67,6 +67,19 @@ export class AuthService {
     await this.usersService.updateBy({ id: user.id }, { isEmailVerified: true });
 
     await this.usersTokenService.markTokenAsUsed(tokenEntity.id);
+  }
+
+  async resendVerificationEmail(dto: ResendVerificationEmailDto, i18n: I18nContext): Promise<void> {
+    const user = await this.usersService.findOneBy({ email: dto.email });
+
+    // For security reasons, silently succeed if email not found
+    if (!user) return;
+
+    if (user.isEmailVerified) return;
+
+    await this.usersTokenService.deleteUserTokensByType(user.id, UserTokenEnum.EMAIL_VERIFICATION);
+
+    await this.sendVerificationEmail(user, i18n);
   }
 
   async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<AuthTokens> {
