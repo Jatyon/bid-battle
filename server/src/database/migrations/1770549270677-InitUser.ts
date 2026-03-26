@@ -47,6 +47,11 @@ export class InitUsers1770549270677 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'is_email_verified',
+            type: 'boolean',
+            default: false,
+          },
+          {
             name: 'password_changed_at',
             type: 'timestamp',
             isNullable: true,
