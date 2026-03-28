@@ -58,4 +58,8 @@ export const validationSchema = Joi.object({
   // SOCKET
   WS_RATE_LIMIT_MS: Joi.number().default(10000),
   WS_RATE_LIMIT_MAX: Joi.number().default(10),
+
+  // BID
+  BID_MIN_INCREMENT_PERCENT: Joi.number().default(1),
+  BID_MIN_INCREMENT_ABSOLUTE: Joi.number().default(0.01),
 });

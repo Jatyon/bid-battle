@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { AppConfigService } from '@config/config.service';
 import { RedisService } from '@shared/redis';
-import { MIN_BID_INCREMENT } from './bid.constants';
 import { IAuctionState, IBidResult } from './interfaces';
+import { calcMinIncrement } from './bid.constants';
 import { Bid } from './entities';
 import { I18nService } from 'nestjs-i18n';
 import { Repository } from 'typeorm';
@@ -16,6 +17,7 @@ export class BidService {
     private readonly bidRepository: Repository<Bid>,
     private readonly redisService: RedisService,
     private readonly i18n: I18nService,
+    private readonly configService: AppConfigService,
   ) {}
 
   /**
@@ -55,18 +57,19 @@ export class BidService {
 
       if (!isActive) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended');
 
-      if (currentPrice !== null && amount < currentPrice + MIN_BID_INCREMENT)
+      const { minIncrementPercent, minIncrementAbsolute } = this.configService.bid;
+      const minIncrement = calcMinIncrement(currentPrice ?? 0, minIncrementPercent, minIncrementAbsolute);
+
+      if (currentPrice !== null && amount < currentPrice + minIncrement)
         return {
           success: false,
-          reason: await this.i18n.translate('bid.error.bid_too_low_#minBid', { args: { minBid: currentPrice + MIN_BID_INCREMENT } }),
+          reason: await this.i18n.translate('bid.error.bid_too_low_#minBid', { args: { minBid: currentPrice + minIncrement } }),
           code: 'BID_TOO_LOW',
           currentPrice,
-          minNextBid: currentPrice + MIN_BID_INCREMENT,
+          minNextBid: currentPrice + minIncrement,
         };
 
-      // placeBidAtomicWithSnapshot performs the write AND returns the pre-write state
-      // in a single Lua execution — no separate getHighestBidderId round-trip needed.
-      const atomicResult = await this.redisService.placeBidAtomicWithSnapshot(auctionId, userId, amount, MIN_BID_INCREMENT);
+      const atomicResult = await this.redisService.placeBidAtomicWithSnapshot(auctionId, userId, amount, minIncrement);
 
       if (atomicResult.success) {
         try {

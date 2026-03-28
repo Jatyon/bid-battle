@@ -1,10 +1,22 @@
 /**
- * Minimum bid increment value.
- * Any new bid must be higher than the current price by at least this amount.
- * * Business Logic:
- * Prevents "micro-bidding" (e.g., bidding +0.01 on a high-value item),
- * which can frustrate users and clutter the bid history.
- * Ensure this value is consistent with the `minIncrement` argument
- * passed to the Redis Lua script.
+ * Calculates the minimum required bid increment for a given current price.
+ *
+ * The increment is percentage-based to scale sensibly across all price ranges:
+ *   - Low-price auctions (e.g. 10 PLN):  1% → 1 PLN  (clamped to absolute floor)
+ *   - Mid-price auctions (e.g. 500 PLN): 1% → 5 PLN
+ *   - High-price auctions (e.g. 100 000 PLN): 1% → 1 000 PLN
+ *
+ * The result is always a positive integer (ceil) and at least `minAbsolute`,
+ * preventing trivially small increments on very low starting prices.
+ *
+ * @param currentPrice   - The current highest bid (or starting price if no bids yet). Must be ≥ 0.
+ * @param percent        - The increment as a percentage of `currentPrice` (e.g. 1 = 1%).
+ * @param minAbsolute    - Hard lower bound for the computed increment (smallest currency unit).
+ * @returns              A positive integer representing the minimum bid increment.
  */
-export const MIN_BID_INCREMENT = 1;
+export function calcMinIncrement(currentPrice: number, percent: number, minAbsolute: number): number {
+  if (currentPrice <= 0) return minAbsolute;
+
+  const computed = Math.ceil((currentPrice * percent) / 100);
+  return Math.max(computed, minAbsolute);
+}

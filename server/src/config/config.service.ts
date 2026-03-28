@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { StorageType } from '@shared/file-upload';
-import { IConfigApp, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IDatabaseConfig } from './interfaces';
+import { IConfigApp, IConfigBid, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IDatabaseConfig } from './interfaces';
 import { DatabaseType } from 'typeorm';
 
 @Injectable()
@@ -103,5 +103,12 @@ export class AppConfigService {
         maxEvents: this.configService.get<number>('WS_RATE_LIMIT_MAX', 10),
       };
     }
+  }
+
+  get bid(): IConfigBid {
+    return {
+      minIncrementPercent: this.configService.get<number>('BID_MIN_INCREMENT_PERCENT', 1),
+      minIncrementAbsolute: this.configService.get<number>('BID_MIN_INCREMENT_ABSOLUTE', 0.01),
+    };
   }
 }

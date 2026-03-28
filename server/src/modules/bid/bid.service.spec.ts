@@ -1,14 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { I18nService } from 'nestjs-i18n';
-import { RedisService } from '@shared/redis';
+import { AppConfigService } from '@config/config.service';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
+import { RedisService } from '@shared/redis';
+import { calcMinIncrement } from './bid.constants';
 import { BidService } from './bid.service';
 import { Bid } from './entities';
-import { MIN_BID_INCREMENT } from './bid.constants';
+import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { I18nService } from 'nestjs-i18n';
+import { Repository } from 'typeorm';
+
+const MOCK_BID_CONFIG = { minIncrementPercent: 1, minIncrementAbsolute: 1 };
 
 describe('BidService', () => {
   let service: BidService;
@@ -36,6 +39,10 @@ describe('BidService', () => {
         {
           provide: I18nService,
           useValue: createMockI18nService(),
+        },
+        {
+          provide: AppConfigService,
+          useValue: { bid: MOCK_BID_CONFIG },
         },
       ],
     }).compile();
@@ -109,19 +116,20 @@ describe('BidService', () => {
       setupActiveAuction({ currentPrice: 200 });
 
       const result = await service.placeBid(1, 5, 200);
+      const expectedMinIncrement = calcMinIncrement(200, MOCK_BID_CONFIG.minIncrementPercent, MOCK_BID_CONFIG.minIncrementAbsolute);
 
       expect(result).toEqual(
         expect.objectContaining({
           success: false,
           code: 'BID_TOO_LOW',
           currentPrice: 200,
-          minNextBid: 200 + MIN_BID_INCREMENT,
+          minNextBid: 200 + expectedMinIncrement,
         }),
       );
       expect(redisService.placeBidAtomicWithSnapshot).not.toHaveBeenCalled();
     });
 
-    it('should allow bid exactly equal to currentPrice + MIN_BID_INCREMENT', async () => {
+    it('should allow bid exactly equal to currentPrice + minIncrement', async () => {
       const resultPlaceBidAtomic = { success: true, data: { previousPrice: 200, previousBidderId: null } };
 
       setupActiveAuction({ currentPrice: 200 });
@@ -130,7 +138,8 @@ describe('BidService', () => {
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockResolvedValue({} as Bid);
 
-      const result = await service.placeBid(1, 5, 201);
+      const minIncrement = calcMinIncrement(200, MOCK_BID_CONFIG.minIncrementPercent, MOCK_BID_CONFIG.minIncrementAbsolute);
+      const result = await service.placeBid(1, 5, 200 + minIncrement);
 
       expect(result.success).toBe(true);
     });
@@ -163,7 +172,12 @@ describe('BidService', () => {
 
       const result = await service.placeBid(1, 5, 150);
 
-      expect(redisService.placeBidAtomicWithSnapshot).toHaveBeenCalledWith(1, 5, 150, MIN_BID_INCREMENT);
+      expect(redisService.placeBidAtomicWithSnapshot).toHaveBeenCalledWith(
+        1,
+        5,
+        150,
+        calcMinIncrement(100, MOCK_BID_CONFIG.minIncrementPercent, MOCK_BID_CONFIG.minIncrementAbsolute),
+      );
       expect(bidRepository.create).toHaveBeenCalledWith({ auctionId: 1, userId: 5, amount: 150 });
       expect(bidRepository.save).toHaveBeenCalledWith(mockBid);
       expect(result).toEqual({ success: true });
