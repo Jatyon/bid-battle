@@ -17,4 +17,14 @@ export class BidRepository extends Repository<Bid> {
       take,
     });
   }
+
+  findPaginatedBidByUser(userId: number, skip: number, take: number): Promise<[Bid[], number]> {
+    return this.findAndCount({
+      where: { userId },
+      relations: ['auction'],
+      order: { amount: 'DESC' },
+      skip,
+      take,
+    });
+  }
 }

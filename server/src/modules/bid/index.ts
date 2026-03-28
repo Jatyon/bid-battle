@@ -1,3 +1,4 @@
+export * from './/bid.controller';
 export * from './repositories';
 export * from './bid.service';
 export * from './bid.gateway';

@@ -149,6 +149,9 @@ export class AuctionsService {
     return paginator.response(items, page, limit, total);
   }
 
+  /**
+   * Get bid history for a specific auction
+   */
   async findAuctionBids(auctionId: number, paginator: Paginator, requestingUserId?: number): Promise<PaginatorResponse<BidResponse>> {
     const page: number = paginator.page || 1;
     const limit: number = paginator.limit;

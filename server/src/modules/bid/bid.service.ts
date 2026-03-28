@@ -1,24 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { AppConfigService } from '@config/config.service';
+import { Paginator, PaginatorResponse } from '@core/models';
 import { RedisService } from '@shared/redis';
 import { IAuctionState, IBidResult } from './interfaces';
 import { calcMinIncrement } from './bid.constants';
-import { Bid } from './entities';
+import { BidRepository } from './repositories';
+import { MyBidResponse } from './dto';
 import { I18nService } from 'nestjs-i18n';
-import { Repository } from 'typeorm';
 
 @Injectable()
 export class BidService {
   private readonly logger = new Logger(BidService.name);
 
   constructor(
-    @InjectRepository(Bid)
-    private readonly bidRepository: Repository<Bid>,
+    private readonly bidRepository: BidRepository,
     private readonly redisService: RedisService,
     private readonly i18n: I18nService,
     private readonly configService: AppConfigService,
   ) {}
+
+  /**
+   * Get bids placed by a specific user (My Bids)
+   */
+  async findMyBids(userId: number, paginator: Paginator): Promise<PaginatorResponse<MyBidResponse>> {
+    const page: number = paginator.page || 1;
+    const limit: number = paginator.limit;
+    const skip: number = paginator.skip;
+
+    const [bids, total] = await this.bidRepository.findPaginatedBidByUser(userId, skip, limit);
+
+    const items = bids.map((bid) => new MyBidResponse(bid));
+    return paginator.response(items, page, limit, total);
+  }
 
   /**
    * Orchestrates the process of placing a new bid on an auction.
