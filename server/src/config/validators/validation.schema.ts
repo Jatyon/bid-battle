@@ -10,7 +10,7 @@ export const validationSchema = Joi.object({
   TIMEOUT_MS: Joi.number().default(5000),
   THROTTLE_TTL_MS: Joi.number().default(60000),
   THROTTLE_LIMIT: Joi.number().default(10),
-  CORS_ORIGIN: Joi.string().default('*'),
+  CORS_ORIGIN: Joi.string().required(),
   EMAIL_VERIFICATION_EXPIRES_IN: Joi.number().default(15),
   RESET_PASSWORD_EXPIRES_IN: Joi.number().default(15),
 

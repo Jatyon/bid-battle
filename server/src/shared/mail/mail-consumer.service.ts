@@ -16,7 +16,6 @@ export class MailConsumerService extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(MailConsumerService.name);
   private readonly fromEmail: string;
   private readonly appName: string;
-  private readonly supportEmail: string;
 
   constructor(private configService: AppConfigService) {
     super();
@@ -33,11 +32,12 @@ export class MailConsumerService extends WorkerHost implements OnModuleInit {
     const smtpPort = this.configService.mailer.port;
     const smtpUser = this.configService.mailer.auth.user;
     const smtpPass = this.configService.mailer.auth.pass;
+    const smtpSecure = this.configService.mailer.secure;
 
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: false,
+      secure: smtpSecure,
       auth: {
         user: smtpUser,
         pass: smtpPass,
@@ -93,7 +93,6 @@ export class MailConsumerService extends WorkerHost implements OnModuleInit {
       const context = {
         ...options.context,
         appName: this.appName,
-        supportEmail: this.supportEmail,
         year: new Date().getFullYear(),
       };
 

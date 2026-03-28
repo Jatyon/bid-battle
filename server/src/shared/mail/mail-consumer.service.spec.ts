@@ -32,6 +32,7 @@ describe('MailConsumerService', () => {
       from: { address: 'no-reply@test.com' },
       host: 'smtp.test.com',
       port: 587,
+      secure: true,
       auth: { user: 'user', pass: 'pass' },
     },
     app: {
