@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { AUCTION_MAX_DURATION_HOURS, IsFutureDateString, IsWithinMaxDurationFromNow } from './create-auction.dto';
 import { IsString, IsDateString, IsOptional, MaxLength } from 'class-validator';
-import { IsFutureDateString } from './create-auction.dto';
 
 export class UpdateAuctionDto {
   @ApiProperty({
@@ -24,7 +24,7 @@ export class UpdateAuctionDto {
   description?: string;
 
   @ApiProperty({
-    description: 'Auction end time (can only be extended, not shortened, must be in the future)',
+    description: `Auction end time (can only be extended, not shortened, must be in the future and within ${AUCTION_MAX_DURATION_HOURS}h from now)`,
     example: '2026-03-15T10:00:00Z',
     type: 'string',
     format: 'date-time',
@@ -33,5 +33,8 @@ export class UpdateAuctionDto {
   @IsOptional()
   @IsDateString({ strict: false }, { message: 'error.validation.auction.end_time_must_be_datetime' })
   @IsFutureDateString(0, { message: 'error.validation.auction.end_time_must_be_in_future' })
+  @IsWithinMaxDurationFromNow(AUCTION_MAX_DURATION_HOURS, {
+    message: 'error.validation.auction.end_time_exceeds_max_duration',
+  })
   endTime?: string;
 }

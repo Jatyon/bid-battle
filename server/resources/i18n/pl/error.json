@@ -54,6 +54,7 @@
       "end_time_must_be_datetime": "Czas zakończenia musi być poprawną datą i godziną.",
       "end_time_must_be_at_least_one_hour_from_now": "Czas zakończenia aukcji musi być zaplanowany z co najmniej godzinnym wyprzedzeniem.",
       "end_time_must_be_in_future": "Czas zakończenia aukcji musi być datą w przyszłości.",
+      "end_time_exceeds_max_duration": "Czas zakończenia aukcji nie może być późniejszy niż 30 dni od teraz.",
       "images_must_have_at_least_one_image": "Aukcja musi posiadać przynajmniej jedno zdjęcie!",
       "primaryImageIndex_must_be_valid": "Indeks głównego zdjęcia jest nieprawidłowy.",
       "primary_image_index_must_be_integer": "Indeks głównego zdjęcia musi być liczbą całkowitą.",

@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsDateString, IsNotEmpty, Min, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize } from 'class-validator';
 import { registerDecorator, ValidationOptions } from 'class-validator';
-import { addHours, isAfter } from 'date-fns';
+import { addHours, isAfter, isBefore } from 'date-fns';
+
+export const AUCTION_MAX_DURATION_HOURS = 720;
 
 export class CreateAuctionDto {
   @ApiProperty({
@@ -43,7 +45,7 @@ export class CreateAuctionDto {
   startTime?: string;
 
   @ApiProperty({
-    description: 'Auction end time (must be at least 1 hour in the future)',
+    description: `Auction end time (must be at least 1 hour and at most ${AUCTION_MAX_DURATION_HOURS} hours in the future)`,
     example: '2026-03-10T10:00:00Z',
     type: 'string',
     format: 'date-time',
@@ -52,6 +54,9 @@ export class CreateAuctionDto {
   @IsDateString({ strict: false }, { message: 'error.validation.auction.end_time_must_be_datetime' })
   @IsFutureDateString(1, {
     message: 'error.validation.auction.end_time_must_be_at_least_one_hour_from_now',
+  })
+  @IsWithinMaxDurationFromNow(AUCTION_MAX_DURATION_HOURS, {
+    message: 'error.validation.auction.end_time_exceeds_max_duration',
   })
   endTime: string;
 
@@ -98,6 +103,29 @@ export function IsFutureDateString(hoursToAdd: number, validationOptions?: Valid
           const minDate = addHours(new Date(), hoursToAdd);
 
           return isAfter(dateValue, minDate);
+        },
+      },
+    });
+  };
+}
+
+export function IsWithinMaxDurationFromNow(maxHours: number, validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isWithinMaxDurationFromNow',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any) {
+          if (typeof value !== 'string') return false;
+
+          const dateValue = new Date(value);
+          if (isNaN(dateValue.getTime())) return false;
+
+          const maxDate = addHours(new Date(), maxHours);
+
+          return isBefore(dateValue, maxDate);
         },
       },
     });
