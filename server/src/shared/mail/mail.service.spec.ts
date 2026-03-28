@@ -244,4 +244,38 @@ describe('MailService', () => {
       });
     });
   });
+
+  describe('sendEmailVerificationEmail', () => {
+    it('should correctly build context and call sendCriticalEmail for verification', async () => {
+      const email = 'verify@example.com';
+      const lang = 'pl';
+      const userName = 'Adam Kowalski';
+      const expiresInMin = 60;
+      const token = 'verify-token-xyz';
+
+      jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Verify Email');
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'Wszelkie prawa zastrzeżone' });
+
+      const sendCriticalSpy = jest.spyOn(service as any, 'sendCriticalEmail').mockResolvedValue(undefined);
+
+      await service.sendEmailVerificationEmail(email, lang, userName, expiresInMin, token);
+
+      expect(i18nService.t).toHaveBeenCalledWith('mail.subjects.verify-email', { lang });
+      expect(service['getFooterTranslations']).toHaveBeenCalledWith(lang);
+
+      expect(sendCriticalSpy).toHaveBeenCalledWith({
+        to: email,
+        subject: 'Translated subject - Verify Email',
+        template: `./${lang}/verify-email`,
+        context: {
+          appName: mockConfig.app.name,
+          appUrl: mockConfig.app.frontendHost,
+          footer: { rights: 'All rights reserved' },
+          userName,
+          verifyUrl: `${mockConfig.app.frontendHost}/auth/verify-email?token=${token}`,
+          expiresInMin,
+        },
+      });
+    });
+  });
 });
