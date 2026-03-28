@@ -639,30 +639,38 @@ describe('RedisService', () => {
     });
   });
 
-  describe('placeBidAtomic', () => {
-    it('should return true when the Lua script returns 1', async () => {
-      (mockRedis.placeBidAtomicCommand as jest.Mock).mockResolvedValue(1);
+  describe('placeBidAtomicWithSnapshot', () => {
+    it('should return success=true with parsed previousPrice and previousBidderId when Lua script returns accepted=1', async () => {
+      (mockRedis.placeBidAtomicCommand as jest.Mock).mockResolvedValue([1, '200', '7']);
 
-      const result = await service.placeBidAtomic(1, 99, 500, 10);
+      const result = await service.placeBidAtomicWithSnapshot(1, 99, 500, 10);
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true, data: { previousPrice: 200, previousBidderId: 7 } });
       expect(mockRedis.placeBidAtomicCommand).toHaveBeenCalledWith('auction:1:price', 'auction:1:highest_bidder', 'auction:1:active', 500, 99, 10);
     });
 
-    it('should return false when the Lua script returns 0', async () => {
-      (mockRedis.placeBidAtomicCommand as jest.Mock).mockResolvedValue(0);
+    it('should return success=true with null previousPrice and null previousBidderId when it is the first bid', async () => {
+      (mockRedis.placeBidAtomicCommand as jest.Mock).mockResolvedValue([1, null, null]);
 
-      const result = await service.placeBidAtomic(1, 99, 500, 10);
+      const result = await service.placeBidAtomicWithSnapshot(1, 99, 500, 10);
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: true, data: { previousPrice: null, previousBidderId: null } });
     });
 
-    it('should return false and log error when Redis fails', async () => {
+    it('should return success=false when the Lua script returns accepted=0', async () => {
+      (mockRedis.placeBidAtomicCommand as jest.Mock).mockResolvedValue([0, null, null]);
+
+      const result = await service.placeBidAtomicWithSnapshot(1, 99, 500, 10);
+
+      expect(result).toEqual({ success: false });
+    });
+
+    it('should return success=false and log error when Redis fails', async () => {
       (mockRedis.placeBidAtomicCommand as jest.Mock).mockRejectedValue(new Error('Lua error'));
 
-      const result = await service.placeBidAtomic(1, 99, 500, 10);
+      const result = await service.placeBidAtomicWithSnapshot(1, 99, 500, 10);
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(service['logger'].error).toHaveBeenCalledWith(expect.stringContaining('Atomic bid error'), expect.any(String));
     });
   });

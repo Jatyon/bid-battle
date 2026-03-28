@@ -26,8 +26,10 @@ export class BidService {
    * 2. Parallel retrieval of auction state from Redis (owner, status, current price).
    * 3. Business rule validation (owner cannot bid, auction must be active, bid must be high enough).
    * 4. Atomic execution of the bid in Redis via a Lua script to prevent race conditions.
+   *    The script returns a snapshot of the state BEFORE the write — this eliminates the
+   *    TOCTOU window that existed when previousBidderId was fetched in a separate round-trip.
    * 5. Persistent storage of the bid in the relational database.
-   * 6. Automatic rollback in Redis if the database save fails.
+   * 6. Automatic rollback in Redis if the database save fails, using the atomic snapshot.
    *
    * @param auctionId - The unique identifier of the auction.
    * @param userId - The ID of the user attempting to place the bid.
@@ -62,13 +64,11 @@ export class BidService {
           minNextBid: currentPrice + MIN_BID_INCREMENT,
         };
 
-      const previousPrice: number | null = currentPrice;
+      // placeBidAtomicWithSnapshot performs the write AND returns the pre-write state
+      // in a single Lua execution — no separate getHighestBidderId round-trip needed.
+      const atomicResult = await this.redisService.placeBidAtomicWithSnapshot(auctionId, userId, amount, MIN_BID_INCREMENT);
 
-      const previousBidderId: number | null = await this.redisService.getHighestBidderId(auctionId);
-
-      const success = await this.redisService.placeBidAtomic(auctionId, userId, amount, MIN_BID_INCREMENT);
-
-      if (success) {
+      if (atomicResult.success) {
         try {
           await this.bidRepository.save(
             this.bidRepository.create({
@@ -79,7 +79,8 @@ export class BidService {
           );
         } catch (dbError) {
           this.logger.error(`DB save failed after atomic bid — rolling back Redis for auction ${auctionId}`, dbError instanceof Error ? dbError.stack : String(dbError));
-          await this.redisService.rollbackBid(auctionId, previousPrice, previousBidderId);
+
+          await this.redisService.rollbackBid(auctionId, atomicResult.data.previousPrice, atomicResult.data.previousBidderId);
           return this.fail('SERVER_ERROR', 'bid.error.bid_failed');
         }
 

@@ -1,10 +1,23 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { BidAtomicSnapshot, ResultPlateBidAtomic } from './interfaces';
 import { REDIS_CLIENT, SOCKET_AUCTION_TTL } from './redis.constants';
 import Redis, { Result } from 'ioredis';
 
 declare module 'ioredis' {
   interface RedisCommander<Context> {
-    placeBidAtomicCommand(priceKey: string, bidderKey: string, activeKey: string, newAmount: number, userId: number, minIncrement: number): Result<number, Context>;
+    /**
+     * Returns a 3-element array: [success (1|0), previousPrice (string|false), previousBidderId (string|false)]
+     * previousPrice / previousBidderId are the Redis bulk-string values before the bid was applied,
+     * or the boolean false (nil in Lua) when the key did not exist.
+     */
+    placeBidAtomicCommand(
+      priceKey: string,
+      bidderKey: string,
+      activeKey: string,
+      newAmount: number,
+      userId: number,
+      minIncrement: number,
+    ): Result<[number, string | null, string | null], Context>;
   }
 }
 
@@ -31,7 +44,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * 1. Checks if the auction is active.
    * 2. Prevents the current highest bidder from outbidding themselves.
    * 3. Validates the minimum bid increment.
-   * 4. Updates price and bidder ID atomically.
+   * 4. Captures the previous price and bidder BEFORE writing (snapshot for rollback).
+   * 5. Updates price and bidder atomically using KEEPTTL so existing TTLs are preserved.
+   *
+   * Returns a 3-element array:
+   *   [1, previousPrice|false, previousBidderId|false]  – bid accepted
+   *   [0, false, false]                                 – bid rejected (any reason)
+   *
+   * Using the returned snapshot for rollback guarantees the restored values are
+   * consistent with the exact moment of the atomic write, eliminating the TOCTOU
+   * window that existed when previousBidderId was fetched in a separate round-trip.
    */
   private readonly BID_SCRIPT = `
     local priceKey = KEYS[1]
@@ -43,7 +65,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     -- Check if auction is active
     if redis.call('EXISTS', activeKey) == 0 then
-      return 0
+      return {0, false, false}
     end
 
     local currentPriceStr = redis.call('GET', priceKey)
@@ -56,19 +78,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     -- Prevent user from outbidding themselves
     if currentBidderStr == userIdStr then
-      return 0
+      return {0, false, false}
     end
 
     -- Validate minimum increment
     if newAmount < currentPrice + minIncrement then
-      return 0
+      return {0, false, false}
     end
 
-    -- Update price and bidder
-    redis.call('SET', priceKey, tostring(newAmount))
-    redis.call('SET', bidderKey, userIdStr)
-    
-    return 1
+    -- Update price and bidder, preserving existing TTLs
+    redis.call('SET', priceKey, tostring(newAmount), 'KEEPTTL')
+    redis.call('SET', bidderKey, userIdStr, 'KEEPTTL')
+
+    return {1, currentPriceStr or false, currentBidderStr or false}
   `;
 
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
@@ -438,16 +460,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // --- Atomic Operations ---
 
   /**
-   * Executes the atomic bid placement script in Redis.
+   * Executes the atomic bid placement Lua script in Redis.
    * Ensures thread safety and prevents race conditions when multiple users bid simultaneously.
+   *
+   * The script captures the state **before** the write inside the same Lua execution,
+   * eliminating the TOCTOU window that would exist if the snapshot were fetched in a
+   * separate round-trip. The returned snapshot allows the caller to perform a safe
+   * rollback via {@link rollbackBid} without any additional Redis commands.
    *
    * @param auctionId - The ID of the auction.
    * @param userId - The ID of the user placing the bid.
    * @param newAmount - The proposed bid amount.
-   * @param minIncrement - The required minimum difference between the new and current bid.
-   * @returns True if the bid was successfully placed (script returned 1), false otherwise.
+   * @param minIncrement - The minimum required difference between the current and new bid.
+   * @returns {@link Result} discriminated by `success`:
+   * - `{ success: true, data: BidAtomicSnapshot }` — bid accepted; `data` contains the pre-write snapshot.
+   * - `{ success: false }` — bid rejected (auction inactive, self-outbid, or increment too low).
    */
-  async placeBidAtomic(auctionId: number, userId: number, newAmount: number, minIncrement: number): Promise<boolean> {
+  async placeBidAtomicWithSnapshot(auctionId: number, userId: number, newAmount: number, minIncrement: number): Promise<ResultPlateBidAtomic<BidAtomicSnapshot>> {
     try {
       const result = await this.redis.placeBidAtomicCommand(
         RedisKey.auctionPrice(auctionId),
@@ -457,10 +486,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         userId,
         minIncrement,
       );
-      return result === 1;
+
+      const [accepted, rawPrice, rawBidder] = result;
+
+      if (accepted !== 1) return { success: false };
+
+      return {
+        success: true,
+        data: { previousPrice: rawPrice != null ? parseFloat(rawPrice) : null, previousBidderId: rawBidder != null ? parseInt(rawBidder, 10) : null },
+      };
     } catch (error: unknown) {
       this.handleError(`Atomic bid error for auction "${auctionId}"`, error);
-      return false;
+      return { success: false };
     }
   }
 

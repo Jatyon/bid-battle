@@ -19,7 +19,6 @@ describe('BidService', () => {
     redisService.getAuctionOwner.mockResolvedValue(overrides.owner !== undefined ? overrides.owner : 99);
     redisService.isAuctionActive.mockResolvedValue(overrides.isActive !== undefined ? overrides.isActive : true);
     redisService.getLivePrice.mockResolvedValue(overrides.currentPrice !== undefined ? overrides.currentPrice : 100);
-    redisService.getHighestBidderId.mockResolvedValue(overrides.highestBidder !== undefined ? overrides.highestBidder : null);
   };
 
   beforeEach(async () => {
@@ -85,7 +84,7 @@ describe('BidService', () => {
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'AUCTION_ENDED' }));
       expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('Owner key missing'));
-      expect(redisService.placeBidAtomic).not.toHaveBeenCalled();
+      expect(redisService.placeBidAtomicWithSnapshot).not.toHaveBeenCalled();
     });
 
     it('should return OWNER_CANNOT_BID when userId matches ownerId', async () => {
@@ -94,7 +93,7 @@ describe('BidService', () => {
       const result = await service.placeBid(1, 5, 150);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'OWNER_CANNOT_BID' }));
-      expect(redisService.placeBidAtomic).not.toHaveBeenCalled();
+      expect(redisService.placeBidAtomicWithSnapshot).not.toHaveBeenCalled();
     });
 
     it('should return AUCTION_ENDED when auction is not active in Redis', async () => {
@@ -103,7 +102,7 @@ describe('BidService', () => {
       const result = await service.placeBid(1, 5, 150);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'AUCTION_ENDED' }));
-      expect(redisService.placeBidAtomic).not.toHaveBeenCalled();
+      expect(redisService.placeBidAtomicWithSnapshot).not.toHaveBeenCalled();
     });
 
     it('should return BID_TOO_LOW with price details when amount is below currentPrice + MIN_BID_INCREMENT', async () => {
@@ -119,12 +118,15 @@ describe('BidService', () => {
           minNextBid: 200 + MIN_BID_INCREMENT,
         }),
       );
-      expect(redisService.placeBidAtomic).not.toHaveBeenCalled();
+      expect(redisService.placeBidAtomicWithSnapshot).not.toHaveBeenCalled();
     });
 
     it('should allow bid exactly equal to currentPrice + MIN_BID_INCREMENT', async () => {
+      const resultPlaceBidAtomic = { success: true, data: { previousPrice: 200, previousBidderId: null } };
+
       setupActiveAuction({ currentPrice: 200 });
-      redisService.placeBidAtomic.mockResolvedValue(true);
+
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue(resultPlaceBidAtomic);
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockResolvedValue({} as Bid);
 
@@ -134,8 +136,10 @@ describe('BidService', () => {
     });
 
     it('should skip price check and proceed when currentPrice is null (first bid)', async () => {
+      const resultPlaceBidAtomic = { success: true, data: { previousPrice: null, previousBidderId: null } };
+
       setupActiveAuction({ currentPrice: null });
-      redisService.placeBidAtomic.mockResolvedValue(true);
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue(resultPlaceBidAtomic);
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockResolvedValue({} as Bid);
 
@@ -147,15 +151,19 @@ describe('BidService', () => {
 
   describe('placeBid — atomic path', () => {
     it('should save bid to DB and return success when atomic bid succeeds', async () => {
+      const resultPlaceBidAtomic = { success: true, data: { previousPrice: 100, previousBidderId: null } };
+
       setupActiveAuction({ currentPrice: 100 });
-      redisService.placeBidAtomic.mockResolvedValue(true);
+
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue(resultPlaceBidAtomic);
       const mockBid = { auctionId: 1, userId: 5, amount: 150 } as Bid;
+
       bidRepository.create.mockReturnValue(mockBid);
       bidRepository.save.mockResolvedValue(mockBid);
 
       const result = await service.placeBid(1, 5, 150);
 
-      expect(redisService.placeBidAtomic).toHaveBeenCalledWith(1, 5, 150, MIN_BID_INCREMENT);
+      expect(redisService.placeBidAtomicWithSnapshot).toHaveBeenCalledWith(1, 5, 150, MIN_BID_INCREMENT);
       expect(bidRepository.create).toHaveBeenCalledWith({ auctionId: 1, userId: 5, amount: 150 });
       expect(bidRepository.save).toHaveBeenCalledWith(mockBid);
       expect(result).toEqual({ success: true });
@@ -163,8 +171,12 @@ describe('BidService', () => {
     });
 
     it('should rollback Redis and return SERVER_ERROR when DB save fails after atomic bid', async () => {
-      setupActiveAuction({ currentPrice: 100, highestBidder: 3 });
-      redisService.placeBidAtomic.mockResolvedValue(true);
+      const resultPlaceBidAtomic = { success: true, data: { previousPrice: 100, previousBidderId: 3 } };
+
+      setupActiveAuction({ currentPrice: 100 });
+
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue(resultPlaceBidAtomic);
+
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockRejectedValue(new Error('DB error'));
       redisService.rollbackBid.mockResolvedValue(undefined);
@@ -177,8 +189,10 @@ describe('BidService', () => {
     });
 
     it('should pass null previousPrice and null previousBidderId to rollback when no prior bids exist', async () => {
-      setupActiveAuction({ currentPrice: null, highestBidder: null });
-      redisService.placeBidAtomic.mockResolvedValue(true);
+      const resultPlaceBidAtomic = { success: true, data: { previousPrice: null, previousBidderId: null } };
+
+      setupActiveAuction({ currentPrice: null });
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue(resultPlaceBidAtomic);
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockRejectedValue(new Error('DB error'));
 
@@ -189,7 +203,7 @@ describe('BidService', () => {
 
     it('should return OUTBID with current price when atomic bid fails', async () => {
       setupActiveAuction({ currentPrice: 100 });
-      redisService.placeBidAtomic.mockResolvedValue(false);
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false });
       redisService.getLivePrice.mockResolvedValueOnce(100).mockResolvedValueOnce(120);
 
       const result = await service.placeBid(1, 5, 150);
@@ -204,15 +218,17 @@ describe('BidService', () => {
       );
     });
 
-    it('should fetch highestBidderId before calling placeBidAtomic', async () => {
-      setupActiveAuction({ currentPrice: 100, highestBidder: 7 });
-      redisService.placeBidAtomic.mockResolvedValue(true);
+    it('should use snapshot from atomic script as rollback data — not a separate getHighestBidderId call', async () => {
+      const resultPlaceBidAtomic = { success: true, data: { previousPrice: 100, previousBidderId: 7 } };
+
+      setupActiveAuction({ currentPrice: 100 });
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue(resultPlaceBidAtomic);
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockResolvedValue({} as Bid);
 
       await service.placeBid(1, 5, 150);
 
-      expect(redisService.getHighestBidderId).toHaveBeenCalledWith(1);
+      expect(redisService.getHighestBidderId).not.toHaveBeenCalled();
     });
 
     it('should return SERVER_ERROR and log error when an unexpected error is thrown', async () => {
