@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Language } from '@core/enums/language.enum';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { UserPreferencesService } from './user-preferences.service';
-import { UpdateUserPreferencesDto } from './dto';
 import { UserPreferences } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { Repository } from 'typeorm';
@@ -13,14 +13,10 @@ describe('UserPreferencesService', () => {
 
   const mockUserPreferences: UserPreferences = {
     userId: 1,
+    lang: Language.EN,
     notifyOnOutbid: true,
     notifyOnAuctionEnd: true,
     user: createUserFixture(),
-  };
-
-  const mockUpdateDto: UpdateUserPreferencesDto = {
-    notifyOnOutbid: false,
-    notifyOnAuctionEnd: true,
   };
 
   beforeEach(async () => {
@@ -54,53 +50,19 @@ describe('UserPreferencesService', () => {
       expect(result).toEqual(mockUserPreferences);
     });
 
-    it('should create default preferences if none exist', async () => {
-      const defaultPreferences = { ...mockUserPreferences, userId: 2 };
+    it('should return null if no preferences exist', async () => {
       repository.findOne.mockResolvedValue(null);
-      repository.create.mockReturnValue(defaultPreferences);
-      repository.save.mockResolvedValue(defaultPreferences);
 
       const result = await service.findByUserId(2);
 
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { userId: 2 },
       });
-      expect(repository.create).toHaveBeenCalledWith({
-        userId: 2,
-        notifyOnOutbid: true,
-        notifyOnAuctionEnd: true,
-      });
-      expect(repository.save).toHaveBeenCalledWith(defaultPreferences);
-      expect(result).toEqual(defaultPreferences);
+      expect(result).toBeNull();
     });
   });
 
   describe('updatePreferences', () => {
-    it('should create new preferences if none exist', async () => {
-      const newPreferences = {
-        ...mockUserPreferences,
-        userId: 3,
-        notifyOnOutbid: false,
-        notifyOnAuctionEnd: true,
-      };
-      repository.findOne.mockResolvedValue(null);
-      repository.create.mockReturnValue(newPreferences);
-      repository.save.mockResolvedValue(newPreferences);
-
-      const result = await service.updatePreferences(3, mockUpdateDto);
-
-      expect(repository.findOne).toHaveBeenCalledWith({
-        where: { userId: 3 },
-      });
-      expect(repository.create).toHaveBeenCalledWith({
-        userId: 3,
-        notifyOnOutbid: false,
-        notifyOnAuctionEnd: true,
-      });
-      expect(repository.save).toHaveBeenCalledWith(newPreferences);
-      expect(result).toEqual(newPreferences);
-    });
-
     it('should update existing preferences', async () => {
       const existingPreferences = { ...mockUserPreferences };
       const updatedPreferences = {
@@ -126,6 +88,7 @@ describe('UserPreferencesService', () => {
         ...existingPreferences,
         notifyOnAuctionEnd: false,
       };
+
       repository.findOne.mockResolvedValue(existingPreferences);
       repository.save.mockResolvedValue(updatedPreferences);
 
@@ -134,8 +97,8 @@ describe('UserPreferencesService', () => {
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { userId: 1 },
       });
-      expect(existingPreferences.notifyOnOutbid).toBe(true); // unchanged
-      expect(existingPreferences.notifyOnAuctionEnd).toBe(false); // changed
+      expect(existingPreferences.notifyOnOutbid).toBe(true);
+      expect(existingPreferences.notifyOnAuctionEnd).toBe(false);
       expect(repository.save).toHaveBeenCalledWith(existingPreferences);
       expect(result).toEqual(updatedPreferences);
     });
@@ -156,16 +119,6 @@ describe('UserPreferencesService', () => {
       });
       expect(repository.save).toHaveBeenCalledWith(defaultPreferences);
       expect(result).toEqual(defaultPreferences);
-    });
-  });
-
-  describe('deletePreferences', () => {
-    it('should delete preferences for user', async () => {
-      repository.delete.mockResolvedValue({ affected: 1, raw: {} });
-
-      await service.deletePreferences(1);
-
-      expect(repository.delete).toHaveBeenCalledWith({ userId: 1 });
     });
   });
 });

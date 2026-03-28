@@ -2,7 +2,7 @@ import { UnauthorizedException, ConflictException, NotFoundException, BadRequest
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService, UsersTokenService, UserTokenEnum } from '@modules/users';
+import { User, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum } from '@modules/users';
 import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
@@ -23,6 +23,7 @@ describe('AuthService', () => {
   let usersService: DeepMocked<UsersService>;
   let jwtService: DeepMocked<JwtService>;
   let usersTokenService: DeepMocked<UsersTokenService>;
+  let userPreferencesService: DeepMocked<UserPreferencesService>;
   let mailService: DeepMocked<MailService>;
   let authService: AuthService;
 
@@ -38,6 +39,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: UsersTokenService, useValue: createMock<UsersTokenService>() },
+        { provide: UserPreferencesService, useValue: createMock<UserPreferencesService>() },
         { provide: UsersService, useValue: createMock<UsersService>() },
         { provide: MailService, useValue: createMock<MailService>() },
         { provide: JwtService, useValue: createMock<JwtService>() },
@@ -61,6 +63,7 @@ describe('AuthService', () => {
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
     usersTokenService = module.get(UsersTokenService);
+    userPreferencesService = module.get(UserPreferencesService);
     mailService = module.get(MailService);
     authService = module.get<AuthService>(AuthService);
   });
@@ -125,19 +128,32 @@ describe('AuthService', () => {
       await expect(authService.register(registerDto, mockI18nContext)).rejects.toThrow(ConflictException);
     });
 
-    it('should correctly hash password and save user', async () => {
+    it('should correctly hash password, save user, create preferences and send email', async () => {
       usersService.findOneBy.mockResolvedValue(null);
       (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
       usersService.create.mockReturnValue(mockUser);
       usersService.save.mockResolvedValue(mockUser);
+
+      userPreferencesService.createDefaultPreferences.mockResolvedValue(undefined as any);
+
       usersTokenService.generateToken.mockResolvedValue(createUserTokenFixture({ type: UserTokenEnum.EMAIL_VERIFICATION, token: 'verification-token' }));
+      mailService.sendEmailVerificationEmail.mockResolvedValue(undefined as any);
 
       await authService.register(registerDto, mockI18nContext);
 
       expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(bcrypt.hash).toHaveBeenCalledWith(registerDto.password, 'random_salt');
+      expect(usersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...registerDto,
+          password: 'hashed_password',
+        }),
+      );
       expect(usersService.save).toHaveBeenCalledWith(mockUser);
+
+      expect(userPreferencesService.createDefaultPreferences).toHaveBeenCalledWith(mockUser.id);
+
       expect(usersTokenService.generateToken).toHaveBeenCalledWith(mockUser, UserTokenEnum.EMAIL_VERIFICATION, 60);
       expect(mailService.sendEmailVerificationEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName, 60, 'verification-token');
     });

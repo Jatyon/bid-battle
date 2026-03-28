@@ -1,7 +1,7 @@
 import { Injectable, Logger, UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
+import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken, UserPreferencesService } from '@modules/users';
 import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { IAuthJwt, IAuthJwtPayload } from './interfaces';
@@ -16,6 +16,7 @@ export class AuthService {
 
   constructor(
     private readonly usersTokenService: UsersTokenService,
+    private readonly userPreferencesService: UserPreferencesService,
     private readonly configService: AppConfigService,
     private readonly usersService: UsersService,
     private readonly mailService: MailService,
@@ -53,6 +54,8 @@ export class AuthService {
     });
 
     const savedUser = await this.usersService.save(user);
+
+    await this.userPreferencesService.createDefaultPreferences(savedUser.id);
 
     await this.sendVerificationEmail(savedUser, i18n);
   }

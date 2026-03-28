@@ -12,36 +12,19 @@ export class UserPreferencesService {
   ) {}
 
   async findByUserId(userId: number): Promise<UserPreferences> {
-    const preferences = await this.userPreferencesRepository.findOne({
+    return (await this.userPreferencesRepository.findOne({
       where: { userId },
-    });
-
-    if (!preferences) {
-      // Create default preferences if they don't exist
-      return this.createDefaultPreferences(userId);
-    }
-
-    return preferences;
+    })) as UserPreferences;
   }
 
   async updatePreferences(userId: number, updateDto: UpdateUserPreferencesDto): Promise<UserPreferences> {
-    let preferences = await this.userPreferencesRepository.findOne({
+    let preferences = (await this.userPreferencesRepository.findOne({
       where: { userId },
-    });
+    })) as UserPreferences;
 
-    if (!preferences) {
-      // Create new preferences if they don't exist
-      preferences = this.userPreferencesRepository.create({
-        userId,
-        notifyOnOutbid: updateDto.notifyOnOutbid ?? true,
-        notifyOnAuctionEnd: updateDto.notifyOnAuctionEnd ?? true,
-      });
-    } else {
-      // Update existing preferences
-      if (updateDto.notifyOnOutbid !== undefined) preferences.notifyOnOutbid = updateDto.notifyOnOutbid;
+    if (updateDto.notifyOnOutbid !== undefined) preferences.notifyOnOutbid = updateDto.notifyOnOutbid;
 
-      if (updateDto.notifyOnAuctionEnd !== undefined) preferences.notifyOnAuctionEnd = updateDto.notifyOnAuctionEnd;
-    }
+    if (updateDto.notifyOnAuctionEnd !== undefined) preferences.notifyOnAuctionEnd = updateDto.notifyOnAuctionEnd;
 
     return this.userPreferencesRepository.save(preferences);
   }
@@ -54,9 +37,5 @@ export class UserPreferencesService {
     });
 
     return this.userPreferencesRepository.save(preferences);
-  }
-
-  async deletePreferences(userId: number): Promise<void> {
-    await this.userPreferencesRepository.delete({ userId });
   }
 }
