@@ -1,7 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
-import { BidRepository, BidResponse } from '@modules/bid';
+import { BidRepository } from '@modules/bid/repositories/bid.repository';
+import { BidResponse } from '@modules/bid';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UpdateAuctionDto } from './dto';

@@ -4,7 +4,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
 import { Repository } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
-import { Bid } from '@modules/bid';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import {
@@ -14,6 +13,7 @@ import {
   createAuctionImageFixture,
   createMockFilesFixture,
 } from '@test/fixtures/auctions.fixtures';
+import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionResponse, AuctionDetailResponse } from './dto';
 import { AuctionScheduler } from './auction.scheduler';
@@ -26,7 +26,7 @@ describe('AuctionsService', () => {
   let service: AuctionsService;
   let auctionsRepository: DeepMocked<AuctionsRepository>;
   let auctionImageRepository: DeepMocked<Repository<AuctionImage>>;
-  let bidRepository: DeepMocked<Repository<Bid>>;
+  let bidRepository: DeepMocked<BidRepository>;
   let redisService: DeepMocked<RedisService>;
   let fileUploadService: DeepMocked<FileUploadService>;
   let auctionScheduler: DeepMocked<AuctionScheduler>;
@@ -48,8 +48,8 @@ describe('AuctionsService', () => {
           useValue: createMock<Repository<AuctionImage>>(),
         },
         {
-          provide: getRepositoryToken(Bid),
-          useValue: createMock<Repository<Bid>>(),
+          provide: BidRepository,
+          useValue: createMock<BidRepository>(),
         },
         {
           provide: RedisService,
@@ -69,7 +69,7 @@ describe('AuctionsService', () => {
     service = module.get<AuctionsService>(AuctionsService);
     auctionsRepository = module.get(AuctionsRepository);
     auctionImageRepository = module.get(getRepositoryToken(AuctionImage));
-    bidRepository = module.get(getRepositoryToken(Bid));
+    bidRepository = module.get(BidRepository);
     redisService = module.get(RedisService);
     fileUploadService = module.get(FileUploadService);
     auctionScheduler = module.get(AuctionScheduler);

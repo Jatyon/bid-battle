@@ -1,21 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { AppConfigService } from '@config/config.service';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
 import { RedisService } from '@shared/redis';
+import { BidRepository } from './repositories/bid.repository';
 import { calcMinIncrement } from './bid.constants';
 import { BidService } from './bid.service';
 import { Bid } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nService } from 'nestjs-i18n';
-import { Repository } from 'typeorm';
 
 const MOCK_BID_CONFIG = { minIncrementPercent: 1, minIncrementAbsolute: 1 };
 
 describe('BidService', () => {
   let service: BidService;
-  let bidRepository: DeepMocked<Repository<Bid>>;
+  let bidRepository: DeepMocked<BidRepository>;
   let redisService: DeepMocked<RedisService>;
 
   const setupActiveAuction = (overrides: { owner?: number | null; isActive?: boolean; currentPrice?: number | null; highestBidder?: number | null } = {}) => {
@@ -29,8 +28,8 @@ describe('BidService', () => {
       providers: [
         BidService,
         {
-          provide: getRepositoryToken(Bid),
-          useValue: createMock<Repository<Bid>>(),
+          provide: BidRepository,
+          useValue: createMock<BidRepository>(),
         },
         {
           provide: RedisService,
@@ -48,7 +47,7 @@ describe('BidService', () => {
     }).compile();
 
     service = module.get<BidService>(BidService);
-    bidRepository = module.get(getRepositoryToken(Bid));
+    bidRepository = module.get(BidRepository);
     redisService = module.get(RedisService);
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);

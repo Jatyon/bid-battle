@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { Paginator, PaginatorResponse } from '@core/models';
 import { RedisService } from '@shared/redis';
+import { BidRepository } from './repositories/bid.repository';
 import { IAuctionState, IBidResult } from './interfaces';
 import { calcMinIncrement } from './bid.constants';
-import { BidRepository } from './repositories';
 import { MyBidResponse } from './dto';
 import { I18nService } from 'nestjs-i18n';
 
