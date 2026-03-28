@@ -64,6 +64,44 @@ describe('AuctionsRepository', () => {
     });
   });
 
+  describe('findPaginatedAuctionsByOwner', () => {
+    it('should call inherited findAndCount with correct ownerId and pagination', async () => {
+      const ownerId = 5;
+      const skip = 10;
+      const take = 20;
+
+      const mockAuctions = [createMock<Auction>(), createMock<Auction>()];
+      const mockResult: [Auction[], number] = [mockAuctions, 2];
+
+      jest.spyOn(repository, 'findAndCount').mockResolvedValue(mockResult);
+
+      const result = await repository.findPaginatedAuctionsByOwner(ownerId, skip, take);
+
+      expect(repository.findAndCount).toHaveBeenCalledWith({
+        where: { ownerId },
+        skip,
+        take,
+        order: { createdAt: 'DESC' },
+      });
+
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should return empty array and zero count when owner has no auctions', async () => {
+      jest.spyOn(repository, 'findAndCount').mockResolvedValue([[], 0]);
+
+      const result = await repository.findPaginatedAuctionsByOwner(99, 0, 10);
+
+      expect(result).toEqual([[], 0]);
+      expect(repository.findAndCount).toHaveBeenCalledWith({
+        where: { ownerId: 99 },
+        skip: 0,
+        take: 10,
+        order: { createdAt: 'DESC' },
+      });
+    });
+  });
+
   describe('findByIdWithRelations', () => {
     it('should call inherited findOne with correct ID and relations', async () => {
       const auctionId = 1;
