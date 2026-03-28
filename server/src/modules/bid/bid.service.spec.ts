@@ -9,6 +9,7 @@ import { BidService } from './bid.service';
 import { Bid } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nService } from 'nestjs-i18n';
+import { Paginator } from '@core/models';
 
 const MOCK_BID_CONFIG = { minIncrementPercent: 1, minIncrementAbsolute: 1 };
 
@@ -59,6 +60,50 @@ describe('BidService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('findMyBids', () => {
+    let mockPaginator: Paginator;
+    let responseSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockPaginator = new Paginator();
+      mockPaginator.page = 1;
+      mockPaginator.limit = 10;
+
+      responseSpy = jest.spyOn(mockPaginator, 'response');
+    });
+
+    it('should fetch paginated bids for a user and map them to MyBidResponse', async () => {
+      const mockUserId = 5;
+      const mockBids = [{ id: 1, amount: 150, auctionId: 10, userId: mockUserId } as Bid, { id: 2, amount: 200, auctionId: 11, userId: mockUserId } as Bid];
+
+      bidRepository.findPaginatedBidByUser.mockResolvedValue([mockBids, 2]);
+
+      const result = await service.findMyBids(mockUserId, mockPaginator);
+
+      expect(bidRepository.findPaginatedBidByUser).toHaveBeenCalledWith(mockUserId, 0, 10);
+
+      expect(responseSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ id: 1, amount: 150 }), expect.objectContaining({ id: 2, amount: 200 })]),
+        1,
+        10,
+        2,
+      );
+
+      expect(result.total).toBe(2);
+      expect(result.items.length).toBe(2);
+    });
+
+    it('should return empty list when user has no bids', async () => {
+      bidRepository.findPaginatedBidByUser.mockResolvedValue([[], 0]);
+
+      const result = await service.findMyBids(99, mockPaginator);
+
+      expect(bidRepository.findPaginatedBidByUser).toHaveBeenCalledWith(99, 0, 10);
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(0);
+    });
   });
 
   describe('placeBid — input validation', () => {
