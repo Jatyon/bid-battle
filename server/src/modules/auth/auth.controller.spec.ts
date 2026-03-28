@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, UnauthorizedException } from '@
 import { Test, TestingModule } from '@nestjs/testing';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
@@ -174,6 +174,59 @@ describe('AuthController', () => {
       authService.changePassword.mockRejectedValue(new UnauthorizedException('The current password is incorrect'));
 
       await expect(controller.changePassword(mockUser, changePasswordDto, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('verifyEmail', () => {
+    const verifyEmailDto: VerifyEmailDto = {
+      token: 'valid-verification-token',
+    };
+
+    it('returns success message when email is verified successfully', async () => {
+      authService.verifyEmail.mockResolvedValue(undefined);
+      const i18n = createMockI18nContext({
+        'auth.info.email_verified_successfully': 'Email verified successfully',
+      });
+
+      const result = await controller.verifyEmail(verifyEmailDto, i18n);
+
+      expect(authService.verifyEmail).toHaveBeenCalledWith(verifyEmailDto, i18n);
+      expect(result).toEqual({ message: 'Email verified successfully' });
+    });
+
+    it('propagates BadRequestException when email is already verified', async () => {
+      authService.verifyEmail.mockRejectedValue(new BadRequestException('Email already verified'));
+
+      await expect(controller.verifyEmail(verifyEmailDto, createMockI18nContext())).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resendVerification', () => {
+    const resendDto: ResendVerificationEmailDto = {
+      email: 'test@example.com',
+    };
+
+    it('returns success message when verification email is resent', async () => {
+      authService.resendVerificationEmail.mockResolvedValue(undefined);
+      const i18n = createMockI18nContext({
+        'auth.info.verification_email_resent': 'Verification email has been resent',
+      });
+
+      const result = await controller.resendVerification(resendDto, i18n);
+
+      expect(authService.resendVerificationEmail).toHaveBeenCalledWith(resendDto, i18n);
+      expect(result).toEqual({ message: 'Verification email has been resent' });
+    });
+
+    it('silently succeeds even when email is not found', async () => {
+      authService.resendVerificationEmail.mockResolvedValue(undefined);
+      const i18n = createMockI18nContext({
+        'auth.info.verification_email_resent': 'Verification email has been resent',
+      });
+
+      const result = await controller.resendVerification(resendDto, i18n);
+
+      expect(result).toEqual({ message: 'Verification email has been resent' });
     });
   });
 

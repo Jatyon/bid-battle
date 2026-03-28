@@ -10,6 +10,7 @@ export const createUserFixture = (overrides?: Partial<User>): User => {
     password: 'hashed_password',
     firstName: 'John',
     lastName: 'Doe',
+    isEmailVerified: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
