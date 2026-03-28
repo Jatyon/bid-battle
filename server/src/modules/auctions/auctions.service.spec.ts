@@ -230,6 +230,90 @@ describe('AuctionsService', () => {
     });
   });
 
+  describe('findMyAuctions', () => {
+    let mockPaginator: Paginator;
+    let responseSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockPaginator = new Paginator();
+      mockPaginator.page = 1;
+      mockPaginator.limit = 10;
+      responseSpy = jest.spyOn(mockPaginator, 'response');
+    });
+
+    it('should fetch paginated auctions for an owner and map them to AuctionResponse', async () => {
+      const mockUserId = 5;
+      const mockAuctions = [createAuctionFixture({ id: 1 }), createAuctionFixture({ id: 2 })];
+
+      auctionsRepository.findPaginatedAuctionsByOwner.mockResolvedValue([mockAuctions, 2]);
+
+      const result = await service.findMyAuctions(mockUserId, mockPaginator);
+
+      expect(auctionsRepository.findPaginatedAuctionsByOwner).toHaveBeenCalledWith(mockUserId, 0, 10);
+      expect(responseSpy).toHaveBeenCalledWith(expect.arrayContaining([expect.any(AuctionResponse), expect.any(AuctionResponse)]), 1, 10, 2);
+      expect(result.items.length).toBe(2);
+      expect(result.items[0]).toBeInstanceOf(AuctionResponse);
+    });
+  });
+
+  describe('findAuctionBids', () => {
+    let mockPaginator: Paginator;
+    let responseSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockPaginator = new Paginator();
+      mockPaginator.page = 1;
+      mockPaginator.limit = 10;
+      responseSpy = jest.spyOn(mockPaginator, 'response');
+    });
+
+    it('should fetch paginated bids for an active auction and map them to BidResponse', async () => {
+      const mockAuctionId = 10;
+      const mockAuction = createAuctionFixture({ id: mockAuctionId, status: AuctionStatus.ACTIVE });
+
+      const mockBids = [{ id: 1, amount: 200, auctionId: mockAuctionId, userId: 2 }] as any[];
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      bidRepository.findPaginatedBidByAuction.mockResolvedValue([mockBids, 1]);
+
+      const result = await service.findAuctionBids(mockAuctionId, mockPaginator);
+
+      expect(auctionsRepository.findOneBy).toHaveBeenCalledWith({ id: mockAuctionId });
+      expect(bidRepository.findPaginatedBidByAuction).toHaveBeenCalledWith(mockAuctionId, 0, 10);
+      expect(result.items.length).toBe(1);
+      expect(responseSpy).toHaveBeenCalledWith(expect.any(Array), 1, 10, 1);
+    });
+
+    it('should throw NotFoundException if auction does not exist', async () => {
+      auctionsRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(service.findAuctionBids(1, mockPaginator)).rejects.toThrow(NotFoundException);
+      expect(bidRepository.findPaginatedBidByAuction).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if auction is CANCELED and requesting user is NOT the owner', async () => {
+      const mockAuction = createAuctionFixture({ id: 10, status: AuctionStatus.CANCELED, ownerId: 1 });
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+
+      await expect(service.findAuctionBids(10, mockPaginator, 2)).rejects.toThrow(NotFoundException);
+      expect(bidRepository.findPaginatedBidByAuction).not.toHaveBeenCalled();
+    });
+
+    it('should return bids if auction is CANCELED but requesting user IS the owner', async () => {
+      const mockAuctionId = 10;
+      const mockOwnerId = 1;
+      const mockAuction = createAuctionFixture({ id: mockAuctionId, status: AuctionStatus.CANCELED, ownerId: mockOwnerId });
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      bidRepository.findPaginatedBidByAuction.mockResolvedValue([[], 0]);
+
+      await service.findAuctionBids(mockAuctionId, mockPaginator, mockOwnerId);
+
+      expect(bidRepository.findPaginatedBidByAuction).toHaveBeenCalledWith(mockAuctionId, 0, 10);
+      expect(responseSpy).toHaveBeenCalledWith([], 1, 10, 0);
+    });
+  });
+
   describe('findOne', () => {
     it('should override database price with Redis live price when cache exists', async () => {
       auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture());
