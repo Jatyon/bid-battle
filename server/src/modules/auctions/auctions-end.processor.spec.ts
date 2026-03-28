@@ -1,8 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { createAuctionFixture } from '@test/fixtures/auctions.fixtures';
+import { createUserFixture, createUserPreferencesFixture } from '@test/fixtures/users.fixtures';
 import { BidGateway } from '@modules/bid/bid.gateway';
 import { RedisService } from '@shared/redis';
+import { MailService } from '@shared/mail';
+import { UsersService, UserPreferencesService } from '@modules/users';
 import { AuctionEndProcessor } from './auctions-end.processor';
 import { IAuctionJob } from './interfaces';
 import { AuctionStatus } from './enums';
@@ -16,6 +19,9 @@ describe('AuctionEndProcessor', () => {
   let redisService: DeepMocked<RedisService>;
   let bidGateway: DeepMocked<BidGateway>;
   let dataSource: DeepMocked<DataSource>;
+  let mailService: DeepMocked<MailService>;
+  let usersService: DeepMocked<UsersService>;
+  let userPreferencesService: DeepMocked<UserPreferencesService>;
 
   const createJob = (auctionId: number): Job<IAuctionJob> => ({ data: { auctionId } }) as unknown as Job<IAuctionJob>;
 
@@ -47,6 +53,18 @@ describe('AuctionEndProcessor', () => {
           provide: DataSource,
           useValue: createMock<DataSource>(),
         },
+        {
+          provide: MailService,
+          useValue: createMock<MailService>(),
+        },
+        {
+          provide: UsersService,
+          useValue: createMock<UsersService>(),
+        },
+        {
+          provide: UserPreferencesService,
+          useValue: createMock<UserPreferencesService>(),
+        },
       ],
     }).compile();
 
@@ -54,6 +72,9 @@ describe('AuctionEndProcessor', () => {
     redisService = module.get(RedisService);
     bidGateway = module.get(BidGateway);
     dataSource = module.get(DataSource);
+    mailService = module.get(MailService);
+    usersService = module.get(UsersService);
+    userPreferencesService = module.get(UserPreferencesService);
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
@@ -86,6 +107,8 @@ describe('AuctionEndProcessor', () => {
       redisService.getLivePrice.mockResolvedValue(500);
       redisService.getHighestBidderId.mockResolvedValue(42);
       mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       await processor.process(createJob(1));
 
@@ -138,6 +161,8 @@ describe('AuctionEndProcessor', () => {
       redisService.getLivePrice.mockResolvedValue(100);
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       await processor.process(createJob(2));
 
@@ -150,6 +175,8 @@ describe('AuctionEndProcessor', () => {
 
       redisService.getLivePrice.mockResolvedValue(100);
       redisService.getHighestBidderId.mockResolvedValue(null);
+      usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       let capturedUpdate: Record<string, unknown> = {};
 
@@ -170,6 +197,158 @@ describe('AuctionEndProcessor', () => {
       await processor.process(createJob(3));
 
       expect(capturedUpdate).toMatchObject({ winnerId: null });
+    });
+  });
+
+  describe('email notifications — sendEndNotificationEmails', () => {
+    const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
+
+    it('should send owner email when owner has notifyOnAuctionEnd enabled', async () => {
+      const owner = createUserFixture({ id: 1, email: 'owner@example.com', firstName: 'John', lastName: 'Doe' });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(500);
+      redisService.getHighestBidderId.mockResolvedValue(null);
+      mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(owner);
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'en' }));
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledWith(owner.email, 'en', owner.concatName, auction.title, 500, 1, undefined);
+    });
+
+    it('should send owner email with winner name when auction has a winner', async () => {
+      const owner = createUserFixture({ id: 1, email: 'owner@example.com', firstName: 'Alice', lastName: 'Smith' });
+      const winner = createUserFixture({ id: 42, email: 'winner@example.com', firstName: 'Bob', lastName: 'Jones' });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(750);
+      redisService.getHighestBidderId.mockResolvedValue(42);
+      mockTransactionWith(auction);
+
+      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'en' }));
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledWith(owner.email, 'en', owner.concatName, auction.title, 750, 1, winner.concatName);
+    });
+
+    it('should send winner email when winner has notifyOnAuctionEnd enabled', async () => {
+      const owner = createUserFixture({ id: 1, email: 'owner@example.com' });
+      const winner = createUserFixture({ id: 42, email: 'winner@example.com', firstName: 'Bob', lastName: 'Jones' });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(600);
+      redisService.getHighestBidderId.mockResolvedValue(42);
+      mockTransactionWith(auction);
+
+      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'pl' }));
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionWinnerEmail).toHaveBeenCalledWith(winner.email, 'pl', winner.concatName, auction.title, 600, 1);
+    });
+
+    it('should not send winner email when winnerId is null', async () => {
+      const owner = createUserFixture({ id: 1 });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(100);
+      redisService.getHighestBidderId.mockResolvedValue(null);
+      mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(owner);
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'en' }));
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionWinnerEmail).not.toHaveBeenCalled();
+    });
+
+    it('should not send owner email when owner preferences have notifyOnAuctionEnd=false', async () => {
+      const owner = createUserFixture({ id: 1 });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(200);
+      redisService.getHighestBidderId.mockResolvedValue(null);
+      mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(owner);
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionOwnerEmail).not.toHaveBeenCalled();
+    });
+
+    it('should not send winner email when winner preferences have notifyOnAuctionEnd=false', async () => {
+      const owner = createUserFixture({ id: 1 });
+      const winner = createUserFixture({ id: 42 });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(300);
+      redisService.getHighestBidderId.mockResolvedValue(42);
+      mockTransactionWith(auction);
+
+      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionWinnerEmail).not.toHaveBeenCalled();
+    });
+
+    it('should not send owner email when owner is not found in DB', async () => {
+      const owner = createUserFixture({ id: 1 });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(100);
+      redisService.getHighestBidderId.mockResolvedValue(null);
+      mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(null);
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionOwnerEmail).not.toHaveBeenCalled();
+    });
+
+    it('should log error and not throw when email sending fails', async () => {
+      const owner = createUserFixture({ id: 1 });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(100);
+      redisService.getHighestBidderId.mockResolvedValue(null);
+      mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(owner);
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true }));
+      mailService.sendAuctionOwnerEmail.mockRejectedValue(new Error('SMTP error'));
+
+      await expect(processor.process(createJob(1))).resolves.not.toThrow();
+      await flushPromises();
+
+      expect(Logger.prototype.error).toHaveBeenCalledWith('Error sending notification in auction 1', expect.any(Error));
+    });
+
+    it('should not send emails when auction is already ENDED (dbUpdated=false)', async () => {
+      const endedAuction = createAuctionFixture({ id: 1, status: AuctionStatus.ENDED });
+
+      redisService.getLivePrice.mockResolvedValue(300);
+      redisService.getHighestBidderId.mockResolvedValue(5);
+      mockTransactionWith(endedAuction);
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionOwnerEmail).not.toHaveBeenCalled();
+      expect(mailService.sendAuctionWinnerEmail).not.toHaveBeenCalled();
     });
   });
 
@@ -222,6 +401,8 @@ describe('AuctionEndProcessor', () => {
       redisService.getLivePrice.mockResolvedValue(100);
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
+      usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
       redisService.cleanupAuction.mockRejectedValue(new Error('Redis unavailable'));
 
       await expect(processor.process(createJob(1))).rejects.toThrow('Redis unavailable');

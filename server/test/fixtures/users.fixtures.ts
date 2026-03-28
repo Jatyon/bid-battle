@@ -1,5 +1,4 @@
-import { UserToken, UserTokenEnum } from '@modules/users';
-import { User } from '@modules/users/entities/user.entity';
+import { User, UserPreferences, UserToken, UserTokenEnum } from '@modules/users';
 
 export const createUserFixture = (overrides?: Partial<User>): User => {
   const user = new User();
@@ -38,4 +37,12 @@ export const createUserTokenFixture = (overrides?: Partial<UserToken>): UserToke
   if (overrides) Object.assign(userToken, overrides);
 
   return userToken;
+};
+
+export const createUserPreferencesFixture = (overrides?: Partial<UserPreferences>): UserPreferences => {
+  const userPreferences = new UserPreferences();
+
+  Object.assign(userPreferences, { userId: 1, lang: 'en', notifyOnOutbid: true, notifyOnAuctionEnd: true, ...overrides });
+
+  return userPreferences;
 };
