@@ -214,7 +214,7 @@ describe('MailService', () => {
 
     it('should set hasWinner to false when winnerName is not provided', async () => {
       const email = 'owner@example.com';
-      const lang = 'pl';
+      const lang = 'en';
       const userName = 'Jane Doe';
       const auctionTitle = 'Vintage Watch';
       const finalPrice = 250;
@@ -248,13 +248,13 @@ describe('MailService', () => {
   describe('sendEmailVerificationEmail', () => {
     it('should correctly build context and call sendCriticalEmail for verification', async () => {
       const email = 'verify@example.com';
-      const lang = 'pl';
+      const lang = 'en';
       const userName = 'Adam Kowalski';
       const expiresInMin = 60;
       const token = 'verify-token-xyz';
 
       jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Verify Email');
-      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'Wszelkie prawa zastrzeżone' });
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'All rights reserved' });
 
       const sendCriticalSpy = jest.spyOn(service as any, 'sendCriticalEmail').mockResolvedValue(undefined);
 
