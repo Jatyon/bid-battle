@@ -5,6 +5,7 @@ import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse, Paginator, PaginatorResponse } from '@core/models';
 import { OptionalJwtAuthGuard } from '@modules/auth/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { BidResponse } from '@modules/bid';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto } from './dto';
@@ -67,18 +68,6 @@ export class AuctionsController {
   }
 
   @ApiOperation({
-    summary: 'Get auction details',
-    description: 'Get details of a specific auction. Current price is fetched from cache for real-time accuracy.',
-  })
-  @ApiStandardResponse(AuctionDetailResponse, false)
-  @Public()
-  @UseGuards(OptionalJwtAuthGuard)
-  @Get(':id')
-  async getAuction(@Param('id', ParseIntPipe) auctionId: number, @CurrentUser() user?: User): Promise<AuctionDetailResponse> {
-    return this.auctionsService.findOne(auctionId, user?.id);
-  }
-
-  @ApiOperation({
     summary: 'Get my auctions',
     description: 'Get list of auctions created by the currently logged-in user.',
   })
@@ -88,6 +77,30 @@ export class AuctionsController {
   @Get('my/auctions')
   async getMyAuctions(@Query() paginator: Paginator, @CurrentUser() user: User): Promise<PaginatorResponse<AuctionResponse>> {
     return this.auctionsService.findMyAuctions(user.id, paginator);
+  }
+
+  @ApiOperation({
+    summary: 'Get auction bid history',
+    description: 'Get paginated list of bids for a specific auction.',
+  })
+  @ApiStandardResponse(PaginatorResponse, false, BidResponse)
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get(':id/bids')
+  async getAuctionBids(@Param('id', ParseIntPipe) auctionId: number, @Query() paginator: Paginator, @CurrentUser() user?: User): Promise<PaginatorResponse<BidResponse>> {
+    return this.auctionsService.findAuctionBids(auctionId, paginator, user?.id);
+  }
+
+  @ApiOperation({
+    summary: 'Get auction details',
+    description: 'Get details of a specific auction. Current price is fetched from cache for real-time accuracy.',
+  })
+  @ApiStandardResponse(AuctionDetailResponse, false)
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get(':id')
+  async getAuction(@Param('id', ParseIntPipe) auctionId: number, @CurrentUser() user?: User): Promise<AuctionDetailResponse> {
+    return this.auctionsService.findOne(auctionId, user?.id);
   }
 
   @ApiOperation({

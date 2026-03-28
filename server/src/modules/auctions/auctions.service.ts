@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
-import { Bid } from '@modules/bid';
+import { BidRepository, BidResponse } from '@modules/bid';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UpdateAuctionDto } from './dto';
@@ -19,8 +19,7 @@ export class AuctionsService {
   constructor(
     @InjectRepository(AuctionImage)
     private auctionImageRepository: Repository<AuctionImage>,
-    @InjectRepository(Bid)
-    private bidRepository: Repository<Bid>,
+    private bidRepository: BidRepository,
     private readonly auctionsRepository: AuctionsRepository,
     private readonly redisService: RedisService,
     private readonly fileUploadService: FileUploadService,
@@ -146,6 +145,24 @@ export class AuctionsService {
     const [auctions, total] = await this.auctionsRepository.findPaginatedAuctionsByOwner(userId, skip, limit);
 
     const items = auctions.map((auction) => new AuctionResponse(auction));
+
+    return paginator.response(items, page, limit, total);
+  }
+
+  async findAuctionBids(auctionId: number, paginator: Paginator, requestingUserId?: number): Promise<PaginatorResponse<BidResponse>> {
+    const page: number = paginator.page || 1;
+    const limit: number = paginator.limit;
+    const skip: number = paginator.skip;
+
+    const auction = await this.auctionsRepository.findOneBy({ id: auctionId });
+
+    if (!auction) throw new NotFoundException('error.auction.not_found');
+
+    if (auction.status === AuctionStatus.CANCELED && auction.ownerId !== requestingUserId) throw new NotFoundException('error.auction.not_found');
+
+    const [bids, total] = await this.bidRepository.findPaginatedBidByAuction(auctionId, skip, limit);
+
+    const items = bids.map((bid) => new BidResponse(bid, true));
 
     return paginator.response(items, page, limit, total);
   }
