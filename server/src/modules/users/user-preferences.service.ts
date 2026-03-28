@@ -18,7 +18,7 @@ export class UserPreferencesService {
   }
 
   async updatePreferences(userId: number, updateDto: UpdateUserPreferencesDto): Promise<UserPreferences> {
-    let preferences = (await this.userPreferencesRepository.findOne({
+    const preferences = (await this.userPreferencesRepository.findOne({
       where: { userId },
     })) as UserPreferences;
 
