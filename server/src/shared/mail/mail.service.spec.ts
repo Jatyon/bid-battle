@@ -139,4 +139,109 @@ describe('MailService', () => {
       });
     });
   });
+
+  describe('sendAuctionWinnerEmail', () => {
+    it('should correctly build context and call sendCriticalEmail', async () => {
+      const email = 'winner@example.com';
+      const lang = 'en';
+      const userName = 'John Doe';
+      const auctionTitle = 'Vintage Watch';
+      const finalPrice = 250;
+      const auctionId = 42;
+
+      jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Auction Winner');
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'All rights reserved' });
+      const sendCriticalSpy = jest.spyOn(service as any, 'sendCriticalEmail').mockResolvedValue(undefined);
+
+      await service.sendAuctionWinnerEmail(email, lang, userName, auctionTitle, finalPrice, auctionId);
+
+      expect(i18nService.t).toHaveBeenCalledWith('mail.subjects.auction-winner', { lang });
+      expect(service['getFooterTranslations']).toHaveBeenCalledWith(lang);
+
+      expect(sendCriticalSpy).toHaveBeenCalledWith({
+        to: email,
+        subject: 'Translated subject - Auction Winner',
+        template: `./${lang}/auction-winner`,
+        context: {
+          appName: mockConfig.app.name,
+          appUrl: mockConfig.app.frontendHost,
+          footer: { rights: 'All rights reserved' },
+          userName,
+          auctionTitle,
+          finalPrice,
+          auctionUrl: `${mockConfig.app.frontendHost}/auctions/${auctionId}`,
+        },
+      });
+    });
+  });
+
+  describe('sendAuctionOwnerEmail', () => {
+    it('should correctly build context with winner and call sendCriticalEmail', async () => {
+      const email = 'owner@example.com';
+      const lang = 'en';
+      const userName = 'Jane Doe';
+      const auctionTitle = 'Vintage Watch';
+      const finalPrice = 250;
+      const auctionId = 42;
+      const winnerName = 'John Doe';
+
+      jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Auction Owner');
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'All rights reserved' });
+      const sendCriticalSpy = jest.spyOn(service as any, 'sendCriticalEmail').mockResolvedValue(undefined);
+
+      await service.sendAuctionOwnerEmail(email, lang, userName, auctionTitle, finalPrice, auctionId, winnerName);
+
+      expect(i18nService.t).toHaveBeenCalledWith('mail.subjects.auction-owner', { lang });
+      expect(service['getFooterTranslations']).toHaveBeenCalledWith(lang);
+
+      expect(sendCriticalSpy).toHaveBeenCalledWith({
+        to: email,
+        subject: 'Translated subject - Auction Owner',
+        template: `./${lang}/auction-owner`,
+        context: {
+          appName: mockConfig.app.name,
+          appUrl: mockConfig.app.frontendHost,
+          footer: { rights: 'All rights reserved' },
+          userName,
+          auctionTitle,
+          finalPrice,
+          auctionUrl: `${mockConfig.app.frontendHost}/auctions/${auctionId}`,
+          hasWinner: true,
+          winnerName,
+        },
+      });
+    });
+
+    it('should set hasWinner to false when winnerName is not provided', async () => {
+      const email = 'owner@example.com';
+      const lang = 'pl';
+      const userName = 'Jane Doe';
+      const auctionTitle = 'Vintage Watch';
+      const finalPrice = 250;
+      const auctionId = 42;
+
+      jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Auction Owner');
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'All rights reserved' });
+      const sendCriticalSpy = jest.spyOn(service as any, 'sendCriticalEmail').mockResolvedValue(undefined);
+
+      await service.sendAuctionOwnerEmail(email, lang, userName, auctionTitle, finalPrice, auctionId);
+
+      expect(sendCriticalSpy).toHaveBeenCalledWith({
+        to: email,
+        subject: 'Translated subject - Auction Owner',
+        template: `./${lang}/auction-owner`,
+        context: {
+          appName: mockConfig.app.name,
+          appUrl: mockConfig.app.frontendHost,
+          footer: { rights: 'All rights reserved' },
+          userName,
+          auctionTitle,
+          finalPrice,
+          auctionUrl: `${mockConfig.app.frontendHost}/auctions/${auctionId}`,
+          hasWinner: false,
+          winnerName: undefined,
+        },
+      });
+    });
+  });
 });
