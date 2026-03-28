@@ -10,6 +10,7 @@ import { AuctionsController } from './auctions.controller';
 import { AuctionsService } from './auctions.service';
 import { AuctionStatus } from './enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { BidResponse } from '@modules/bid';
 
 describe('AuctionsController', () => {
   let controller: AuctionsController;
@@ -85,6 +86,70 @@ describe('AuctionsController', () => {
       const result = await controller.getAuctions(paginator);
 
       expect(service.findActiveAuctions).toHaveBeenCalledWith(paginator);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('getMyAuctions', () => {
+    it('should call service.findMyAuctions with user id and return paginated results', async () => {
+      const mockResponse: PaginatorResponse<AuctionResponse> = {
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      };
+
+      service.findMyAuctions.mockResolvedValue(mockResponse);
+
+      const paginator = new Paginator();
+      paginator.page = 1;
+      paginator.limit = 10;
+
+      const result = await controller.getMyAuctions(paginator, mockUser);
+
+      expect(service.findMyAuctions).toHaveBeenCalledWith(mockUser.id, paginator);
+      expect(result).toEqual(mockResponse);
+    });
+  });
+
+  describe('getAuctionBids', () => {
+    it('should call service.findAuctionBids with auction id, paginator, and user id (for authenticated user)', async () => {
+      const mockResponse: PaginatorResponse<BidResponse> = {
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      };
+
+      service.findAuctionBids.mockResolvedValue(mockResponse);
+
+      const paginator = new Paginator();
+      paginator.page = 1;
+      paginator.limit = 10;
+
+      const result = await controller.getAuctionBids(1, paginator, mockUser);
+
+      expect(service.findAuctionBids).toHaveBeenCalledWith(1, paginator, mockUser.id);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should call service.findAuctionBids with undefined user id for unauthenticated guest', async () => {
+      const mockResponse: PaginatorResponse<BidResponse> = {
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+      };
+
+      service.findAuctionBids.mockResolvedValue(mockResponse);
+
+      const paginator = new Paginator();
+      paginator.page = 1;
+      paginator.limit = 10;
+
+      const result = await controller.getAuctionBids(1, paginator, undefined);
+
+      expect(service.findAuctionBids).toHaveBeenCalledWith(1, paginator, undefined);
       expect(result).toEqual(mockResponse);
     });
   });
