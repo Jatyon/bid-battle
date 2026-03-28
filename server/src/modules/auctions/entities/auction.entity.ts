@@ -10,6 +10,7 @@ import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId, OneToMany } f
 @Entity({ name: 'auctions' })
 @Index(['status', 'endTime'])
 @Index(['ownerId'])
+@Index(['ownerId', 'createdAt'])
 @Index(['winnerId'])
 export class Auction extends BaseEntity {
   @ApiProperty({ description: 'Auction title', example: 'Vintage Collectible Watch' })

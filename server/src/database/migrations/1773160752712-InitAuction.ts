@@ -122,6 +122,10 @@ export class InitAuction1773160752712 implements MigrationInterface {
         columnNames: ['owner_id'],
       }),
       new TableIndex({
+        name: 'IDX_AUCTIONS_OWNER_ID_CREATED_AT',
+        columnNames: ['ownerId', 'createdAt'],
+      }),
+      new TableIndex({
         name: 'IDX_AUCTIONS_WINNER_ID',
         columnNames: ['winner_id'],
       }),
@@ -142,6 +146,7 @@ export class InitAuction1773160752712 implements MigrationInterface {
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_OWNER_ID');
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_STATUS_END_TIME');
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_STATUS_START_TIME');
+    await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_OWNER_ID_CREATED_AT');
 
     await queryRunner.dropForeignKey('auctions', 'FK_AUCTIONS_WINNER_ID');
     await queryRunner.dropForeignKey('auctions', 'FK_AUCTIONS_OWNER_ID');
