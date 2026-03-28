@@ -79,6 +79,18 @@ export class AuctionsController {
   }
 
   @ApiOperation({
+    summary: 'Get my auctions',
+    description: 'Get list of auctions created by the currently logged-in user.',
+  })
+  @ApiStandardResponse(PaginatorResponse, false, AuctionResponse)
+  @ApiBearerAuth('jwt-auth')
+  @UseGuards(JwtAuthGuard)
+  @Get('my/auctions')
+  async getMyAuctions(@Query() paginator: Paginator, @CurrentUser() user: User): Promise<PaginatorResponse<AuctionResponse>> {
+    return this.auctionsService.findMyAuctions(user.id, paginator);
+  }
+
+  @ApiOperation({
     summary: 'Cancel an auction',
     description: 'Cancel an active auction. Only the owner can cancel, and only if no one has bid yet.',
   })

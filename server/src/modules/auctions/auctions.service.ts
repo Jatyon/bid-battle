@@ -136,6 +136,21 @@ export class AuctionsService {
   }
 
   /**
+   * Get auctions created by a specific user (My Auctions)
+   */
+  async findMyAuctions(userId: number, paginator: Paginator): Promise<PaginatorResponse<AuctionResponse>> {
+    const page: number = paginator.page || 1;
+    const limit: number = paginator.limit || 10;
+    const skip: number = paginator.skip;
+
+    const [auctions, total] = await this.auctionsRepository.findPaginatedAuctionsByOwner(userId, skip, limit);
+
+    const items = auctions.map((auction) => new AuctionResponse(auction));
+
+    return paginator.response(items, page, limit, total);
+  }
+
+  /**
    * Cancels an auction, ensuring that no bids have been placed if it is already active.
    * * @remarks
    * An auction can only be canceled if its status is `PENDING` or `ACTIVE`.
