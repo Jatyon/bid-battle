@@ -21,7 +21,7 @@ export class InitUserTokens1770657147765 implements MigrationInterface {
           {
             name: 'type',
             type: 'enum',
-            enum: ['password_reset', 'refresh_token'],
+            enum: ['password_reset', 'refresh_token', 'email_verification'],
           },
           {
             name: 'user_id',

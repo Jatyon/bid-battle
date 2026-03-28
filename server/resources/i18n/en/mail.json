@@ -4,7 +4,8 @@
     "forgot-password": "Account Recovery",
     "reset-password": "Change password",
     "auction-winner": "You won the auction!",
-    "auction-owner": "Your auction has ended"
+    "auction-owner": "Your auction has ended",
+    "verify-email": "Confirm your email address"
   },
   "footer": {
     "rights": "All rights reserved."

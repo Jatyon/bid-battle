@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
-import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData, IMailAuctionWinner, IMailAuctionOwner } from './interfaces';
+import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData, IMailAuctionWinner, IMailAuctionOwner, IMailEmailVerification } from './interfaces';
 import { MailContext } from './types';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
@@ -126,6 +126,29 @@ export class MailService {
       to: email,
       subject,
       template: `./${lang}/auction-owner`,
+      context,
+    });
+  }
+
+  async sendEmailVerificationEmail(email: string, lang: string, userName: string, expiresInMin: number, token: string): Promise<void> {
+    const subject = this.i18n.t('mail.subjects.verify-email', { lang });
+    const footerTranslations = this.getFooterTranslations(lang);
+
+    const verifyUrl = `${this.appUrl}/auth/verify-email?token=${token}`;
+
+    const context: MailContext<IMailEmailVerification> = {
+      appName: this.appName,
+      appUrl: this.appUrl,
+      footer: footerTranslations,
+      userName,
+      verifyUrl,
+      expiresInMin,
+    };
+
+    await this.sendCriticalEmail({
+      to: email,
+      subject,
+      template: `./${lang}/verify-email`,
       context,
     });
   }

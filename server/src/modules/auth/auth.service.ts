@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken } from '@modules/users';
 import { MailService } from '@shared/mail';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { IAuthJwt, IAuthJwtPayload } from './interfaces';
 import { AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
@@ -52,13 +52,42 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    await this.usersService.save(user);
+    const savedUser = await this.usersService.save(user);
+
+    await this.sendVerificationEmail(savedUser, i18n);
+  }
+
+  async verifyEmail(verifyEmailDto: VerifyEmailDto, i18n: I18nContext): Promise<void> {
+    const tokenEntity = await this.usersTokenService.verifyToken(verifyEmailDto.token, UserTokenEnum.EMAIL_VERIFICATION, i18n);
+
+    const user = tokenEntity.user;
+
+    if (user.isEmailVerified) throw new BadRequestException(i18n.t('auth.errors.email_already_verified'));
+
+    await this.usersService.updateBy({ id: user.id }, { isEmailVerified: true });
+
+    await this.usersTokenService.markTokenAsUsed(tokenEntity.id);
+  }
+
+  async resendVerificationEmail(dto: ResendVerificationEmailDto, i18n: I18nContext): Promise<void> {
+    const user = await this.usersService.findOneBy({ email: dto.email });
+
+    // For security reasons, silently succeed if email not found
+    if (!user) return;
+
+    if (user.isEmailVerified) return;
+
+    await this.usersTokenService.deleteUserTokensByType(user.id, UserTokenEnum.EMAIL_VERIFICATION);
+
+    await this.sendVerificationEmail(user, i18n);
   }
 
   async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<AuthTokens> {
     const user = await this.validateUser(authLoginDto.email, authLoginDto.password);
 
     if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
+
+    if (!user.isEmailVerified) throw new UnauthorizedException(i18n.t('auth.errors.email_not_verified'));
 
     await this.usersService.updateBy(
       { id: user.id },
@@ -184,5 +213,11 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  private async sendVerificationEmail(user: User, i18n: I18nContext): Promise<void> {
+    const verificationToken = await this.usersTokenService.generateToken(user, UserTokenEnum.EMAIL_VERIFICATION, this.configService.app.emailVerificationExpiresInMin);
+
+    await this.mailService.sendEmailVerificationEmail(user.email, i18n.lang, user.concatName, this.configService.app.emailVerificationExpiresInMin, verificationToken.token);
   }
 }

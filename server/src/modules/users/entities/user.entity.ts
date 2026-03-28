@@ -31,6 +31,10 @@ export class User extends BaseEntity {
   @Column({ name: 'avatar', type: 'varchar', length: 255, nullable: true })
   avatar?: string | null;
 
+  @ApiProperty({ description: 'Whether the user email address has been verified', example: false })
+  @Column({ name: 'is_email_verified', type: 'boolean', default: false })
+  isEmailVerified: boolean;
+
   @ApiProperty({ description: 'Last login timestamp', type: 'string', format: 'date-time', nullable: true })
   @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
   lastLoginAt: Date;

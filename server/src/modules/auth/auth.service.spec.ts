@@ -6,11 +6,11 @@ import { User, UsersService, UsersTokenService, UserTokenEnum } from '@modules/u
 import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
+import { createJwtPayload } from '@test/fixtures/auth.fixtures';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import * as bcrypt from 'bcrypt';
-import { createJwtPayload } from '@test/fixtures/auth.fixtures';
 import { IAuthJwt } from './interfaces';
 
 jest.mock('bcrypt', () => ({
@@ -46,6 +46,7 @@ describe('AuthService', () => {
           useValue: createMock<AppConfigService>({
             app: {
               resetPasswordExpiresInMin: 15,
+              emailVerificationExpiresInMin: 60,
             },
             jwt: {
               saltOrRounds: 10,
@@ -129,12 +130,16 @@ describe('AuthService', () => {
       (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
       usersService.create.mockReturnValue(mockUser);
+      usersService.save.mockResolvedValue(mockUser);
+      usersTokenService.generateToken.mockResolvedValue(createUserTokenFixture({ type: UserTokenEnum.EMAIL_VERIFICATION, token: 'verification-token' }));
 
       await authService.register(registerDto, mockI18nContext);
 
       expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(bcrypt.hash).toHaveBeenCalledWith(registerDto.password, 'random_salt');
       expect(usersService.save).toHaveBeenCalledWith(mockUser);
+      expect(usersTokenService.generateToken).toHaveBeenCalledWith(mockUser, UserTokenEnum.EMAIL_VERIFICATION, 60);
+      expect(mailService.sendEmailVerificationEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName, 60, 'verification-token');
     });
   });
 
@@ -179,16 +184,28 @@ describe('AuthService', () => {
     });
 
     it('should generate new token pair for valid refresh token', async () => {
+      const storedToken = createUserTokenFixture({ type: UserTokenEnum.REFRESH_TOKEN });
       jwtService.verifyAsync.mockResolvedValue(mockPayload);
       usersService.findOneBy.mockResolvedValue(mockUser);
+      usersTokenService.findActiveRefreshToken.mockResolvedValue(storedToken);
       jwtService.signAsync.mockResolvedValueOnce('new_access_token').mockResolvedValueOnce('new_refresh_token');
 
       const result = await authService.refreshToken(refreshDto, mockI18nContext);
 
+      expect(usersTokenService.findActiveRefreshToken).toHaveBeenCalledWith(refreshDto.refreshToken, mockUser.id);
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(storedToken.id);
       expect(result).toEqual({
         accessToken: 'new_access_token',
         refreshToken: 'new_refresh_token',
       });
+    });
+
+    it('should throw UnauthorizedException when stored refresh token is not found', async () => {
+      jwtService.verifyAsync.mockResolvedValue(mockPayload);
+      usersService.findOneBy.mockResolvedValue(mockUser);
+      usersTokenService.findActiveRefreshToken.mockResolvedValue(null);
+
+      await expect(authService.refreshToken(refreshDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -287,6 +304,69 @@ describe('AuthService', () => {
       expect(bcrypt.hash).not.toHaveBeenCalled();
       expect(usersService.updateBy).not.toHaveBeenCalled();
       expect(usersTokenService.revokeAllRefreshTokens).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('verifyEmail', () => {
+    const dto: VerifyEmailDto = { token: 'valid-verification-token' };
+
+    it('should verify email, mark token as used and update user', async () => {
+      const verificationToken = createUserTokenFixture({
+        type: UserTokenEnum.EMAIL_VERIFICATION,
+        user: createUserFixture({ isEmailVerified: false }),
+      });
+      usersTokenService.verifyToken.mockResolvedValue(verificationToken);
+
+      await authService.verifyEmail(dto, mockI18nContext);
+
+      expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.EMAIL_VERIFICATION, mockI18nContext);
+      expect(usersService.updateBy).toHaveBeenCalledWith({ id: verificationToken.user.id }, { isEmailVerified: true });
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(verificationToken.id);
+    });
+
+    it('should throw BadRequestException if email is already verified', async () => {
+      const alreadyVerifiedToken = createUserTokenFixture({
+        type: UserTokenEnum.EMAIL_VERIFICATION,
+        user: createUserFixture({ isEmailVerified: true }),
+      });
+      usersTokenService.verifyToken.mockResolvedValue(alreadyVerifiedToken);
+
+      await expect(authService.verifyEmail(dto, mockI18nContext)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resendVerificationEmail', () => {
+    const dto: ResendVerificationEmailDto = { email: 'test@example.com' };
+
+    it('should silently return if user is not found', async () => {
+      usersService.findOneBy.mockResolvedValue(null);
+
+      await authService.resendVerificationEmail(dto, mockI18nContext);
+
+      expect(usersTokenService.deleteUserTokensByType).not.toHaveBeenCalled();
+      expect(mailService.sendEmailVerificationEmail).not.toHaveBeenCalled();
+    });
+
+    it('should silently return if email is already verified', async () => {
+      usersService.findOneBy.mockResolvedValue(createUserFixture({ isEmailVerified: true }));
+
+      await authService.resendVerificationEmail(dto, mockI18nContext);
+
+      expect(usersTokenService.deleteUserTokensByType).not.toHaveBeenCalled();
+      expect(mailService.sendEmailVerificationEmail).not.toHaveBeenCalled();
+    });
+
+    it('should delete old tokens and send verification email if user exists and is not verified', async () => {
+      const unverifiedUser = createUserFixture({ isEmailVerified: false });
+      const verificationToken = createUserTokenFixture({ type: UserTokenEnum.EMAIL_VERIFICATION, token: 'new-verification-token' });
+      usersService.findOneBy.mockResolvedValue(unverifiedUser);
+      usersTokenService.generateToken.mockResolvedValue(verificationToken);
+
+      await authService.resendVerificationEmail(dto, mockI18nContext);
+
+      expect(usersTokenService.deleteUserTokensByType).toHaveBeenCalledWith(unverifiedUser.id, UserTokenEnum.EMAIL_VERIFICATION);
+      expect(usersTokenService.generateToken).toHaveBeenCalledWith(unverifiedUser, UserTokenEnum.EMAIL_VERIFICATION, 60);
+      expect(mailService.sendEmailVerificationEmail).toHaveBeenCalledWith(unverifiedUser.email, mockI18nContext.lang, unverifiedUser.concatName, 60, 'new-verification-token');
     });
   });
 

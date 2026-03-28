@@ -3,7 +3,7 @@ import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { AuthTokens } from './models';
@@ -101,6 +101,32 @@ export class AuthController {
   async changePassword(@CurrentUser() user: User, @Body() changePasswordDto: AuthChangePasswordDto, @I18n() i18n: I18nContext) {
     await this.authService.changePassword(user.email, changePasswordDto, i18n);
     return { message: i18n.t('auth.info.password_successfully_changed') };
+  }
+
+  @ApiOperation({
+    summary: 'Verify email address',
+    description: 'Confirm email address using the token received in the registration email',
+  })
+  @ApiStandardResponse(MessageResponse, false)
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto, @I18n() i18n: I18nContext): Promise<MessageResponse> {
+    await this.authService.verifyEmail(verifyEmailDto, i18n);
+    return { message: i18n.t('auth.info.email_verified_successfully') };
+  }
+
+  @ApiOperation({
+    summary: 'Resend verification email',
+    description: 'Resend the email verification link. Silently succeeds even if email is not found.',
+  })
+  @ApiStandardResponse(MessageResponse, false)
+  @Public()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@Body() dto: ResendVerificationEmailDto, @I18n() i18n: I18nContext): Promise<MessageResponse> {
+    await this.authService.resendVerificationEmail(dto, i18n);
+    return { message: i18n.t('auth.info.verification_email_resent') };
   }
 
   @ApiOperation({
