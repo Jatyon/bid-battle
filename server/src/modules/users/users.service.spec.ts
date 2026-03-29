@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { UserRepository } from './repositories/users.repository';
 import { UsersService } from './users.service';
+import { User, UserToken } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { UpdateResult } from 'typeorm';
 
@@ -10,6 +11,11 @@ describe('UsersService', () => {
   let repository: DeepMocked<UserRepository>;
 
   const mockUser = createUserFixture();
+
+  const mockManager = {
+    softDelete: jest.fn(),
+    delete: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -120,6 +126,33 @@ describe('UsersService', () => {
 
       expect(result.affected).toBe(0);
       expect(repository.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('should softDelete User and delete UserToken within a transaction', async () => {
+      const userId = 1;
+
+      repository.manager.transaction.mockImplementation(async (arg1: unknown, arg2?: unknown) => {
+        const cb = (arg2 || arg1) as (manager: typeof mockManager) => Promise<unknown>;
+        return cb(mockManager);
+      });
+
+      await service.deleteAccount(userId);
+
+      expect(repository.manager.transaction).toHaveBeenCalled();
+
+      expect(mockManager.softDelete).toHaveBeenCalledWith(User, { id: userId });
+      expect(mockManager.delete).toHaveBeenCalledWith(UserToken, { userId });
+    });
+
+    it('should propagate errors if transaction fails', async () => {
+      const userId = 1;
+      const error = new Error('Database transaction failed');
+
+      repository.manager.transaction.mockRejectedValue(error);
+
+      await expect(service.deleteAccount(userId)).rejects.toThrow(error);
     });
   });
 });
