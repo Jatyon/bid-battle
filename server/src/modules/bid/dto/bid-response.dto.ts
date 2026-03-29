@@ -1,6 +1,6 @@
 import { Bid } from '../../bid/entities/bid.entity';
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from '@modules/users/entities/user.entity';
+import { type IAuctionUser } from '@modules/auctions';
 
 export class BidResponse {
   @ApiProperty({ description: 'Bid ID', example: 1 })
@@ -25,7 +25,7 @@ export class BidResponse {
     },
     nullable: true,
   })
-  user?: Partial<User>;
+  user?: IAuctionUser;
 
   @ApiProperty({
     description: 'Creation timestamp',
@@ -42,13 +42,20 @@ export class BidResponse {
     this.userId = bid.userId;
     this.createdAt = bid.createdAt;
 
-    if (includeUser && bid.user) {
-      this.user = {
-        id: bid.user.id,
-        firstName: bid.user.firstName,
-        lastName: bid.user.lastName ? `${bid.user.lastName.charAt(0)}.` : undefined,
-        avatar: bid.user.avatar,
-      };
+    if (includeUser) {
+      if (bid.user) {
+        this.user = {
+          id: bid.userId,
+          firstName: bid.user.firstName,
+          lastName: bid.user.lastName ? `${bid.user.lastName.charAt(0)}.` : undefined,
+          avatar: bid.user.avatar,
+        };
+      } else {
+        this.user = {
+          id: bid.userId,
+          isDeleted: true,
+        };
+      }
     }
   }
 }

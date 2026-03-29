@@ -2,7 +2,7 @@ import { UnauthorizedException, ConflictException, NotFoundException, BadRequest
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum } from '@modules/users';
+import { User, UserPreferences, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum } from '@modules/users';
 import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
@@ -135,10 +135,10 @@ describe('AuthService', () => {
       usersService.create.mockReturnValue(mockUser);
       usersService.save.mockResolvedValue(mockUser);
 
-      userPreferencesService.createDefaultPreferences.mockResolvedValue(undefined as any);
+      userPreferencesService.createDefaultPreferences.mockResolvedValue({} as UserPreferences);
 
       usersTokenService.generateToken.mockResolvedValue(createUserTokenFixture({ type: UserTokenEnum.EMAIL_VERIFICATION, token: 'verification-token' }));
-      mailService.sendEmailVerificationEmail.mockResolvedValue(undefined as any);
+      mailService.sendEmailVerificationEmail.mockResolvedValue();
 
       await authService.register(registerDto, mockI18nContext);
 

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from '@modules/users/entities/user.entity';
+import { type IAuctionUser } from '../interfaces';
 import { AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 
@@ -79,7 +79,7 @@ export class AuctionResponse {
     },
     nullable: true,
   })
-  owner?: Partial<User>;
+  owner?: IAuctionUser;
 
   @ApiProperty({
     description: 'Winner user ID (null if auction is still active)',
@@ -97,7 +97,7 @@ export class AuctionResponse {
     },
     nullable: true,
   })
-  winner?: Partial<User> | null;
+  winner?: IAuctionUser | null;
 
   @ApiProperty({
     description: 'Creation timestamp',
@@ -130,20 +130,36 @@ export class AuctionResponse {
     this.createdAt = auction.createdAt;
     this.updatedAt = auction.updatedAt;
 
-    if (includeOwner && auction.owner)
-      this.owner = {
-        id: auction.owner.id,
-        firstName: auction.owner.firstName,
-        lastName: auction.owner.lastName,
-        avatar: auction.owner.avatar,
-      };
+    if (includeOwner) {
+      if (auction.owner) {
+        this.owner = {
+          id: auction.owner.id,
+          firstName: auction.owner.firstName,
+          lastName: auction.owner.lastName,
+          avatar: auction.owner.avatar,
+        };
+      } else {
+        this.owner = {
+          id: auction.ownerId,
+          isDeleted: true,
+        };
+      }
+    }
 
-    if (includeWinner && auction.winner)
-      this.winner = {
-        id: auction.winner.id,
-        firstName: auction.winner.firstName,
-        lastName: auction.winner.lastName,
-        avatar: auction.winner.avatar,
-      };
+    if (includeWinner) {
+      if (auction.winner) {
+        this.winner = {
+          id: auction.winner.id,
+          firstName: auction.winner.firstName,
+          lastName: auction.winner.lastName,
+          avatar: auction.winner.avatar,
+        };
+      } else if (auction.winnerId) {
+        this.winner = {
+          id: auction.ownerId,
+          isDeleted: true,
+        };
+      }
+    }
   }
 }

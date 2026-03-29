@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from '@modules/users/entities/user.entity';
+import { type IAuctionUser } from '../interfaces';
 import { AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 
@@ -78,7 +78,7 @@ export class AuctionDetailResponse {
     },
     nullable: true,
   })
-  owner?: Partial<User>;
+  owner?: IAuctionUser;
 
   @ApiProperty({
     description: 'Winner user ID (null if auction is still active)',
@@ -96,7 +96,7 @@ export class AuctionDetailResponse {
     },
     nullable: true,
   })
-  winner?: Partial<User> | null;
+  winner?: IAuctionUser | null;
 
   @ApiProperty({
     description: 'Creation timestamp',
@@ -135,19 +135,32 @@ export class AuctionDetailResponse {
     this.createdAt = auction.createdAt;
     this.images = auction.images.map((img) => img.imageUrl);
 
-    this.owner = {
-      id: auction.owner.id,
-      firstName: auction.owner.firstName,
-      lastName: auction.owner.lastName,
-      avatar: auction.owner.avatar,
-    };
+    if (auction.owner) {
+      this.owner = {
+        id: auction.owner.id,
+        firstName: auction.owner.firstName,
+        lastName: auction.owner.lastName,
+        avatar: auction.owner.avatar,
+      };
+    } else {
+      this.owner = {
+        id: auction.ownerId,
+        isDeleted: true,
+      };
+    }
 
-    if (auction.winner)
+    if (auction.winner) {
       this.winner = {
         id: auction.winner.id,
         firstName: auction.winner.firstName,
         lastName: auction.winner.lastName,
         avatar: auction.winner.avatar,
       };
+    } else if (auction.winnerId) {
+      this.winner = {
+        id: auction.ownerId,
+        isDeleted: true,
+      };
+    }
   }
 }
