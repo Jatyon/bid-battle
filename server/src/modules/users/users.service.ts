@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UserRepository } from './repositories/users.repository';
 import { User } from './entities/user.entity';
 import { DeepPartial, FindOptionsWhere, UpdateResult } from 'typeorm';
+import { UserToken } from './entities';
 
 @Injectable()
 export class UsersService {
@@ -25,5 +26,12 @@ export class UsersService {
 
   updateBy(where: FindOptionsWhere<User>, data: Partial<User>): Promise<UpdateResult> {
     return this.userRepository.update(where, data);
+  }
+
+  async deleteAccount(userId: number): Promise<void> {
+    await this.userRepository.manager.transaction(async (transactionalEntityManager) => {
+      await transactionalEntityManager.softDelete(User, { id: userId });
+      await transactionalEntityManager.delete(UserToken, { userId });
+    });
   }
 }
