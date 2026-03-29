@@ -4,7 +4,7 @@ import { IConfigFile } from '@config/interfaces';
 import { IUploadedFile, IUploadOptions, IStorageStrategy } from './interfaces';
 import { LocalStorageStrategy } from './strategies';
 import { I18nContext } from 'nestjs-i18n';
-import { join, extname, resolve, normalize } from 'path';
+import { join, extname, resolve, normalize, basename, sep } from 'path';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -49,12 +49,21 @@ export class FileUploadService {
 
     try {
       const result = await this.storageStrategy.upload(file, fullPath);
-      this.logger.log(`File uploaded successfully: ${result.url}`);
+
+      let cleanUrl = result.url.replace(/\\/g, '/');
+
+      const folderName = basename(this.config.uploadsDir);
+      const prefixRegex = new RegExp(`^\\/?${folderName}\\/`);
+
+      cleanUrl = cleanUrl.replace(prefixRegex, '');
+      cleanUrl = cleanUrl.replace(/^\.\//, '');
+
+      this.logger.log(`File uploaded successfully: ${cleanUrl}`);
 
       return {
         filename,
         path: result.path,
-        url: result.url,
+        url: cleanUrl,
         size: file.size,
         mimetype: file.mimetype,
       };
@@ -89,16 +98,15 @@ export class FileUploadService {
    * blocked and logged as errors. Deletion failures are also caught and logged
    * without re-throwing, so callers are not interrupted by missing files.
    *
-   * @param relativePath - Path relative to the uploads root, e.g. `auctions/photo.jpg`.
+   * @param relativePath - Path relative to the uploads root, e.g. `2026/03/avatars/photo.jpg`.
    */
   async deleteFile(relativePath: string): Promise<void> {
     try {
       const uploadsBaseDir = resolve(this.config.uploadsDir);
-      const normalizedRelative = normalize(relativePath);
-      const resolvedPath = resolve(uploadsBaseDir, normalizedRelative);
+      const resolvedPath = resolve(uploadsBaseDir, relativePath);
 
-      if (!resolvedPath.startsWith(uploadsBaseDir + '/') && resolvedPath !== uploadsBaseDir) {
-        this.logger.error(`Path traversal attempt blocked: "${relativePath}" resolved to "${resolvedPath}"`);
+      if (!resolvedPath.startsWith(uploadsBaseDir + sep)) {
+        this.logger.error(`SECURITY ALERT: Path traversal attempt blocked! "${relativePath}" resolved to "${resolvedPath}"`);
         return;
       }
 
