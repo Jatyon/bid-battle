@@ -71,4 +71,15 @@ export class UsersService {
       await transactionalEntityManager.delete(UserToken, { userId });
     });
   }
+
+  async deleteAvatar(userId: number): Promise<void> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+
+    if (!user || !user.avatar) return;
+
+    await this.fileUploadService.deleteFile(user.avatar);
+
+    user.avatar = null;
+    await this.userRepository.save(user);
+  }
 }

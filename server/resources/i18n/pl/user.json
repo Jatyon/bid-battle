@@ -1,6 +1,7 @@
 {
   "info": {
-    "account_deleted": "Konto zostało usunięte."
+    "account_deleted": "Konto zostało usunięte.",
+    "avatar_deleted": "Zdjęcie profilowe zostało usunięte."
   },
   "error": {
     "user_not_found": "Użytkownik nie został znaleziony.",

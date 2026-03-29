@@ -90,4 +90,17 @@ export class UsersController {
       message: i18n.t('user.info.account_deleted'),
     };
   }
+
+  @ApiOperation({
+    summary: 'Delete user avatar',
+    description: 'Removes current profile picture and reverts to default',
+  })
+  @ApiStandardResponse(MessageResponse, false)
+  @Delete('/avatar')
+  async deleteAvatar(@CurrentUser() user: User, @I18n() i18n: I18nContext): Promise<MessageResponse> {
+    await this.usersService.deleteAvatar(user.id);
+    return {
+      message: i18n.t('user.info.avatar_deleted'),
+    };
+  }
 }

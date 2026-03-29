@@ -1,6 +1,7 @@
 {
   "info": {
-    "account_deleted": "Account successfully deleted."
+    "account_deleted": "Account successfully deleted.",
+    "avatar_deleted": "Avatar successfully deleted."
   },
 
   "error": {
