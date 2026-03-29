@@ -1,11 +1,12 @@
-import { ApiTags, ApiOperation, ApiUnauthorizedResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { Controller, Get, Put, Body, UseGuards, HttpCode, Delete, ClassSerializerInterceptor, UseInterceptors, Patch } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiUnauthorizedResponse, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Put, Body, UseGuards, HttpCode, Delete, ClassSerializerInterceptor, UseInterceptors, Patch, Post, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { UserPreferencesService } from './user-preferences.service';
-import { User, UserPreferences } from './entities';
 import { UpdateProfileDto, UpdateUserPreferencesDto } from './dto';
+import { User, UserPreferences } from './entities';
 import { UsersService } from './users.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -47,8 +48,33 @@ export class UsersController {
   })
   @ApiStandardResponse(User, false)
   @Patch('/profile')
-  async updateProfile(@CurrentUser() user: User, @Body() updateDto: UpdateProfileDto): Promise<User> {
-    return this.usersService.updateProfile(user.id, updateDto);
+  async updateProfile(@CurrentUser() user: User, @Body() updateDto: UpdateProfileDto, @I18n() i18n: I18nContext): Promise<User> {
+    return this.usersService.updateProfile(user.id, updateDto, i18n);
+  }
+
+  @ApiOperation({
+    summary: 'Upload user avatar',
+    description: 'Upload a new profile picture. Supported formats: jpg, png.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Image file (jpg, png)',
+        },
+      },
+    },
+  })
+  @ApiStandardResponse(User, false)
+  @Post('/avatar')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAvatar(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File, @I18n() i18n: I18nContext): Promise<User> {
+    return this.usersService.updateAvatar(user.id, file, i18n);
   }
 
   @ApiOperation({

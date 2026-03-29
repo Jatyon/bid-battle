@@ -1,5 +1,10 @@
 {
   "info": {
     "account_deleted": "Account successfully deleted."
+  },
+
+  "error": {
+    "user_not_found": "User not found.",
+    "update_avatar_failed": "Failed to update avatar. Please try again later."
   }
 }

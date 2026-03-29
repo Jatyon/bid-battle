@@ -1,5 +1,9 @@
 {
   "info": {
     "account_deleted": "Konto zostało usunięte."
+  },
+  "error": {
+    "user_not_found": "Użytkownik nie został znaleziony.",
+    "update_avatar_failed": "Nie udało się zaktualizować zdjęcia profilowego. Spróbuj ponownie później."
   }
 }
