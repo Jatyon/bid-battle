@@ -87,14 +87,18 @@ describe('UsersController', () => {
       lastName: 'Smith',
     };
 
+    const mockI18n = {
+      t: jest.fn().mockReturnValue('User not found.'),
+    } as unknown as I18nContext;
+
     it('should call usersService.updateProfile with correct arguments and return the updated user', async () => {
       const updatedUser = { ...mockUser, ...updateDto } as User;
 
       usersService.updateProfile.mockResolvedValue(updatedUser);
 
-      const result = await controller.updateProfile(mockUser, updateDto);
+      const result = await controller.updateProfile(mockUser, updateDto, mockI18n);
 
-      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto);
+      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto, mockI18n);
       expect(result).toEqual(updatedUser);
     });
 
@@ -102,8 +106,40 @@ describe('UsersController', () => {
       const error = new Error('Failed to update profile');
       usersService.updateProfile.mockRejectedValue(error);
 
-      await expect(controller.updateProfile(mockUser, updateDto)).rejects.toThrow(error);
-      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto);
+      await expect(controller.updateProfile(mockUser, updateDto, mockI18n)).rejects.toThrow(error);
+
+      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto, mockI18n);
+    });
+  });
+
+  describe('uploadAvatar', () => {
+    const mockFile = {
+      originalname: 'avatar.jpg',
+      mimetype: 'image/jpeg',
+      size: 1024,
+      buffer: Buffer.from('fake-image-data'),
+    } as Express.Multer.File;
+
+    const mockI18n = {
+      t: jest.fn().mockReturnValue('Avatar uploaded'),
+    } as unknown as I18nContext;
+
+    it('should call usersService.updateAvatar and return the updated user', async () => {
+      const updatedUser = { ...mockUser, avatar: '2026/03/avatars/random.jpg' } as User;
+      usersService.updateAvatar.mockResolvedValue(updatedUser);
+
+      const result = await controller.uploadAvatar(mockUser, mockFile, mockI18n);
+
+      expect(usersService.updateAvatar).toHaveBeenCalledWith(mockUser.id, mockFile, mockI18n);
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should propagate errors thrown by usersService.updateAvatar', async () => {
+      const error = new Error('Upload failed');
+      usersService.updateAvatar.mockRejectedValue(error);
+
+      await expect(controller.uploadAvatar(mockUser, mockFile, mockI18n)).rejects.toThrow(error);
+      expect(usersService.updateAvatar).toHaveBeenCalledWith(mockUser.id, mockFile, mockI18n);
     });
   });
 
@@ -131,6 +167,32 @@ describe('UsersController', () => {
       await expect(controller.deleteAccount(mockUser, mockI18n)).rejects.toThrow(error);
 
       expect(usersService.deleteAccount).toHaveBeenCalledWith(mockUser.id);
+    });
+  });
+
+  describe('deleteAvatar', () => {
+    const mockI18n = {
+      t: jest.fn().mockReturnValue('Avatar successfully deleted'),
+    } as unknown as I18nContext;
+
+    it('should call usersService.deleteAvatar and return a translated message', async () => {
+      usersService.deleteAvatar.mockResolvedValue(undefined);
+
+      const result = await controller.deleteAvatar(mockUser, mockI18n);
+
+      expect(usersService.deleteAvatar).toHaveBeenCalledWith(mockUser.id);
+      expect(mockI18n.t).toHaveBeenCalledWith('user.info.avatar_deleted');
+      expect(result).toEqual({
+        message: 'Avatar successfully deleted',
+      });
+    });
+
+    it('should propagate errors thrown by usersService.deleteAvatar', async () => {
+      const error = new Error('Failed to delete avatar');
+      usersService.deleteAvatar.mockRejectedValue(error);
+
+      await expect(controller.deleteAvatar(mockUser, mockI18n)).rejects.toThrow(error);
+      expect(usersService.deleteAvatar).toHaveBeenCalledWith(mockUser.id);
     });
   });
 });

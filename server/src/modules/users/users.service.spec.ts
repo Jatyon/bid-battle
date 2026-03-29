@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
+import { createMockI18nContext } from '@test/mocks/i18n.mock';
+import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { UserRepository } from './repositories/users.repository';
 import { UsersService } from './users.service';
 import { User, UserToken } from './entities';
@@ -10,6 +12,7 @@ import { UpdateResult } from 'typeorm';
 describe('UsersService', () => {
   let service: UsersService;
   let repository: DeepMocked<UserRepository>;
+  let fileUploadService: DeepMocked<FileUploadService>;
 
   const mockUser = createUserFixture();
 
@@ -17,6 +20,8 @@ describe('UsersService', () => {
     softDelete: jest.fn(),
     delete: jest.fn(),
   };
+
+  const mockI18n = createMockI18nContext();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -26,11 +31,16 @@ describe('UsersService', () => {
           provide: UserRepository,
           useValue: createMock<UserRepository>(),
         },
+        {
+          provide: FileUploadService,
+          useValue: createMock<FileUploadService>(),
+        },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
     repository = module.get(UserRepository);
+    fileUploadService = module.get(FileUploadService);
   });
 
   afterEach(() => {
@@ -135,7 +145,7 @@ describe('UsersService', () => {
       repository.findOneBy.mockResolvedValue(null);
       const dto = { firstName: 'NewName' };
 
-      await expect(service.updateProfile(999, dto)).rejects.toThrow(NotFoundException);
+      await expect(service.updateProfile(999, dto, mockI18n)).rejects.toThrow(NotFoundException);
       expect(repository.findOneBy).toHaveBeenCalledWith({ id: 999 });
       expect(repository.save).not.toHaveBeenCalled();
     });
@@ -147,7 +157,7 @@ describe('UsersService', () => {
       repository.findOneBy.mockResolvedValue(existingUser);
       repository.save.mockResolvedValue(existingUser);
 
-      const result = await service.updateProfile(1, dto);
+      const result = await service.updateProfile(1, dto, mockI18n);
 
       expect(repository.findOneBy).toHaveBeenCalledWith({ id: 1 });
       expect(existingUser.firstName).toBe('NewFirst');
@@ -163,12 +173,80 @@ describe('UsersService', () => {
       repository.findOneBy.mockResolvedValue(existingUser);
       repository.save.mockResolvedValue(existingUser);
 
-      const result = await service.updateProfile(1, dto);
+      const result = await service.updateProfile(1, dto, mockI18n);
 
       expect(existingUser.firstName).toBe('OldFirst');
       expect(existingUser.lastName).toBe('NewLastOnly');
       expect(repository.save).toHaveBeenCalledWith(existingUser);
       expect(result).toEqual(existingUser);
+    });
+  });
+
+  describe('updateAvatar', () => {
+    const mockFile = {
+      originalname: 'avatar.jpg',
+      mimetype: 'image/jpeg',
+      size: 1024,
+      buffer: Buffer.from('fake-data'),
+    } as Express.Multer.File;
+
+    const mockUploadResult: IUploadedFile = {
+      filename: 'random123.jpg',
+      path: '/full/path/to/random123.jpg',
+      url: 'avatars/random123.jpg',
+      size: 1024,
+      mimetype: 'image/jpeg',
+    };
+
+    it('should throw NotFoundException if user is not found', async () => {
+      repository.findOneBy.mockResolvedValue(null);
+
+      await expect(service.updateAvatar(999, mockFile, mockI18n)).rejects.toThrow(NotFoundException);
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 999 });
+      expect(fileUploadService.uploadSingle).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if upload fails', async () => {
+      repository.findOneBy.mockResolvedValue(mockUser);
+      fileUploadService.getAvatarUploadOptions.mockReturnValue({ maxSizeMB: 2, allowedTypes: ['image/jpeg'], subDir: 'avatars' });
+      fileUploadService.uploadSingle.mockRejectedValue(new Error('Upload failed'));
+
+      await expect(service.updateAvatar(1, mockFile, mockI18n)).rejects.toThrow(BadRequestException);
+      expect(mockI18n.t).toHaveBeenCalledWith('user.error.update_avatar_failed');
+    });
+
+    it('should upload new avatar, update user, and NOT delete old avatar if user did not have one', async () => {
+      const userWithoutAvatar = { ...mockUser, avatar: null } as User;
+      repository.findOneBy.mockResolvedValue(userWithoutAvatar);
+      fileUploadService.getAvatarUploadOptions.mockReturnValue({ maxSizeMB: 2, allowedTypes: [], subDir: 'avatars' });
+      fileUploadService.uploadSingle.mockResolvedValue(mockUploadResult);
+      repository.save.mockResolvedValue({ ...userWithoutAvatar, avatar: mockUploadResult.url } as User);
+
+      const result = await service.updateAvatar(1, mockFile, mockI18n);
+
+      expect(fileUploadService.uploadSingle).toHaveBeenCalledWith(mockFile, expect.any(Object), mockI18n);
+      expect(fileUploadService.deleteFile).not.toHaveBeenCalled();
+      expect(userWithoutAvatar.avatar).toBe(mockUploadResult.url);
+      expect(repository.save).toHaveBeenCalledWith(userWithoutAvatar);
+      expect(result.avatar).toBe(mockUploadResult.url);
+    });
+
+    it('should upload new avatar, delete OLD avatar, and save user', async () => {
+      const oldAvatarPath = 'avatars/old-pic.jpg';
+      const userWithAvatar = { ...mockUser, avatar: oldAvatarPath } as User;
+
+      repository.findOneBy.mockResolvedValue(userWithAvatar);
+      fileUploadService.getAvatarUploadOptions.mockReturnValue({ maxSizeMB: 2, allowedTypes: [], subDir: 'avatars' });
+      fileUploadService.uploadSingle.mockResolvedValue(mockUploadResult);
+      fileUploadService.deleteFile.mockResolvedValue(undefined);
+      repository.save.mockResolvedValue({ ...userWithAvatar, avatar: mockUploadResult.url } as User);
+
+      const result = await service.updateAvatar(1, mockFile, mockI18n);
+
+      expect(fileUploadService.deleteFile).toHaveBeenCalledWith(oldAvatarPath);
+      expect(userWithAvatar.avatar).toBe(mockUploadResult.url);
+      expect(repository.save).toHaveBeenCalledWith(userWithAvatar);
+      expect(result.avatar).toBe(mockUploadResult.url);
     });
   });
 
@@ -196,6 +274,41 @@ describe('UsersService', () => {
       repository.manager.transaction.mockRejectedValue(error);
 
       await expect(service.deleteAccount(userId)).rejects.toThrow(error);
+    });
+  });
+
+  describe('deleteAvatar', () => {
+    it('should do nothing if user is not found', async () => {
+      repository.findOneBy.mockResolvedValue(null);
+
+      await service.deleteAvatar(999);
+
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 999 });
+      expect(fileUploadService.deleteFile).not.toHaveBeenCalled();
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing if user has no avatar', async () => {
+      const userWithoutAvatar = { ...mockUser, avatar: null } as User;
+      repository.findOneBy.mockResolvedValue(userWithoutAvatar);
+
+      await service.deleteAvatar(1);
+
+      expect(fileUploadService.deleteFile).not.toHaveBeenCalled();
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('should delete file and set user avatar to null', async () => {
+      const userWithAvatar = { ...mockUser, avatar: 'avatars/my-pic.jpg' } as User;
+      repository.findOneBy.mockResolvedValue(userWithAvatar);
+      fileUploadService.deleteFile.mockResolvedValue(undefined);
+      repository.save.mockResolvedValue({ ...userWithAvatar, avatar: null } as User);
+
+      await service.deleteAvatar(1);
+
+      expect(fileUploadService.deleteFile).toHaveBeenCalledWith('avatars/my-pic.jpg');
+      expect(userWithAvatar.avatar).toBeNull();
+      expect(repository.save).toHaveBeenCalledWith(userWithAvatar);
     });
   });
 });
