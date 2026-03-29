@@ -1,3 +1,4 @@
+export * from './public-users.controller';
 export * from './users.controller';
 export * from './user-preferences.service';
 export * from './users.service';

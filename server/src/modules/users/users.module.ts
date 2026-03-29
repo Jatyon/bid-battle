@@ -1,6 +1,7 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 import { UserPreferencesService } from './user-preferences.service';
+import { PublicUsersController } from './public-users.controller';
 import { UserRepository } from './repositories/users.repository';
 import { UsersTokenService } from './users-token.service';
 import { UsersController } from './users.controller';
@@ -8,7 +9,7 @@ import { UsersService } from './users.service';
 import { ENTITIES } from './entities';
 
 @Module({
-  controllers: [UsersController],
+  controllers: [UsersController, PublicUsersController],
   imports: [TypeOrmModule.forFeature(ENTITIES)],
   providers: [UsersService, UsersTokenService, UserPreferencesService, UserRepository],
   exports: [UsersService, UsersTokenService, UserPreferencesService, UserRepository, TypeOrmModule],

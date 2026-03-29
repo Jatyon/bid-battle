@@ -4,6 +4,7 @@ import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { UserRepository } from './repositories/users.repository';
+import { PublicUserProfileResponse } from './dto';
 import { UsersService } from './users.service';
 import { User, UserToken } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
@@ -88,6 +89,37 @@ describe('UsersService', () => {
 
       expect(repository.findOneWithPasswordByEmail).toHaveBeenCalledWith(email);
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getPublicProfile', () => {
+    it('should throw NotFoundException if user does not exist', async () => {
+      repository.findOneBy.mockResolvedValue(null);
+
+      await expect(service.getPublicProfile(999, mockI18n)).rejects.toThrow(NotFoundException);
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 999 });
+      expect(mockI18n.t).toHaveBeenCalledWith('user.error.user_not_found');
+    });
+
+    it('should return mapped PublicUserProfileResponse if user exists', async () => {
+      const mockDate = new Date();
+      const existingUser = {
+        ...mockUser,
+        id: 1,
+        firstName: 'Anna',
+        lastName: 'Kowalska',
+        createdAt: mockDate,
+      } as User;
+
+      repository.findOneBy.mockResolvedValue(existingUser);
+
+      const result = await service.getPublicProfile(1, mockI18n);
+
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(result).toBeInstanceOf(PublicUserProfileResponse);
+      expect(result.firstName).toBe('Anna');
+      expect(result.lastNameInitial).toBe('K.');
+      expect(result.joinedAt).toBe(mockDate);
     });
   });
 
