@@ -22,9 +22,9 @@ export class UserPreferencesService {
       where: { userId },
     })) as UserPreferences;
 
-    if (updateDto.notifyOnOutbid !== undefined) preferences.notifyOnOutbid = updateDto.notifyOnOutbid;
-
-    if (updateDto.notifyOnAuctionEnd !== undefined) preferences.notifyOnAuctionEnd = updateDto.notifyOnAuctionEnd;
+    preferences.lang = updateDto.lang;
+    preferences.notifyOnOutbid = updateDto.notifyOnOutbid;
+    preferences.notifyOnAuctionEnd = updateDto.notifyOnAuctionEnd;
 
     return this.userPreferencesRepository.save(preferences);
   }

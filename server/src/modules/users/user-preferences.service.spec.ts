@@ -16,6 +16,8 @@ describe('UserPreferencesService', () => {
     lang: Language.EN,
     notifyOnOutbid: true,
     notifyOnAuctionEnd: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
     user: createUserFixture(),
   };
 
@@ -67,38 +69,19 @@ describe('UserPreferencesService', () => {
       const existingPreferences = { ...mockUserPreferences };
       const updatedPreferences = {
         ...existingPreferences,
+        lang: Language.EN,
         notifyOnOutbid: false,
+        notifyOnAuctionEnd: false,
       };
       repository.findOne.mockResolvedValue(existingPreferences);
       repository.save.mockResolvedValue(updatedPreferences);
 
-      const result = await service.updatePreferences(1, { notifyOnOutbid: false });
+      const result = await service.updatePreferences(1, { lang: Language.EN, notifyOnOutbid: false, notifyOnAuctionEnd: false });
 
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { userId: 1 },
       });
       expect(existingPreferences.notifyOnOutbid).toBe(false);
-      expect(repository.save).toHaveBeenCalledWith(existingPreferences);
-      expect(result).toEqual(updatedPreferences);
-    });
-
-    it('should update only provided fields', async () => {
-      const existingPreferences = { ...mockUserPreferences };
-      const updatedPreferences = {
-        ...existingPreferences,
-        notifyOnAuctionEnd: false,
-      };
-
-      repository.findOne.mockResolvedValue(existingPreferences);
-      repository.save.mockResolvedValue(updatedPreferences);
-
-      const result = await service.updatePreferences(1, { notifyOnAuctionEnd: false });
-
-      expect(repository.findOne).toHaveBeenCalledWith({
-        where: { userId: 1 },
-      });
-      expect(existingPreferences.notifyOnOutbid).toBe(true);
-      expect(existingPreferences.notifyOnAuctionEnd).toBe(false);
       expect(repository.save).toHaveBeenCalledWith(existingPreferences);
       expect(result).toEqual(updatedPreferences);
     });

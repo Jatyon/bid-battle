@@ -107,14 +107,6 @@ export class AuctionDetailResponse {
   createdAt: Date;
 
   @ApiProperty({
-    description: 'Last update timestamp',
-    example: '2024-03-07T10:30:00Z',
-    type: 'string',
-    format: 'date-time',
-  })
-  updatedAt: Date;
-
-  @ApiProperty({
     description: 'Auction images',
     example: ['/uploads/2026/03/abc-123.jpg', '/uploads/2026/03/def-456.jpg'],
   })

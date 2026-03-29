@@ -107,14 +107,6 @@ export class AuctionResponse {
   })
   createdAt: Date;
 
-  @ApiProperty({
-    description: 'Last update timestamp',
-    example: '2024-03-07T10:30:00Z',
-    type: 'string',
-    format: 'date-time',
-  })
-  updatedAt: Date;
-
   constructor(auction: Auction, includeOwner = false, includeWinner = false) {
     this.id = auction.id;
     this.title = auction.title;
@@ -128,7 +120,6 @@ export class AuctionResponse {
     this.ownerId = auction.ownerId;
     this.winnerId = auction.winnerId;
     this.createdAt = auction.createdAt;
-    this.updatedAt = auction.updatedAt;
 
     if (includeOwner) {
       if (auction.owner) {
