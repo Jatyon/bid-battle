@@ -3,8 +3,8 @@ import { AppConfigService } from '@config/config.service';
 import { IConfigFile } from '@config/interfaces';
 import { IUploadedFile, IUploadOptions, IStorageStrategy } from './interfaces';
 import { LocalStorageStrategy } from './strategies';
+import { join, extname, resolve, basename, sep } from 'path';
 import { I18nContext } from 'nestjs-i18n';
-import { join, extname, resolve, normalize, basename, sep } from 'path';
 import * as crypto from 'crypto';
 
 @Injectable()

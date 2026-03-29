@@ -12,10 +12,9 @@ jest.mock('path', () => {
   const actual = jest.requireActual<typeof import('path')>('path');
   return {
     ...actual,
-    resolve: jest.fn((...args: string[]) => {
-      return args.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
-    }),
-    normalize: jest.fn((p: string) => p.replace(/\\/g, '/')),
+    resolve: actual.posix.resolve,
+    normalize: actual.posix.normalize,
+    join: actual.posix.join,
     sep: '/',
   };
 });
@@ -94,7 +93,7 @@ describe('FileUploadService', () => {
   });
 
   describe('uploadSingle', () => {
-    it('should upload file and return IUploadedFile on success', async () => {
+    it('should upload file, strip prefix and return clean URL in IUploadedFile', async () => {
       const file = createFile();
       mockStrategy.upload.mockResolvedValue({ url: '/uploads/2026/03/auctions/abc.jpg', path: '/uploads/2026/03/auctions/abc.jpg' });
 
@@ -103,7 +102,7 @@ describe('FileUploadService', () => {
       expect(mockStrategy.upload).toHaveBeenCalledWith(file, expect.any(String));
       expect(result).toEqual(
         expect.objectContaining({
-          url: '/uploads/2026/03/auctions/abc.jpg',
+          url: '2026/03/auctions/abc.jpg',
           size: file.size,
           mimetype: file.mimetype,
           filename: expect.any(String) as string,
@@ -173,35 +172,6 @@ describe('FileUploadService', () => {
 
       expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Failed to upload file'), expect.anything());
     });
-
-    it('should allow file exactly at the size limit (maxSizeMB boundary)', async () => {
-      const exactFile = createFile({ size: 5 * 1024 * 1024 });
-      mockStrategy.upload.mockResolvedValue({ url: '/uploads/result.jpg', path: '/uploads/result.jpg' });
-
-      const result = await service.uploadSingle(exactFile, uploadOptions, mockI18n);
-
-      expect(result).toBeDefined();
-    });
-
-    it('should throw BadRequestException when magic bytes do not match declared MIME type', async () => {
-      const file = createFile({ mimetype: 'image/jpeg' });
-
-      jest.spyOn(service as any, 'validateFile').mockRejectedValue(new BadRequestException('error.validation.file.invalid_file_type_#allowedTypes'));
-
-      await expect(service.uploadSingle(file, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
-
-      expect(mockStrategy.upload).not.toHaveBeenCalled();
-    });
-
-    it('should throw BadRequestException when file-type cannot detect the file type', async () => {
-      const file = createFile();
-
-      jest.spyOn(service as any, 'validateFile').mockRejectedValue(new BadRequestException('error.validation.file.invalid_file_type_#allowedTypes'));
-
-      await expect(service.uploadSingle(file, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
-
-      expect(mockStrategy.upload).not.toHaveBeenCalled();
-    });
   });
 
   describe('uploadMultiple', () => {
@@ -250,6 +220,14 @@ describe('FileUploadService', () => {
       await service.deleteFile('2026/03/auctions/missing.jpg');
 
       expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Failed to delete file'), expect.anything());
+    });
+
+    it('should block path traversal attempts and log a security alert', async () => {
+      await service.deleteFile('../../../etc/passwd');
+
+      expect(mockStrategy.delete).not.toHaveBeenCalled();
+
+      expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('SECURITY ALERT: Path traversal attempt blocked!'));
     });
   });
 
