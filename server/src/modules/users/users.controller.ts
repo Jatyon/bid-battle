@@ -1,11 +1,11 @@
 import { ApiTags, ApiOperation, ApiUnauthorizedResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { Controller, Get, Put, Body, UseGuards, HttpCode, Delete } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, HttpCode, Delete, ClassSerializerInterceptor, UseInterceptors, Patch } from '@nestjs/common';
 import { ApiStandardResponse, CurrentUser } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { UserPreferencesService } from './user-preferences.service';
 import { User, UserPreferences } from './entities';
-import { UpdateUserPreferencesDto } from './dto';
+import { UpdateProfileDto, UpdateUserPreferencesDto } from './dto';
 import { UsersService } from './users.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -13,6 +13,7 @@ import { I18n, I18nContext } from 'nestjs-i18n';
 @ApiBearerAuth('jwt-auth')
 @ApiUnauthorizedResponse({ description: 'Authentication required' })
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 @Controller('/user')
 export class UsersController {
   constructor(
@@ -38,6 +39,16 @@ export class UsersController {
   @Put('/preferences')
   async updateUserPreferences(@CurrentUser() user: User, @Body() updateDto: UpdateUserPreferencesDto): Promise<UserPreferences> {
     return this.userPreferencesService.updatePreferences(user.id, updateDto);
+  }
+
+  @ApiOperation({
+    summary: 'Update user profile',
+    description: 'Update current authenticated user basic information',
+  })
+  @ApiStandardResponse(User, false)
+  @Patch('/profile')
+  async updateProfile(@CurrentUser() user: User, @Body() updateDto: UpdateProfileDto): Promise<User> {
+    return this.usersService.updateProfile(user.id, updateDto);
   }
 
   @ApiOperation({

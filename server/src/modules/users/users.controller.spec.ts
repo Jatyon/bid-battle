@@ -3,9 +3,9 @@ import { Language } from '@core/enums/language.enum';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { UserPreferencesService } from './user-preferences.service';
 import { UsersController } from './users.controller';
-import { UpdateUserPreferencesDto } from './dto';
+import { UpdateProfileDto, UpdateUserPreferencesDto } from './dto';
 import { UsersService } from './users.service';
-import { UserPreferences } from './entities';
+import { User, UserPreferences } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nContext } from 'nestjs-i18n';
 
@@ -20,7 +20,9 @@ describe('UsersController', () => {
     lang: Language.EN,
     notifyOnOutbid: true,
     notifyOnAuctionEnd: true,
-    user: mockUser,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    user: createUserFixture(),
   };
 
   beforeEach(async () => {
@@ -60,6 +62,7 @@ describe('UsersController', () => {
 
   describe('updateUserPreferences', () => {
     const updateDto: UpdateUserPreferencesDto = {
+      lang: Language.EN,
       notifyOnOutbid: false,
       notifyOnAuctionEnd: true,
     };
@@ -76,21 +79,31 @@ describe('UsersController', () => {
       expect(userPreferencesService.updatePreferences).toHaveBeenCalledWith(mockUser.id, updateDto);
       expect(result).toEqual(updatedPreferences);
     });
+  });
 
-    it('should update preferences with partial data', async () => {
-      const partialUpdateDto: UpdateUserPreferencesDto = {
-        notifyOnOutbid: false,
-      };
-      const updatedPreferences = {
-        ...mockUserPreferences,
-        notifyOnOutbid: false,
-      };
-      userPreferencesService.updatePreferences.mockResolvedValue(updatedPreferences);
+  describe('updateProfile', () => {
+    const updateDto: UpdateProfileDto = {
+      firstName: 'Jane',
+      lastName: 'Smith',
+    };
 
-      const result = await controller.updateUserPreferences(mockUser, partialUpdateDto);
+    it('should call usersService.updateProfile with correct arguments and return the updated user', async () => {
+      const updatedUser = { ...mockUser, ...updateDto } as User;
 
-      expect(userPreferencesService.updatePreferences).toHaveBeenCalledWith(mockUser.id, partialUpdateDto);
-      expect(result).toEqual(updatedPreferences);
+      usersService.updateProfile.mockResolvedValue(updatedUser);
+
+      const result = await controller.updateProfile(mockUser, updateDto);
+
+      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto);
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should propagate errors thrown by usersService', async () => {
+      const error = new Error('Failed to update profile');
+      usersService.updateProfile.mockRejectedValue(error);
+
+      await expect(controller.updateProfile(mockUser, updateDto)).rejects.toThrow(error);
+      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto);
     });
   });
 

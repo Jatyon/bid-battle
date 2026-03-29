@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserRepository } from './repositories/users.repository';
 import { User } from './entities/user.entity';
 import { DeepPartial, FindOptionsWhere, UpdateResult } from 'typeorm';
 import { UserToken } from './entities';
+import { UpdateProfileDto } from './dto';
 
 @Injectable()
 export class UsersService {
@@ -26,6 +27,17 @@ export class UsersService {
 
   updateBy(where: FindOptionsWhere<User>, data: Partial<User>): Promise<UpdateResult> {
     return this.userRepository.update(where, data);
+  }
+
+  async updateProfile(userId: number, dto: UpdateProfileDto): Promise<User> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    if (dto.firstName) user.firstName = dto.firstName;
+    if (dto.lastName) user.lastName = dto.lastName;
+
+    return this.userRepository.save(user);
   }
 
   async deleteAccount(userId: number): Promise<void> {

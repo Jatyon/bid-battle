@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { UserRepository } from './repositories/users.repository';
 import { UsersService } from './users.service';
@@ -126,6 +127,48 @@ describe('UsersService', () => {
 
       expect(result.affected).toBe(0);
       expect(repository.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should throw NotFoundException if user is not found', async () => {
+      repository.findOneBy.mockResolvedValue(null);
+      const dto = { firstName: 'NewName' };
+
+      await expect(service.updateProfile(999, dto)).rejects.toThrow(NotFoundException);
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 999 });
+      expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('should update both firstName and lastName and save the user', async () => {
+      const existingUser = { ...mockUser, firstName: 'OldFirst', lastName: 'OldLast' } as User;
+      const dto = { firstName: 'NewFirst', lastName: 'NewLast' };
+
+      repository.findOneBy.mockResolvedValue(existingUser);
+      repository.save.mockResolvedValue(existingUser);
+
+      const result = await service.updateProfile(1, dto);
+
+      expect(repository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(existingUser.firstName).toBe('NewFirst');
+      expect(existingUser.lastName).toBe('NewLast');
+      expect(repository.save).toHaveBeenCalledWith(existingUser);
+      expect(result).toEqual(existingUser);
+    });
+
+    it('should update only provided fields (partial update)', async () => {
+      const existingUser = { ...mockUser, firstName: 'OldFirst', lastName: 'OldLast' } as User;
+      const dto = { lastName: 'NewLastOnly' };
+
+      repository.findOneBy.mockResolvedValue(existingUser);
+      repository.save.mockResolvedValue(existingUser);
+
+      const result = await service.updateProfile(1, dto);
+
+      expect(existingUser.firstName).toBe('OldFirst');
+      expect(existingUser.lastName).toBe('NewLastOnly');
+      expect(repository.save).toHaveBeenCalledWith(existingUser);
+      expect(result).toEqual(existingUser);
     });
   });
 
