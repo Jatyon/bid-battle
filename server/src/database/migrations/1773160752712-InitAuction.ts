@@ -123,7 +123,7 @@ export class InitAuction1773160752712 implements MigrationInterface {
       }),
       new TableIndex({
         name: 'IDX_AUCTIONS_OWNER_ID_CREATED_AT',
-        columnNames: ['ownerId', 'createdAt'],
+        columnNames: ['owner_id', 'created_at'],
       }),
       new TableIndex({
         name: 'IDX_AUCTIONS_WINNER_ID',

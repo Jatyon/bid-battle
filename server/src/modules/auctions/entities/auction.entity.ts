@@ -1,18 +1,25 @@
-import { BaseEntity } from '../../../core/entities/base.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { BigIntTransformer } from '@core/transformers';
 import { AuctionImage } from './auction-images.entity';
 import { AuctionStatus } from '../enums';
 import { User } from '../../users/entities/user.entity';
 import { Bid } from '../../bid/entities/bid.entity';
-import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId, OneToMany } from 'typeorm';
+import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId, OneToMany, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Exclude } from 'class-transformer';
 
 @Entity({ name: 'auctions' })
 @Index(['status', 'endTime'])
 @Index(['ownerId'])
 @Index(['ownerId', 'createdAt'])
 @Index(['winnerId'])
-export class Auction extends BaseEntity {
+export class Auction {
+  @ApiProperty({
+    description: 'Unique identifier',
+    example: 1,
+  })
+  @PrimaryGeneratedColumn('increment', { type: 'int' })
+  id: number;
+
   @ApiProperty({ description: 'Auction title', example: 'Vintage Collectible Watch' })
   @Column({ name: 'title', type: 'varchar', length: 255 })
   title: string;
@@ -73,6 +80,19 @@ export class Auction extends BaseEntity {
   @Column({ name: 'winner_id', type: 'int', unsigned: true, nullable: true })
   @RelationId((auction: Auction) => auction.winner)
   winnerId?: number | null;
+
+  @ApiProperty({
+    description: 'Creation timestamp',
+    example: '2024-03-07T10:00:00Z',
+    type: 'string',
+    format: 'date-time',
+  })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  @Exclude()
+  updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.auctionsWon, { nullable: true })
   @JoinColumn({ name: 'winner_id', referencedColumnName: 'id' })

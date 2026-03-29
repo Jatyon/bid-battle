@@ -1,15 +1,21 @@
-import { BaseEntity } from '../../../core/entities/base.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserPreferences } from './user-preferences.entity';
 import { SocialAccount } from './social-account.entity';
 import { UserToken } from './user-token.entity';
 import { Auction } from '../../auctions/entities/auction.entity';
 import { Bid } from '../../bid/entities/bid.entity';
-import { Column, DeleteDateColumn, Entity, Index, OneToMany, OneToOne } from 'typeorm';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, Index, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Exclude } from 'class-transformer';
 
 @Entity({ name: 'users' })
-export class User extends BaseEntity {
+export class User {
+  @ApiProperty({
+    description: 'Unique identifier',
+    example: 1,
+  })
+  @PrimaryGeneratedColumn('increment', { type: 'int' })
+  id: number;
+
   @ApiProperty({ description: 'User email address', example: 'john.doe@example.com', format: 'email' })
   @Index()
   @Column({ name: 'email', type: 'varchar', length: 255, unique: true })
@@ -33,6 +39,7 @@ export class User extends BaseEntity {
 
   @ApiProperty({ description: 'Whether the user email address has been verified', example: false })
   @Column({ name: 'is_email_verified', type: 'boolean', default: false })
+  @Exclude()
   isEmailVerified: boolean;
 
   @ApiProperty({ description: 'Last login timestamp', type: 'string', format: 'date-time', nullable: true })
@@ -43,10 +50,23 @@ export class User extends BaseEntity {
   @Column({ name: 'password_changed_at', type: 'timestamp', nullable: true })
   passwordChangedAt?: Date | null;
 
-  @ApiProperty({ description: 'Soft delete timestamp', nullable: true, type: 'string', format: 'date-time' })
   @Index()
   @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  @Exclude()
   deletedAt?: Date | null;
+
+  @ApiProperty({
+    description: 'Creation timestamp',
+    example: '2024-03-07T10:00:00Z',
+    type: 'string',
+    format: 'date-time',
+  })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  @Exclude()
+  updatedAt: Date;
 
   @Exclude()
   @OneToMany(() => SocialAccount, (social) => social.user, { cascade: true })

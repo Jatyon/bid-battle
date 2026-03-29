@@ -1,10 +1,16 @@
-import { BaseEntity } from '../../../core/entities/base.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Auction } from './auction.entity';
-import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, JoinColumn, PrimaryGeneratedColumn, UpdateDateColumn, CreateDateColumn } from 'typeorm';
 
 @Entity({ name: 'auction_images' })
-export class AuctionImage extends BaseEntity {
+export class AuctionImage {
+  @ApiProperty({
+    description: 'Unique identifier',
+    example: 1,
+  })
+  @PrimaryGeneratedColumn('increment', { type: 'int' })
+  id: number;
+
   @ApiProperty({
     description: 'Image URL',
     example: 'https://example.com/image.jpg',
@@ -22,6 +28,24 @@ export class AuctionImage extends BaseEntity {
 
   @Column({ name: 'auction_id' })
   auctionId: number;
+
+  @ApiProperty({
+    description: 'Creation timestamp',
+    example: '2024-03-07T10:00:00Z',
+    type: 'string',
+    format: 'date-time',
+  })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
+
+  @ApiProperty({
+    description: 'Last update timestamp',
+    example: '2024-03-07T10:30:00Z',
+    type: 'string',
+    format: 'date-time',
+  })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date;
 
   @ManyToOne(() => Auction, (auction) => auction.images, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'auction_id' })

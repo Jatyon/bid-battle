@@ -27,6 +27,17 @@ export class InitUserPreferences1772805128870 implements MigrationInterface {
             type: 'boolean',
             default: true,
           },
+          {
+            name: 'created_at',
+            type: 'timestamp',
+            default: 'now()',
+          },
+          {
+            name: 'updated_at',
+            type: 'timestamp',
+            default: 'now()',
+            onUpdate: 'now()',
+          },
         ],
       }),
       true,

@@ -1,10 +1,12 @@
-import { BaseEntity } from '../../../core/entities/base.entity';
 import { UserTokenEnum } from '../enums';
 import { User } from './user.entity';
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity({ name: 'user_tokens' })
-export class UserToken extends BaseEntity {
+export class UserToken {
+  @PrimaryGeneratedColumn('increment', { type: 'int' })
+  id: number;
+
   @Column({ name: 'token' })
   @Index()
   token: string;
@@ -32,4 +34,10 @@ export class UserToken extends BaseEntity {
 
   @Column({ name: 'used_at', type: 'timestamp', nullable: true })
   usedAt?: Date | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date;
 }
