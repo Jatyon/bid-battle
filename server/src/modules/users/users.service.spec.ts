@@ -4,7 +4,7 @@ import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { UserRepository } from './repositories/users.repository';
-import { PublicUserProfileResponse } from './dto';
+import { PublicUserProfileResponse, SearchUsersDto } from './dto';
 import { UsersService } from './users.service';
 import { User, UserToken } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
@@ -89,6 +89,54 @@ describe('UsersService', () => {
 
       expect(repository.findOneWithPasswordByEmail).toHaveBeenCalledWith(email);
       expect(result).toBeNull();
+    });
+  });
+
+  describe('searchPublicUsers', () => {
+    it('should query the repository and map results to PublicUserProfileResponse', async () => {
+      const queryDto = { q: 'Jan', limit: 5 } as SearchUsersDto;
+
+      const mockDate1 = new Date('2026-01-01');
+      const mockDate2 = new Date('2026-02-01');
+
+      const user1 = { id: 1, firstName: 'John', lastName: 'Doe', createdAt: mockDate1 } as User;
+      const user2 = { id: 2, firstName: 'Kevin', lastName: 'Rice', createdAt: mockDate2 } as User;
+
+      repository.searchUsers.mockResolvedValue([user1, user2]);
+
+      const result = await service.searchPublicUsers(queryDto);
+
+      expect(repository.searchUsers).toHaveBeenCalledWith(queryDto);
+      expect(result).toHaveLength(2);
+
+      expect(result[0]).toBeInstanceOf(PublicUserProfileResponse);
+      expect(result[0].id).toBe(1);
+      expect(result[0].firstName).toBe('John');
+      expect(result[0].lastNameInitial).toBe('D.');
+
+      expect(result[1]).toBeInstanceOf(PublicUserProfileResponse);
+      expect(result[1].id).toBe(2);
+      expect(result[1].firstName).toBe('Kevin');
+      expect(result[1].lastNameInitial).toBe('R.');
+    });
+
+    it('should handle empty results gracefully', async () => {
+      const queryDto = { q: 'UnknownName', limit: 10 } as SearchUsersDto;
+      repository.searchUsers.mockResolvedValue([]);
+
+      const result = await service.searchPublicUsers(queryDto);
+
+      expect(repository.searchUsers).toHaveBeenCalledWith(queryDto);
+      expect(result).toEqual([]);
+    });
+
+    it('should propagate errors from the repository', async () => {
+      const queryDto = { q: 'error', limit: 5 } as SearchUsersDto;
+      const dbError = new Error('Database timeout');
+      repository.searchUsers.mockRejectedValue(dbError);
+
+      await expect(service.searchPublicUsers(queryDto)).rejects.toThrow(dbError);
+      expect(repository.searchUsers).toHaveBeenCalledWith(queryDto);
     });
   });
 

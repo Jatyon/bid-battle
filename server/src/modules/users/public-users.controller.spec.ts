@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PublicUsersController } from './public-users.controller';
-import { PublicUserProfileResponse } from './dto';
+import { PublicUserProfileResponse, SearchUsersDto } from './dto';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
@@ -29,6 +29,30 @@ describe('PublicUsersController', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('searchUsers', () => {
+    it('should call usersService.searchPublicUsers and return the array of results', async () => {
+      const searchDto: SearchUsersDto = { q: 'John', limit: 10 };
+      const mockUser = { id: 1, firstName: 'John', lastName: 'D.', createdAt: new Date() } as User;
+      const expectedResponse = [new PublicUserProfileResponse(mockUser)];
+
+      usersService.searchPublicUsers.mockResolvedValue(expectedResponse);
+
+      const result = await controller.searchUsers(searchDto);
+
+      expect(usersService.searchPublicUsers).toHaveBeenCalledWith(searchDto);
+      expect(result).toEqual(expectedResponse);
+    });
+
+    it('should propagate errors from the service', async () => {
+      const searchDto: SearchUsersDto = { q: 'Error', limit: 5 };
+      const error = new Error('Database timeout');
+      usersService.searchPublicUsers.mockRejectedValue(error);
+
+      await expect(controller.searchUsers(searchDto)).rejects.toThrow(error);
+      expect(usersService.searchPublicUsers).toHaveBeenCalledWith(searchDto);
+    });
   });
 
   describe('getPublicProfile', () => {

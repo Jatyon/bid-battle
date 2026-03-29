@@ -10,7 +10,7 @@ import { User, UserPreferences } from './entities';
 import { UsersService } from './users.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
-@ApiTags('Users')
+@ApiTags('User')
 @ApiBearerAuth('jwt-auth')
 @ApiUnauthorizedResponse({ description: 'Authentication required' })
 @UseGuards(JwtAuthGuard)

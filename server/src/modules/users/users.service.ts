@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { UserRepository } from './repositories/users.repository';
 import { User } from './entities/user.entity';
-import { PublicUserProfileResponse, UpdateProfileDto } from './dto';
+import { PublicUserProfileResponse, SearchUsersDto, UpdateProfileDto } from './dto';
 import { UserToken } from './entities';
 import { DeepPartial, FindOptionsWhere, UpdateResult } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
@@ -20,6 +20,11 @@ export class UsersService {
 
   findOneWithPasswordByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOneWithPasswordByEmail(email);
+  }
+
+  async searchPublicUsers(queryDto: SearchUsersDto): Promise<PublicUserProfileResponse[]> {
+    const users = await this.userRepository.searchUsers(queryDto);
+    return users.map((user) => new PublicUserProfileResponse(user));
   }
 
   async getPublicProfile(userId: number, i18n: I18nContext): Promise<PublicUserProfileResponse> {

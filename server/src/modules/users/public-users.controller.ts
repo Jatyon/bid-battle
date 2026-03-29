@@ -1,7 +1,7 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiNotFoundResponse } from '@nestjs/swagger';
 import { ApiStandardResponse, Public } from '@core/decorators';
-import { PublicUserProfileResponse } from './dto';
+import { PublicUserProfileResponse, SearchUsersDto } from './dto';
 import { UsersService } from './users.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -11,7 +11,18 @@ export class PublicUsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @ApiOperation({
-    summary: 'Get public seller profile',
+    summary: 'Search public users',
+    description: 'Search for users by their first or last name.',
+  })
+  @ApiStandardResponse(PublicUserProfileResponse, true)
+  @Public()
+  @Get()
+  async searchUsers(@Query() searchDto: SearchUsersDto): Promise<PublicUserProfileResponse[]> {
+    return this.usersService.searchPublicUsers(searchDto);
+  }
+
+  @ApiOperation({
+    summary: 'Get public user profile',
     description: 'Fetches anonymized user profile information (avatar, first name, last name initial, join date).',
   })
   @ApiStandardResponse(PublicUserProfileResponse, false)
