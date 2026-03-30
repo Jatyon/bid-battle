@@ -219,11 +219,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Initializes a new auction in Redis with its starting parameters.
    * Sets the initial price, the active status flag, and the owner ID.
-   * * @remarks
-   * All keys (except the 'active' flag) are assigned a TTL equal to the auction's
-   * duration plus a 1-hour buffer. This acts as a fail-safe mechanism to prevent
-   * Redis memory leaks in case the Node.js process crashes and `cleanupAuction`
-   * is never explicitly called.
+   *
+   * @remarks
+   * **Atomicity** — all three SET commands are sent in a single pipeline, so they
+   * are flushed to Redis in one round-trip. A pipeline is not a transaction (MULTI/EXEC),
+   * but it eliminates the partial-write window that existed with three separate awaits /
+   * Promise.all calls. A full MULTI/EXEC is deliberately avoided here because the Lua
+   * bid script uses KEYS that overlap with these, and mixing MULTI with Lua in the same
+   * connection can cause subtle ordering issues.
+   *
+   * **Idempotency** — each SET uses the NX (Not eXists) flag so that a BullMQ retry
+   * of the start-job never overwrites an already-active auction (e.g. one that received
+   * bids between the first attempt and the retry).  If the active key is already present
+   * the method logs a warning and returns early without touching any keys.
+   *
+   * **TTL fail-safe** — all keys (except the 'active' flag) receive a TTL equal to the
+   * auction duration plus a 1-hour buffer to prevent Redis memory leaks when
+   * `cleanupAuction` is never called due to a process crash.
    *
    * @param auctionId - The unique identifier of the auction.
    * @param startingPrice - The base price at which the auction starts.
@@ -235,11 +247,25 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     try {
       const ttlWithBuffer = durationSeconds + 3600;
 
-      await Promise.all([
-        this.redis.set(RedisKey.auctionPrice(auctionId), startingPrice, 'EX', ttlWithBuffer),
-        this.redis.set(RedisKey.auctionActive(auctionId), '1', 'EX', durationSeconds),
-        this.redis.set(RedisKey.auctionOwner(auctionId), ownerId, 'EX', ttlWithBuffer),
-      ]);
+      const transaction = this.redis.multi();
+
+      transaction.set(RedisKey.auctionActive(auctionId), '1', 'EX', durationSeconds, 'NX');
+      transaction.set(RedisKey.auctionPrice(auctionId), String(startingPrice), 'EX', ttlWithBuffer, 'NX');
+      transaction.set(RedisKey.auctionOwner(auctionId), String(ownerId), 'EX', ttlWithBuffer, 'NX');
+
+      const results = await transaction.exec();
+
+      const activeResult = results?.[0]?.[1];
+
+      if (activeResult === null) {
+        this.logger.warn(`Auction ${auctionId} already initialized in Redis — skipping (idempotent retry)`);
+        return;
+      }
+
+      const pipelineErrors = results?.filter(([err]) => err !== null);
+
+      if (pipelineErrors && pipelineErrors.length > 0)
+        throw new Error(`Pipeline error(s) during initializeAuction: ${pipelineErrors.map(([e]) => (e as Error).message).join('; ')}`);
 
       this.logger.log(`Auction ${auctionId} initialized: price=${startingPrice}, duration=${durationSeconds}s, owner=${ownerId}`);
     } catch (error: unknown) {

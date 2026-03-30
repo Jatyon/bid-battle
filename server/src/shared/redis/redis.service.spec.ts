@@ -346,24 +346,76 @@ describe('RedisService', () => {
   });
 
   describe('initializeAuction', () => {
-    it('should set price, active, and owner keys with correct TTLs', async () => {
-      mockRedis.set.mockResolvedValue('OK');
+    let mockTransaction: {
+      set: jest.Mock;
+      exec: jest.Mock;
+    };
+
+    beforeEach(() => {
+      mockTransaction = {
+        set: jest.fn().mockReturnThis(),
+        exec: jest.fn(),
+      };
+
+      mockRedis.multi = jest.fn().mockReturnValue(mockTransaction as unknown as ReturnType<typeof mockRedis.multi>);
+
       jest.spyOn(service['logger'], 'log').mockImplementation();
+      jest.spyOn(service['logger'], 'warn').mockImplementation();
+      jest.spyOn(service as any, 'handleError').mockImplementation();
+    });
+
+    it('should set active, price, and owner keys using multi/exec with NX flag and correct TTLs', async () => {
+      mockTransaction.exec.mockResolvedValue([
+        [null, 'OK'],
+        [null, 'OK'],
+        [null, 'OK'],
+      ]);
 
       await service.initializeAuction(1, 100, 3600, 5);
 
-      expect(mockRedis.set).toHaveBeenCalledWith('auction:1:price', 100, 'EX', 7200);
-      expect(mockRedis.set).toHaveBeenCalledWith('auction:1:active', '1', 'EX', 3600);
-      expect(mockRedis.set).toHaveBeenCalledWith('auction:1:owner', 5, 'EX', 7200);
+      expect(mockRedis.multi).toHaveBeenCalled();
+      expect(mockTransaction.set).toHaveBeenCalledWith('auction:1:active', '1', 'EX', 3600, 'NX');
+      expect(mockTransaction.set).toHaveBeenCalledWith('auction:1:price', '100', 'EX', 7200, 'NX');
+      expect(mockTransaction.set).toHaveBeenCalledWith('auction:1:owner', '5', 'EX', 7200, 'NX');
+
+      expect(mockTransaction.exec).toHaveBeenCalled();
       expect(service['logger'].log).toHaveBeenCalledWith(expect.stringContaining('Auction 1 initialized'));
     });
 
-    it('should log error and not throw when Redis fails', async () => {
-      mockRedis.set.mockRejectedValue(new Error('Redis error'));
+    it('should log a warning and return early if auction is already active (idempotent retry)', async () => {
+      mockTransaction.exec.mockResolvedValue([
+        [null, null],
+        [null, null],
+        [null, null],
+      ]);
+
+      await service.initializeAuction(1, 100, 3600, 5);
+
+      expect(mockTransaction.exec).toHaveBeenCalled();
+      expect(service['logger'].warn).toHaveBeenCalledWith(expect.stringContaining('already initialized in Redis'));
+      expect(service['logger'].log).not.toHaveBeenCalled();
+    });
+
+    it('should catch pipeline-specific errors and trigger handleError', async () => {
+      const pipelineError = new Error('Command rejected by Redis');
+      mockTransaction.exec.mockResolvedValue([
+        [null, 'OK'],
+        [pipelineError, null],
+        [null, 'OK'],
+      ]);
+
+      await service.initializeAuction(1, 100, 3600, 5);
+
+      expect(service['handleError']).toHaveBeenCalledWith(expect.stringContaining('Initialize auction error for ID "1"'), expect.any(Error));
+      expect(service['logger'].log).not.toHaveBeenCalled();
+    });
+
+    it('should log error and not throw when Redis completely fails to execute the transaction', async () => {
+      mockTransaction.exec.mockRejectedValue(new Error('Redis connection lost'));
 
       await expect(service.initializeAuction(1, 100, 3600, 5)).resolves.not.toThrow();
 
-      expect(service['logger'].error).toHaveBeenCalledWith(expect.stringContaining('Initialize auction error'), expect.any(String));
+      expect(service['handleError']).toHaveBeenCalledWith(expect.stringContaining('Initialize auction error for ID "1"'), expect.any(Error));
     });
   });
 
