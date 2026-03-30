@@ -1,11 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
-import { Repository } from 'typeorm';
-import { I18nContext } from 'nestjs-i18n';
-import { FileUploadService, IUploadedFile } from '@shared/file-upload';
-import { RedisService } from '@shared/redis';
 import {
   createAuctionFixture,
   createCreateAuctionDtoFixture,
@@ -14,6 +10,8 @@ import {
   createMockFilesFixture,
 } from '@test/fixtures/auctions.fixtures';
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
+import { FileUploadService, IUploadedFile } from '@shared/file-upload';
+import { RedisService } from '@shared/redis';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionResponse, AuctionDetailResponse } from './dto';
 import { AuctionScheduler } from './auction.scheduler';
@@ -21,6 +19,8 @@ import { AuctionsService } from './auctions.service';
 import { AuctionImage } from './entities';
 import { AuctionStatus } from './enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { DataSource, Repository } from 'typeorm';
+import { I18nContext } from 'nestjs-i18n';
 
 describe('AuctionsService', () => {
   let service: AuctionsService;
@@ -30,8 +30,9 @@ describe('AuctionsService', () => {
   let redisService: DeepMocked<RedisService>;
   let fileUploadService: DeepMocked<FileUploadService>;
   let auctionScheduler: DeepMocked<AuctionScheduler>;
+  let dataSource: DeepMocked<DataSource>;
 
-  const mockManager = { delete: jest.fn(), save: jest.fn() };
+  const mockManager = { delete: jest.fn(), save: jest.fn(), findOne: jest.fn(), count: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -63,6 +64,10 @@ describe('AuctionsService', () => {
           provide: AuctionScheduler,
           useValue: createMock<AuctionScheduler>(),
         },
+        {
+          provide: DataSource,
+          useValue: createMock<DataSource>(),
+        },
       ],
     }).compile();
 
@@ -73,6 +78,7 @@ describe('AuctionsService', () => {
     redisService = module.get(RedisService);
     fileUploadService = module.get(FileUploadService);
     auctionScheduler = module.get(AuctionScheduler);
+    dataSource = module.get(DataSource);
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
@@ -315,25 +321,57 @@ describe('AuctionsService', () => {
   });
 
   describe('findOne', () => {
-    it('should override database price with Redis live price when cache exists', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture());
+    it('should override database price with Redis live price when auction is ACTIVE and Redis key exists', async () => {
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.ACTIVE }));
       redisService.getLivePrice.mockResolvedValue(150);
+      redisService.isAuctionActive.mockResolvedValue(true);
 
       const result = await service.findOne(1);
 
       expect(auctionsRepository.findByIdWithRelations).toHaveBeenCalledWith(1);
       expect(redisService.getLivePrice).toHaveBeenCalledWith(1);
+      expect(redisService.isAuctionActive).toHaveBeenCalledWith(1);
       expect(result).toBeInstanceOf(AuctionDetailResponse);
       expect(result.currentPrice).toBe(150);
     });
 
-    it('should return database price when no live price in Redis', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture());
-      redisService.getLivePrice.mockResolvedValue(null);
+    it('should return database price when auction is ACTIVE but Redis active key is already gone (cleanup race)', async () => {
+      const fixture = createAuctionFixture({ status: AuctionStatus.ACTIVE, currentPrice: 100 });
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(fixture);
+      redisService.getLivePrice.mockResolvedValue(200);
+      redisService.isAuctionActive.mockResolvedValue(false);
 
       const result = await service.findOne(1);
 
       expect(result.currentPrice).toBe(100);
+    });
+
+    it('should return database price when auction is ACTIVE but live price is null in Redis', async () => {
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.ACTIVE }));
+      redisService.getLivePrice.mockResolvedValue(null);
+      redisService.isAuctionActive.mockResolvedValue(true);
+
+      const result = await service.findOne(1);
+
+      expect(result.currentPrice).toBe(100);
+    });
+
+    it('should never call Redis for ENDED auctions — DB value is always authoritative', async () => {
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.ENDED }));
+
+      await service.findOne(1);
+
+      expect(redisService.getLivePrice).not.toHaveBeenCalled();
+      expect(redisService.isAuctionActive).not.toHaveBeenCalled();
+    });
+
+    it('should never call Redis for PENDING auctions', async () => {
+      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.PENDING }));
+
+      await service.findOne(1);
+
+      expect(redisService.getLivePrice).not.toHaveBeenCalled();
+      expect(redisService.isAuctionActive).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when auction does not exist', async () => {
@@ -354,25 +392,40 @@ describe('AuctionsService', () => {
     it('should return canceled auction when requesting user is the owner', async () => {
       const canceledAuction = createAuctionFixture({ status: AuctionStatus.CANCELED, ownerId: 1 });
       auctionsRepository.findByIdWithRelations.mockResolvedValue(canceledAuction);
-      redisService.getLivePrice.mockResolvedValue(null);
 
       const result = await service.findOne(canceledAuction.id, 1);
 
       expect(result).toBeInstanceOf(AuctionDetailResponse);
+      expect(redisService.getLivePrice).not.toHaveBeenCalled();
     });
   });
 
   describe('cancelAuction', () => {
-    it('should cancel a PENDING auction, cancel start job, and invalidate caches', async () => {
-      const mockAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue({ ...mockAuction, status: AuctionStatus.CANCELED });
+    /**
+     * Helper that wires up dataSource.transaction to call the callback
+     * with a mock EntityManager (mockManager).
+     */
+    const mockTransactionWith = (auctionInTx: ReturnType<typeof createAuctionFixture> | null, bidCount = 0) => {
+      mockManager.findOne.mockResolvedValue(auctionInTx);
+      mockManager.count.mockResolvedValue(bidCount);
+      mockManager.save.mockImplementation((_entity: unknown, obj: unknown) => obj);
 
+      (dataSource.transaction as jest.Mock).mockImplementation(async (cb: (em: typeof mockManager) => Promise<unknown>) => cb(mockManager));
+    };
+
+    it('should cancel a PENDING auction inside a transaction, cancel start job, and invalidate caches', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
+
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+
+      mockTransactionWith(mockAuction);
       auctionScheduler.cancelAuctionStart.mockResolvedValue(undefined);
 
       const result = await service.cancelAuction(1, 1);
 
-      expect(auctionsRepository.save).toHaveBeenCalledWith(expect.objectContaining({ status: AuctionStatus.CANCELED }));
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(mockManager.findOne).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ lock: { mode: 'pessimistic_write' } }));
+      expect(mockManager.save).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ status: AuctionStatus.CANCELED }));
       expect(auctionScheduler.cancelAuctionStart).toHaveBeenCalledWith(1);
       expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
       expect(redisService.cleanupAuction).not.toHaveBeenCalled();
@@ -383,52 +436,73 @@ describe('AuctionsService', () => {
 
     it('should cancel an ACTIVE auction with no bids, cancel end job, clean Redis, and invalidate caches', async () => {
       const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(mockAuction);
-      bidRepository.count.mockResolvedValue(0);
-      auctionsRepository.save.mockResolvedValue({ ...mockAuction, status: AuctionStatus.CANCELED });
-
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      mockTransactionWith(mockAuction, 0);
       auctionScheduler.cancelAuctionEnd.mockResolvedValue(undefined);
       redisService.cleanupAuction.mockResolvedValue(undefined);
 
       const result = await service.cancelAuction(1, 1);
 
-      expect(bidRepository.count).toHaveBeenCalledWith({ where: { auctionId: 1 } });
-      expect(auctionsRepository.save).toHaveBeenCalledWith(expect.objectContaining({ status: AuctionStatus.CANCELED }));
+      expect(mockManager.count).toHaveBeenCalled();
+      expect(mockManager.save).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ status: AuctionStatus.CANCELED }));
       expect(auctionScheduler.cancelAuctionEnd).toHaveBeenCalledWith(1);
       expect(auctionScheduler.cancelAuctionStart).not.toHaveBeenCalled();
       expect(redisService.cleanupAuction).toHaveBeenCalledWith(1);
       expect(result).toBeInstanceOf(AuctionResponse);
     });
 
-    it('should throw NotFoundException when auction does not exist', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(null);
+    it('should throw NotFoundException when auction does not exist in the pre-check', async () => {
+      auctionsRepository.findOneBy.mockResolvedValue(null);
 
       await expect(service.cancelAuction(1, 1)).rejects.toThrow(NotFoundException);
-      expect(auctionsRepository.save).not.toHaveBeenCalled();
+      expect(dataSource.transaction).not.toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException when requesting user is not the owner', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ ownerId: 2 }));
+      auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture({ ownerId: 2 }));
 
       await expect(service.cancelAuction(1, 1)).rejects.toThrow(ForbiddenException);
-      expect(auctionsRepository.save).not.toHaveBeenCalled();
+      expect(dataSource.transaction).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when auction status is not ACTIVE or PENDING', async () => {
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.ENDED, ownerId: 1 }));
+    it('should throw BadRequestException when auction status is not ACTIVE or PENDING in the pre-check', async () => {
+      auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.ENDED, ownerId: 1 }));
 
       await expect(service.cancelAuction(1, 1)).rejects.toThrow(BadRequestException);
-      expect(auctionsRepository.save).not.toHaveBeenCalled();
+      expect(dataSource.transaction).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when an ACTIVE auction already has bids (bidCount > 0)', async () => {
-      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
-      auctionsRepository.findByIdWithRelations.mockResolvedValue(mockAuction);
-      bidRepository.count.mockResolvedValue(3);
+    it('should throw BadRequestException when status changed to ENDED inside the transaction (re-validation under lock)', async () => {
+      const preCheckAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+
+      const txAuction = createAuctionFixture({ status: AuctionStatus.ENDED, ownerId: 1 });
+      auctionsRepository.findOneBy.mockResolvedValue(preCheckAuction);
+      mockTransactionWith(txAuction);
 
       await expect(service.cancelAuction(1, 1)).rejects.toThrow(BadRequestException);
-      expect(auctionsRepository.save).not.toHaveBeenCalled();
+      expect(mockManager.save).not.toHaveBeenCalled();
       expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when an ACTIVE auction has bids placed inside the transaction (TOCTOU guard)', async () => {
+      const mockAuction = createAuctionFixture({ status: AuctionStatus.ACTIVE, ownerId: 1 });
+      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+
+      mockTransactionWith(mockAuction, 1);
+
+      await expect(service.cancelAuction(1, 1)).rejects.toThrow(BadRequestException);
+      expect(mockManager.save).not.toHaveBeenCalled();
+      expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when auction disappears between pre-check and transaction lock', async () => {
+      const preCheckAuction = createAuctionFixture({ status: AuctionStatus.PENDING, ownerId: 1 });
+      auctionsRepository.findOneBy.mockResolvedValue(preCheckAuction);
+
+      mockTransactionWith(null);
+
+      await expect(service.cancelAuction(1, 1)).rejects.toThrow(NotFoundException);
+      expect(mockManager.save).not.toHaveBeenCalled();
     });
   });
 

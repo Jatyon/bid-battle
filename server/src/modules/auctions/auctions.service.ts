@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { InjectRepository } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
+import { Bid } from '@modules/bid/entities';
 import { BidResponse } from '@modules/bid';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
@@ -10,8 +11,8 @@ import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
 import { AuctionStatus } from './enums';
+import { DataSource, In, Repository } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
-import { In, Repository } from 'typeorm';
 
 @Injectable()
 export class AuctionsService {
@@ -19,12 +20,13 @@ export class AuctionsService {
 
   constructor(
     @InjectRepository(AuctionImage)
-    private auctionImageRepository: Repository<AuctionImage>,
-    private bidRepository: BidRepository,
+    private readonly auctionImageRepository: Repository<AuctionImage>,
+    private readonly bidRepository: BidRepository,
     private readonly auctionsRepository: AuctionsRepository,
     private readonly redisService: RedisService,
     private readonly fileUploadService: FileUploadService,
     private readonly auctionScheduler: AuctionScheduler,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -187,31 +189,49 @@ export class AuctionsService {
    * background scheduling jobs (BullMQ) and live in-memory data (Redis) to prevent
    * zombie processes and memory leaks.
    *
+   * The bid-count check and the status update are executed inside a single transaction
+   * with a pessimistic write lock on the auction row. This eliminates the TOCTOU race
+   * condition where a bid could be placed between the `count()` query and the `save()` call.
+   *
    * @param auctionId - The unique identifier of the auction to cancel.
    * @param userId - The ID of the user attempting to cancel the auction (must be the owner).
    * @returns Updated auction
    */
   async cancelAuction(auctionId: number, userId: number): Promise<AuctionResponse> {
-    const auction = await this.auctionsRepository.findByIdWithRelations(auctionId);
+    const auctionPreCheck = await this.auctionsRepository.findOneBy({ id: auctionId });
 
-    if (!auction) throw new NotFoundException('error.auction.not_found');
+    if (!auctionPreCheck) throw new NotFoundException('error.auction.not_found');
 
-    if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.cancel_forbidden_not_owner');
+    if (auctionPreCheck.ownerId !== userId) throw new ForbiddenException('error.auction.cancel_forbidden_not_owner');
 
-    if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.cancel_forbidden_not_active');
+    if (auctionPreCheck.status !== AuctionStatus.ACTIVE && auctionPreCheck.status !== AuctionStatus.PENDING)
+      throw new BadRequestException('error.auction.cancel_forbidden_not_active');
 
-    if (auction.status === AuctionStatus.ACTIVE) {
-      const bidCount = await this.bidRepository.count({ where: { auctionId } });
+    let previousStatus: AuctionStatus;
+    let updatedAuction: Auction;
 
-      if (bidCount > 0) throw new BadRequestException('error.auction.cancel_forbidden_already_has_bids');
-    }
+    await this.dataSource.transaction(async (em) => {
+      const auction = await em.findOne(Auction, {
+        where: { id: auctionId },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    const previousStatus = auction.status;
-    auction.status = AuctionStatus.CANCELED;
+      if (!auction) throw new NotFoundException('error.auction.not_found');
 
-    const updatedAuction = await this.auctionsRepository.save(auction);
+      if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.cancel_forbidden_not_active');
 
-    if (previousStatus === AuctionStatus.PENDING) {
+      if (auction.status === AuctionStatus.ACTIVE) {
+        const bidCount = await em.count(Bid, { where: { auctionId } });
+
+        if (bidCount > 0) throw new BadRequestException('error.auction.cancel_forbidden_already_has_bids');
+      }
+
+      previousStatus = auction.status;
+      auction.status = AuctionStatus.CANCELED;
+      updatedAuction = await em.save(Auction, auction);
+    });
+
+    if (previousStatus! === AuctionStatus.PENDING) {
       await this.auctionScheduler.cancelAuctionStart(auctionId);
     } else {
       await this.auctionScheduler.cancelAuctionEnd(auctionId);
@@ -221,7 +241,7 @@ export class AuctionsService {
     await this.invalidateAuctionsCache();
     await this.invalidatePriceCache(auctionId);
 
-    return new AuctionResponse(updatedAuction);
+    return new AuctionResponse(updatedAuction!);
   }
 
   /**
