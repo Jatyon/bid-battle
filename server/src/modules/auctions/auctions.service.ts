@@ -115,7 +115,11 @@ export class AuctionsService {
 
   /**
    * Get auction details by ID
-   * Uses hybrid approach: current_price from Redis (if available), rest from MySQL
+   * Uses hybrid approach: current_price from Redis (if available), rest from MySQL.
+   * The live price from Redis is used **only** when the auction is ACTIVE — for ENDED,
+   * PENDING and CANCELED auctions the persisted DB value is always authoritative.
+   * This prevents serving a stale `null` (or missing key) from Redis during the brief
+   * window between `em.update` and `cleanupAuction` in the end-processor.
    * Canceled auctions are hidden from public — only accessible to the owner.
    * @param auctionId - Auction ID
    * @param requestingUserId - ID of the requesting user (optional, unauthenticated guests pass undefined)
@@ -128,9 +132,11 @@ export class AuctionsService {
 
     if (auction.status === AuctionStatus.CANCELED && auction.ownerId !== requestingUserId) throw new NotFoundException('error.auction.not_found');
 
-    const cachedPrice = await this.redisService.getLivePrice(auctionId);
+    if (auction.status === AuctionStatus.ACTIVE) {
+      const [livePrice, isActiveInRedis] = await Promise.all([this.redisService.getLivePrice(auctionId), this.redisService.isAuctionActive(auctionId)]);
 
-    if (cachedPrice) auction.currentPrice = cachedPrice;
+      if (isActiveInRedis && livePrice !== null) auction.currentPrice = livePrice;
+    }
 
     return new AuctionDetailResponse(auction);
   }
