@@ -8,6 +8,14 @@ import { DatabaseType } from 'typeorm';
 export class AppConfigService {
   constructor(private readonly configService: ConfigService) {}
 
+  private requireGet<T = string>(key: string): T {
+    const value = this.configService.get<T>(key);
+
+    if (value === undefined || value === null || value === '') throw new Error(`Missing required environment variable: ${key}`);
+
+    return value;
+  }
+
   get app(): IConfigApp {
     return {
       mode: this.configService.get<string>('NODE_ENV', 'development'),
@@ -29,8 +37,8 @@ export class AppConfigService {
       type: this.configService.get<DatabaseType>('DATABASE_TYPE', 'mysql'),
       host: this.configService.get<string>('DATABASE_HOST', 'localhost'),
       port: this.configService.get<number>('DATABASE_PORT', 3306),
-      username: this.configService.get<string>('DATABASE_USER', 'root'),
-      password: this.configService.get<string>('DATABASE_PASSWORD', 'password'),
+      username: this.requireGet<string>('DATABASE_USER'),
+      password: this.requireGet<string>('DATABASE_PASSWORD'),
       database: this.configService.get<string>('DATABASE_NAME', 'app_db'),
       entities: ['dist/**/*.entity.js'],
       migrations: ['dist/database/migrations/*.js'],
@@ -60,9 +68,9 @@ export class AppConfigService {
     return {
       tokenLife: this.configService.get<string>('JWT_EXPIRES_IN', '1d'),
       refreshTokenLife: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
-      secret: this.configService.get<string>('JWT_SECRET', 'defaultSecret'),
-      refreshSecret: this.configService.get<string>('JWT_REFRESH_SECRET', 'defaultRefreshSecret'),
-      saltOrRounds: this.configService.get<number>('JWT_SALT_OR_ROUNDS', 10),
+      secret: this.requireGet<string>('JWT_SECRET'),
+      refreshSecret: this.requireGet<string>('JWT_REFRESH_SECRET'),
+      saltOrRounds: this.requireGet<number>('JWT_SALT_OR_ROUNDS'),
     };
   }
 

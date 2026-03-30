@@ -46,14 +46,42 @@ describe('AppConfigService', () => {
 
   describe('database', () => {
     it('should return database config with correct types', () => {
-      configService.get.mockReturnValueOnce('mysql');
-      configService.get.mockReturnValueOnce('db-host');
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, unknown> = {
+          DATABASE_TYPE: 'mysql',
+          DATABASE_HOST: 'db-host',
+          DATABASE_USER: 'db-user',
+          DATABASE_PASSWORD: 'db-pass',
+        };
+        return values[key];
+      });
 
       const config = service.database;
 
       expect(config.type).toBe('mysql');
       expect(config.host).toBe('db-host');
+      expect(config.username).toBe('db-user');
+      expect(config.password).toBe('db-pass');
       expect(config.entities).toContain('dist/**/*.entity.js');
+    });
+
+    it('should throw when DATABASE_USER is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'DATABASE_USER') return undefined;
+        return 'value';
+      });
+
+      expect(() => service.database).toThrow('Missing required environment variable: DATABASE_USER');
+    });
+
+    it('should throw when DATABASE_PASSWORD is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'DATABASE_PASSWORD') return undefined;
+        if (key === 'DATABASE_USER') return 'user';
+        return 'value';
+      });
+
+      expect(() => service.database).toThrow('Missing required environment variable: DATABASE_PASSWORD');
     });
   });
 
@@ -78,16 +106,55 @@ describe('AppConfigService', () => {
   });
 
   describe('jwt', () => {
-    it('should return jwt config', () => {
-      configService.get.mockImplementation((key: string, defaultValue: any) => {
-        if (key === 'JWT_SECRET') return 'super-secret';
-        return defaultValue;
+    it('should return jwt config with required secrets', () => {
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
+        const values: Record<string, unknown> = {
+          JWT_SECRET: 'super-secret-key-with-at-least-32-chars!!',
+          JWT_REFRESH_SECRET: 'super-refresh-secret-key-32-chars!!',
+          JWT_SALT_OR_ROUNDS: 12,
+        };
+        return values[key] ?? defaultValue;
       });
 
       const config = service.jwt;
 
-      expect(config.secret).toBe('super-secret');
+      expect(config.secret).toBe('super-secret-key-with-at-least-32-chars!!');
+      expect(config.refreshSecret).toBe('super-refresh-secret-key-32-chars!!');
+      expect(config.saltOrRounds).toBe(12);
       expect(config.tokenLife).toBe('1d');
+    });
+
+    it('should throw when JWT_SECRET is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'JWT_SECRET') return undefined;
+        if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret-key-32-chars-long!!';
+        if (key === 'JWT_SALT_OR_ROUNDS') return 12;
+        return undefined;
+      });
+
+      expect(() => service.jwt).toThrow('Missing required environment variable: JWT_SECRET');
+    });
+
+    it('should throw when JWT_REFRESH_SECRET is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'JWT_SECRET') return 'secret-key-with-at-least-32-chars!!';
+        if (key === 'JWT_REFRESH_SECRET') return undefined;
+        if (key === 'JWT_SALT_OR_ROUNDS') return 12;
+        return undefined;
+      });
+
+      expect(() => service.jwt).toThrow('Missing required environment variable: JWT_REFRESH_SECRET');
+    });
+
+    it('should throw when JWT_SALT_OR_ROUNDS is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'JWT_SECRET') return 'secret-key-with-at-least-32-chars!!';
+        if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret-key-32-chars-long!!';
+        if (key === 'JWT_SALT_OR_ROUNDS') return undefined;
+        return undefined;
+      });
+
+      expect(() => service.jwt).toThrow('Missing required environment variable: JWT_SALT_OR_ROUNDS');
     });
   });
 
