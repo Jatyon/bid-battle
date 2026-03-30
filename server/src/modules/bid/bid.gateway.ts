@@ -12,7 +12,6 @@ import { I18nService } from 'nestjs-i18n';
 
 @WebSocketGateway({
   namespace: '/bid',
-  cors: { credentials: true },
 })
 @UsePipes(new ValidationPipe({ transform: true }))
 export class BidGateway extends BaseGateway {

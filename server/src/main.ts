@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@app/app.module';
 import { LoggingInterceptor, TimeoutInterceptor, TransformInterceptor } from '@core/interceptors';
 import { HttpExceptionFilter } from '@core/filters/http-exception.filter';
+import { SocketIoAdapter } from '@core/adapters/socket-io.adapter';
 import { setupSecurity, setupSwagger, winstonConfig } from '@config/config';
 import { AppConfigService } from '@config/config.service';
 import { Request, Response, NextFunction } from 'express';
@@ -23,6 +24,8 @@ async function bootstrap() {
   const configService = app.get(AppConfigService);
 
   setupSecurity(app);
+
+  app.useWebSocketAdapter(new SocketIoAdapter(app));
 
   app.set('trust proxy', 1);
   app.use(helmet());
