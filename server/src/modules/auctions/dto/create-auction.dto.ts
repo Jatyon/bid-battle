@@ -1,9 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsNotEmpty, Min, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize } from 'class-validator';
+import { IsString, IsDateString, IsNotEmpty, Min, Max, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize } from 'class-validator';
 import { registerDecorator, ValidationOptions } from 'class-validator';
 import { addHours, isAfter, isBefore } from 'date-fns';
-
-export const AUCTION_MAX_DURATION_HOURS = 720;
+import { AUCTION_MAX_DURATION_HOURS, AUCTION_PRICE_MAX } from '../auction.constants';
 
 export class CreateAuctionDto {
   @ApiProperty({
@@ -25,12 +24,13 @@ export class CreateAuctionDto {
   description: string;
 
   @ApiProperty({
-    description: 'Starting price (must be greater than 0)',
-    example: 1005,
+    description: 'Starting price expressed as a whole integer in the smallest currency unit ' + '(e.g. grosz: 100 = 1.00 PLN). Must be between 1 and 999 999 999.',
+    example: 1000,
   })
   @IsNotEmpty({ message: 'error.validation.auction.starting_price_required' })
   @IsInt({ message: 'error.validation.auction.starting_price_must_be_integer' })
   @Min(1, { message: 'error.validation.auction.starting_price_must_be_positive' })
+  @Max(AUCTION_PRICE_MAX, { message: 'error.validation.auction.starting_price_too_high' })
   startingPrice: number;
 
   @ApiProperty({

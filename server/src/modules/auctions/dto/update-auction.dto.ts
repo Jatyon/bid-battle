@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AUCTION_MAX_DURATION_HOURS, IsFutureDateString, IsWithinMaxDurationFromNow } from './create-auction.dto';
+import { IsFutureDateString, IsWithinMaxDurationFromNow } from './create-auction.dto';
+import { AUCTION_MAX_DURATION_HOURS } from '../auction.constants';
 import { IsString, IsDateString, IsOptional, MaxLength } from 'class-validator';
 
 export class UpdateAuctionDto {

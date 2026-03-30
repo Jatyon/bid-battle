@@ -6,6 +6,7 @@
   "error": {
     "update_forbidden_end_time_past": "Nie można ustawić czasu zakończenia w przeszłości.",
     "update_forbidden_end_time": "Nowy czas zakończenia musi być późniejszy niż obecny.",
-    "update_forbidden_end_time_has_bids": "Nie można zmienić czasu zakończenia, ponieważ licytacja już się rozpoczęła."
+    "update_forbidden_end_time_has_bids": "Nie można zmienić czasu zakończenia, ponieważ licytacja już się rozpoczęła.",
+    "starting_price_too_high": "Cena startowa przekracza maksymalną dozwoloną wartość (999 999 999)."
   }
 }
