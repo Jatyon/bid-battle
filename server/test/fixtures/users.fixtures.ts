@@ -1,3 +1,4 @@
+import { Language } from '@core/enums/language.enum';
 import { User, UserPreferences, UserToken, UserTokenEnum } from '@modules/users';
 
 export const createUserFixture = (overrides?: Partial<User>): User => {
@@ -43,7 +44,7 @@ export const createUserTokenFixture = (overrides?: Partial<UserToken>): UserToke
 export const createUserPreferencesFixture = (overrides?: Partial<UserPreferences>): UserPreferences => {
   const userPreferences = new UserPreferences();
 
-  Object.assign(userPreferences, { userId: 1, lang: 'en', notifyOnOutbid: true, notifyOnAuctionEnd: true, ...overrides });
+  Object.assign(userPreferences, { userId: 1, lang: Language.EN, notifyOnOutbid: true, notifyOnAuctionEnd: true, ...overrides });
 
   return userPreferences;
 };

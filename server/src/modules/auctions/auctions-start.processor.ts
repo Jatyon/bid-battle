@@ -148,6 +148,8 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
 
     await this.auctionScheduler.scheduleAuctionEnd(auctionId, new Date(auction.endTime));
 
+    await this.redisService.invalidateCache('auctions:active:*');
+
     this.logger.log(`Auction ${auctionId} started — ends in ${durationSeconds}s`);
   }
 }

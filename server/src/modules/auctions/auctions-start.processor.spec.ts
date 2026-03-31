@@ -247,7 +247,7 @@ describe('AuctionStartProcessor', () => {
       expect(redisService.initializeAuction).not.toHaveBeenCalled();
     });
 
-    it('should start auction successfully: update DB, initialize Redis, and schedule end job', async () => {
+    it('should start auction successfully: update DB, initialize Redis, schedule end job and invalidate list cache', async () => {
       const futureEndTime = new Date(Date.now() + 3600000);
       const pendingAuction = createAuctionFixture({
         id: 1,
@@ -273,6 +273,7 @@ describe('AuctionStartProcessor', () => {
       expect(dataSource.transaction).toHaveBeenCalled();
       expect(redisService.initializeAuction).toHaveBeenCalledWith(1, 100, expect.any(Number) as unknown as number, 5);
       expect(auctionScheduler.scheduleAuctionEnd).toHaveBeenCalledWith(1, futureEndTime);
+      expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
       expect(Logger.prototype.log).toHaveBeenCalledWith(expect.stringContaining('Auction 1 started'));
     });
 
@@ -298,6 +299,7 @@ describe('AuctionStartProcessor', () => {
 
       expect(redisService.initializeAuction).not.toHaveBeenCalled();
       expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
+      expect(redisService.invalidateCache).not.toHaveBeenCalled();
     });
 
     it('should not initialize Redis or schedule end job when the locked auction is not found', async () => {
@@ -318,6 +320,7 @@ describe('AuctionStartProcessor', () => {
 
       expect(redisService.initializeAuction).not.toHaveBeenCalled();
       expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
+      expect(redisService.invalidateCache).not.toHaveBeenCalled();
     });
 
     it('should correctly calculate durationSeconds based on endTime and current time', async () => {

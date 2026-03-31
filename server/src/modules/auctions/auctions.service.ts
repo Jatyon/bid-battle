@@ -89,8 +89,13 @@ export class AuctionsService {
   }
 
   /**
-   * Get active auctions with pagination
-   * Implements caching strategy: first page is cached in Redis for 30 seconds
+   * Get active auctions with pagination.
+   * Implements a cache-aside strategy: results are stored in Redis for 30 seconds.
+   * The cache is invalidated proactively whenever the auction list can change:
+   * - auction transitions to ACTIVE (AuctionStartProcessor)
+   * - auction transitions to ENDED (AuctionEndProcessor)
+   * - auction is canceled (cancelAuction)
+   * - auction details or images are updated (updateAuction, updateAuctionImages)
    * @param paginator - Pagination data
    * @returns Paginated list of auctions
    */

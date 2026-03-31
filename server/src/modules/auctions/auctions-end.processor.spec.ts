@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
+import { Language } from '@core/enums/language.enum';
 import { createAuctionFixture } from '@test/fixtures/auctions.fixtures';
 import { createUserFixture, createUserPreferencesFixture } from '@test/fixtures/users.fixtures';
 import { BidGateway } from '@modules/bid/bid.gateway';
@@ -101,7 +102,7 @@ describe('AuctionEndProcessor', () => {
   });
 
   describe('happy path — auction ends successfully', () => {
-    it('should update DB, clean up Redis, and notify clients with winner and final price', async () => {
+    it('should update DB, clean up Redis, invalidate list cache and notify clients with winner and final price', async () => {
       const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE });
 
       redisService.getLivePrice.mockResolvedValue(500);
@@ -115,6 +116,7 @@ describe('AuctionEndProcessor', () => {
       expect(dataSource.transaction).toHaveBeenCalled();
 
       expect(redisService.cleanupAuction).toHaveBeenCalledWith(1);
+      expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
 
       expect(bidGateway.notifyAuctionEnd).toHaveBeenCalledWith(1, 42, 500);
 
@@ -211,12 +213,12 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(owner);
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'en' }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
       await flushPromises();
 
-      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledWith(owner.email, 'en', owner.concatName, auction.title, 500, 1, undefined);
+      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledWith(owner.email, Language.EN, owner.concatName, auction.title, 500, 1, undefined);
     });
 
     it('should send owner email with winner name when auction has a winner', async () => {
@@ -229,12 +231,12 @@ describe('AuctionEndProcessor', () => {
       mockTransactionWith(auction);
 
       usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'en' }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
       await flushPromises();
 
-      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledWith(owner.email, 'en', owner.concatName, auction.title, 750, 1, winner.concatName);
+      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledWith(owner.email, Language.EN, owner.concatName, auction.title, 750, 1, winner.concatName);
     });
 
     it('should send winner email when winner has notifyOnAuctionEnd enabled', async () => {
@@ -247,12 +249,12 @@ describe('AuctionEndProcessor', () => {
       mockTransactionWith(auction);
 
       usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'pl' }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.PL }));
 
       await processor.process(createJob(1));
       await flushPromises();
 
-      expect(mailService.sendAuctionWinnerEmail).toHaveBeenCalledWith(winner.email, 'pl', winner.concatName, auction.title, 600, 1);
+      expect(mailService.sendAuctionWinnerEmail).toHaveBeenCalledWith(winner.email, Language.PL, winner.concatName, auction.title, 600, 1);
     });
 
     it('should not send winner email when winnerId is null', async () => {
@@ -263,7 +265,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(owner);
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: 'en' }));
+      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
       await flushPromises();
@@ -353,7 +355,7 @@ describe('AuctionEndProcessor', () => {
   });
 
   describe('idempotency — auction already ENDED in database', () => {
-    it('should skip DB update but still clean up Redis when auction is already ENDED', async () => {
+    it('should skip DB update but still clean up Redis and invalidate list cache when auction is already ENDED', async () => {
       const endedAuction = createAuctionFixture({ id: 1, status: AuctionStatus.ENDED });
 
       redisService.getLivePrice.mockResolvedValue(300);
@@ -363,6 +365,7 @@ describe('AuctionEndProcessor', () => {
       await processor.process(createJob(1));
 
       expect(redisService.cleanupAuction).toHaveBeenCalledWith(1);
+      expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
 
       expect(bidGateway.notifyAuctionEnd).not.toHaveBeenCalled();
 
@@ -378,6 +381,7 @@ describe('AuctionEndProcessor', () => {
       await processor.process(createJob(99));
 
       expect(redisService.cleanupAuction).toHaveBeenCalledWith(99);
+      expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
       expect(bidGateway.notifyAuctionEnd).not.toHaveBeenCalled();
       expect(Logger.prototype.warn).toHaveBeenCalledWith('Auction 99 not found in DB during end processing');
     });
@@ -407,6 +411,7 @@ describe('AuctionEndProcessor', () => {
 
       await expect(processor.process(createJob(1))).rejects.toThrow('Redis unavailable');
 
+      expect(redisService.invalidateCache).not.toHaveBeenCalled();
       expect(bidGateway.notifyAuctionEnd).not.toHaveBeenCalled();
     });
   });

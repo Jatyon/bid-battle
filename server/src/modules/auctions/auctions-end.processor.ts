@@ -85,6 +85,7 @@ export class AuctionEndProcessor extends WorkerHost {
     });
 
     await this.redisService.cleanupAuction(auctionId);
+    await this.redisService.invalidateCache('auctions:active:*');
 
     if (!dbUpdated) {
       this.logger.log(`Auction ${auctionId} Redis cleanup done (DB was already ENDED)`);
