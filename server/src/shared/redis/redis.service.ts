@@ -217,6 +217,37 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Batch-checks whether multiple auctions are currently active in Redis.
+   * Uses a pipeline to send all EXISTS commands in a single round-trip.
+   *
+   * @param auctionIds - Array of auction IDs to check.
+   * @returns A Set of IDs that are currently active in Redis.
+   */
+  async areAuctionsActive(auctionIds: number[]): Promise<Set<number>> {
+    if (auctionIds.length === 0) return new Set();
+
+    try {
+      const pipeline = this.redis.pipeline();
+
+      for (const id of auctionIds) {
+        pipeline.exists(RedisKey.auctionActive(id));
+      }
+
+      const results = await pipeline.exec();
+
+      return new Set(
+        auctionIds.filter((id, index) => {
+          const result = results?.[index];
+          return result?.[0] === null && result?.[1] === 1;
+        }),
+      );
+    } catch (error: unknown) {
+      this.handleError('Batch check auction active error', error);
+      return new Set();
+    }
+  }
+
+  /**
    * Initializes a new auction in Redis with its starting parameters.
    * Sets the initial price, the active status flag, and the owner ID.
    *

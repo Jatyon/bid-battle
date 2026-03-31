@@ -202,6 +202,82 @@ describe('AuctionStartProcessor', () => {
         null,
       );
     });
+
+    it('should query find with skip, take and order to support pagination', async () => {
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, endTime: new Date(Date.now() + 60000) });
+      auctionRepository.find.mockResolvedValue([auction]);
+      redisService.isAuctionActive.mockResolvedValue(true);
+
+      await processor.onApplicationBootstrap();
+
+      expect(auctionRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { status: AuctionStatus.ACTIVE },
+          order: { id: 'ASC' },
+          skip: 0,
+          take: 100,
+        }),
+      );
+    });
+
+    it('should fetch next batch with skip=100 when first batch is exactly full', async () => {
+      const futureEndTime = new Date(Date.now() + 60000);
+      const firstBatch = Array.from({ length: 100 }, (_, i) => createAuctionFixture({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
+
+      auctionRepository.find.mockResolvedValueOnce(firstBatch).mockResolvedValueOnce([]);
+
+      redisService.isAuctionActive.mockResolvedValue(true);
+
+      await processor.onApplicationBootstrap();
+
+      expect(auctionRepository.find).toHaveBeenCalledTimes(2);
+      expect(auctionRepository.find).toHaveBeenNthCalledWith(1, expect.objectContaining({ skip: 0, take: 100 }));
+      expect(auctionRepository.find).toHaveBeenNthCalledWith(2, expect.objectContaining({ skip: 100, take: 100 }));
+    });
+
+    it('should process all auctions across multiple batches and report correct totals', async () => {
+      const futureEndTime = new Date(Date.now() + 60000);
+
+      const firstBatch = Array.from({ length: 100 }, (_, i) => createAuctionFixture({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
+
+      const missingAuction = createAuctionFixture({ id: 101, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+      const presentAuction = createAuctionFixture({ id: 102, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+
+      auctionRepository.find.mockResolvedValueOnce(firstBatch).mockResolvedValueOnce([missingAuction, presentAuction]);
+
+      redisService.isAuctionActive.mockImplementation((id: number) => Promise.resolve(id !== 101));
+      bidRepository.findOne.mockResolvedValue(null);
+
+      await processor.onApplicationBootstrap();
+
+      expect(auctionRepository.find).toHaveBeenCalledTimes(2);
+      expect(redisService.restoreAuction).toHaveBeenCalledTimes(1);
+      expect(redisService.restoreAuction).toHaveBeenCalledWith(
+        missingAuction.id,
+        expect.any(Number) as unknown as number,
+        expect.any(Number) as unknown as number,
+        missingAuction.ownerId,
+        null,
+      );
+      expect(Logger.prototype.log).toHaveBeenCalledWith('Reconciliation complete — checked: 102, re-initialized: 1');
+    });
+
+    it('should stop fetching after a partial batch (less than batchSize)', async () => {
+      const futureEndTime = new Date(Date.now() + 60000);
+      const firstBatch = Array.from({ length: 100 }, (_, i) => createAuctionFixture({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
+      const secondBatch = [
+        createAuctionFixture({ id: 101, status: AuctionStatus.ACTIVE, endTime: futureEndTime }),
+        createAuctionFixture({ id: 102, status: AuctionStatus.ACTIVE, endTime: futureEndTime }),
+      ];
+
+      auctionRepository.find.mockResolvedValueOnce(firstBatch).mockResolvedValueOnce(secondBatch);
+
+      redisService.isAuctionActive.mockResolvedValue(true);
+
+      await processor.onApplicationBootstrap();
+
+      expect(auctionRepository.find).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('process', () => {

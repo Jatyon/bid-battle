@@ -1,9 +1,9 @@
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Bid } from '@modules/bid';
+import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { RedisService } from '@shared/redis';
-import { AUCTION_START_QUEUE } from './auction.constants';
+import { AUCTION_START_QUEUE, RECONCILIATION_BATCH_SIZE } from './auction.constants';
 import { AuctionScheduler } from './auction.scheduler';
 import { IAuctionJob } from './interfaces';
 import { AuctionStatus } from './enums';
@@ -24,8 +24,7 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
   constructor(
     @InjectRepository(Auction)
     private readonly auctionRepository: Repository<Auction>,
-    @InjectRepository(Bid)
-    private readonly bidRepository: Repository<Bid>,
+    private readonly bidRepository: BidRepository,
     private readonly redisService: RedisService,
     private readonly auctionScheduler: AuctionScheduler,
     private readonly dataSource: DataSource,
@@ -41,51 +40,76 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
    * but before initializing Redis keys or scheduling the end job.
    * This method scans for orphaned active auctions on bootstrap and restores
    * them into Redis using their current database state and bidding history.
+   *
+   * Auctions are fetched in batches of {@link RECONCILIATION_BATCH_SIZE} rows to
+   * avoid loading the entire ACTIVE set into memory at once — important when
+   * hundreds (or thousands) of auctions could be active simultaneously.
    */
   async onApplicationBootstrap(): Promise<void> {
     try {
-      const now = new Date();
-      const activeAuctions = await this.auctionRepository.find({
-        where: { status: AuctionStatus.ACTIVE },
-      });
+      const batchSize = RECONCILIATION_BATCH_SIZE;
+      let skip = 0;
+      let totalChecked = 0;
+      let totalReconciled = 0;
 
-      let reconciled = 0;
+      let activeAuctions: Auction[] = [];
 
-      for (const auction of activeAuctions) {
-        const isActiveInRedis = await this.redisService.isAuctionActive(auction.id);
+      do {
+        const now = new Date();
 
-        if (!isActiveInRedis) {
-          const durationSeconds = Math.floor((new Date(auction.endTime).getTime() - now.getTime()) / 1000);
+        const activeAuctions = await this.auctionRepository.find({
+          where: { status: AuctionStatus.ACTIVE },
+          order: { id: 'ASC' },
+          skip,
+          take: batchSize,
+        });
 
-          if (durationSeconds <= 0) {
-            await this.auctionRepository.update(auction.id, {
-              status: AuctionStatus.ENDED,
-              endedAt: now,
-            });
-            this.logger.warn(`Reconciliation: auction ${auction.id} past endTime — marked ENDED`);
-          } else {
-            const priceToRestore = auction.currentPrice ?? auction.startingPrice;
+        if (activeAuctions.length === 0) break;
 
-            const highestBid = await this.bidRepository.findOne({
-              where: { auctionId: auction.id },
-              order: { amount: 'DESC' },
-            });
+        const auctionIds = activeAuctions.map((a) => a.id);
+        const activeInRedis = await this.redisService.areAuctionsActive(auctionIds);
+        const orphanedAuctions = activeAuctions.filter((a) => !activeInRedis.has(a.id));
 
-            const highestBidderIdToRestore = highestBid?.userId ?? null;
+        if (orphanedAuctions.length > 0) {
+          const orphanedIds = orphanedAuctions.map((a) => a.id);
 
-            await this.redisService.restoreAuction(auction.id, priceToRestore, durationSeconds, auction.ownerId, highestBidderIdToRestore);
+          const highestBids = await this.bidRepository.findByOrphanedIds(orphanedIds);
 
-            await this.auctionScheduler.scheduleAuctionEnd(auction.id, new Date(auction.endTime));
+          const highestBidMap = new Map(highestBids.map((b) => [b.auctionId, b.userId]));
 
-            this.logger.warn(
-              `Reconciliation: auction ${auction.id} re-initialized in Redis — price=${priceToRestore}, bidder=${highestBidderIdToRestore ?? 'none'}, ends in ${durationSeconds}s`,
-            );
-            reconciled++;
+          for (const auction of orphanedAuctions) {
+            try {
+              const durationSeconds = Math.floor((new Date(auction.endTime).getTime() - now.getTime()) / 1000);
+
+              if (durationSeconds <= 0) {
+                await this.auctionRepository.update(auction.id, {
+                  status: AuctionStatus.ENDED,
+                  endedAt: now,
+                });
+                this.logger.warn(`Reconciliation: auction ${auction.id} past endTime — marked ENDED`);
+              } else {
+                const priceToRestore = auction.currentPrice ?? auction.startingPrice;
+                const highestBidderIdToRestore = highestBidMap.get(auction.id) ?? null;
+
+                await this.redisService.restoreAuction(auction.id, priceToRestore, durationSeconds, auction.ownerId, highestBidderIdToRestore);
+                await this.auctionScheduler.scheduleAuctionEnd(auction.id, new Date(auction.endTime));
+
+                this.logger.warn(
+                  `Reconciliation: auction ${auction.id} re-initialized in Redis — price=${priceToRestore}, bidder=${highestBidderIdToRestore ?? 'none'}, ends in ${durationSeconds}s`,
+                );
+                totalReconciled++;
+              }
+            } catch (error) {
+              this.logger.error(`Reconciliation: failed for auction ${auction.id}`, error instanceof Error ? error.stack : String(error));
+            }
           }
         }
-      }
 
-      if (reconciled > 0 || activeAuctions.length > 0) this.logger.log(`Reconciliation complete — checked: ${activeAuctions.length}, re-initialized: ${reconciled}`);
+        totalChecked += activeAuctions.length;
+        skip += batchSize;
+      } while (activeAuctions.length === batchSize);
+
+      if (totalReconciled > 0 || totalChecked > 0) this.logger.log(`Reconciliation complete — checked: ${totalChecked}, re-initialized: ${totalReconciled}`);
     } catch (error) {
       this.logger.error('Reconciliation failed on bootstrap', error instanceof Error ? error.stack : String(error));
     }

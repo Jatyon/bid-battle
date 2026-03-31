@@ -3,6 +3,8 @@ export const AUCTION_START_QUEUE = 'auction-start';
 
 export const AUCTION_MAX_DURATION_HOURS = 720;
 
+export const RECONCILIATION_BATCH_SIZE = 100;
+
 /**
  * Prices in this system are stored as **whole integers** representing the smallest
  * currency unit (e.g. Polish grosz: 1 PLN = 100).

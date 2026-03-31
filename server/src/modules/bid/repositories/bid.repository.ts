@@ -27,4 +27,13 @@ export class BidRepository extends Repository<Bid> {
       take,
     });
   }
+
+  findByOrphanedIds(orphanedIds: number[]): Promise<Bid[]> {
+    return this.createQueryBuilder('bid')
+      .distinctOn(['bid.auctionId'])
+      .where('bid.auctionId IN (:...ids)', { ids: orphanedIds })
+      .orderBy('bid.auctionId', 'ASC')
+      .addOrderBy('bid.amount', 'DESC')
+      .getMany();
+  }
 }
