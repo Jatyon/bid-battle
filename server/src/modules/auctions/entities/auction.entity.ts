@@ -32,11 +32,11 @@ export class Auction {
   @Column({ name: 'main_image_url', type: 'varchar', length: 500 })
   mainImageUrl: string;
 
-  @ApiProperty({ description: 'Starting price', example: 1005 })
+  @ApiProperty({ description: 'Starting price expressed as a whole integer in the smallest currency unit (e.g. grosz: 1005 = 10.05 PLN).', example: 1005 })
   @Column({ name: 'starting_price', type: 'bigint', unsigned: true, transformer: BigIntTransformer })
   startingPrice: number;
 
-  @ApiProperty({ description: 'Current highest bid price', example: 1505 })
+  @ApiProperty({ description: 'Current highest bid price expressed as a whole integer in the smallest currency unit (e.g. grosz: 1505 = 15.05 PLN).', example: 1505 })
   @Column({ name: 'current_price', type: 'bigint', unsigned: true, transformer: BigIntTransformer })
   currentPrice: number;
 

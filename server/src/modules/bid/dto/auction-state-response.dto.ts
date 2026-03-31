@@ -4,7 +4,8 @@ import { IAuctionState } from '../interfaces';
 
 export class AuctionStateDto extends AuctionEventDto implements IAuctionState {
   @ApiProperty({
-    description: 'The current highest bid amount or starting price if no bids exist',
+    description:
+      'The current highest bid amount (or starting price if no bids placed yet) expressed as a whole integer in the smallest currency unit (e.g. grosz: 1250 = 12.50 PLN).',
     example: 1250,
   })
   currentPrice: number;

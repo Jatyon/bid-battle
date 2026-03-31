@@ -16,7 +16,7 @@ export class Bid {
   @PrimaryGeneratedColumn('increment', { type: 'int' })
   id: number;
 
-  @ApiProperty({ description: 'Bid amount', example: 150.5 })
+  @ApiProperty({ description: 'Bid amount expressed as a whole integer in the smallest currency unit (e.g. grosz: 1505 = 15.05 PLN).', example: 1505 })
   @Column({ name: 'amount', type: 'bigint', unsigned: true, transformer: BigIntTransformer })
   amount: number;
 

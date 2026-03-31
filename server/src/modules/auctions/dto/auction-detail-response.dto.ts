@@ -29,13 +29,13 @@ export class AuctionDetailResponse {
   mainImageUrl: string;
 
   @ApiProperty({
-    description: 'Starting price',
+    description: 'Starting price expressed as a whole integer in the smallest currency unit (e.g. grosz: 1005 = 10.05 PLN).',
     example: 1005,
   })
   startingPrice: number;
 
   @ApiProperty({
-    description: 'Current highest bid price',
+    description: 'Current highest bid price expressed as a whole integer in the smallest currency unit (e.g. grosz: 1505 = 15.05 PLN).',
     example: 1505,
   })
   currentPrice: number;

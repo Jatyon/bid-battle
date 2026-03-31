@@ -6,7 +6,7 @@ export class BidResponse {
   @ApiProperty({ description: 'Bid ID', example: 1 })
   id: number;
 
-  @ApiProperty({ description: 'Bid amount', example: 1505 })
+  @ApiProperty({ description: 'Bid amount expressed as a whole integer in the smallest currency unit (e.g. grosz: 1505 = 15.05 PLN).', example: 1505 })
   amount: number;
 
   @ApiProperty({ description: 'Auction ID', example: 1 })
