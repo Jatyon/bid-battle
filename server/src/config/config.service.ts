@@ -26,7 +26,7 @@ export class AppConfigService {
       timeoutMs: this.configService.get<number>('TIMEOUT_MS', 5000),
       throttleTtlMs: this.configService.get<number>('THROTTLE_TTL_MS', 60000),
       throttleLimit: this.configService.get<number>('THROTTLE_LIMIT', 10),
-      corsOrigin: this.configService.get<string>('CORS_ORIGIN', '*'),
+      corsOrigin: this.requireGet<string>('CORS_ORIGIN'),
       emailVerificationExpiresInMin: this.configService.get<number>('EMAIL_VERIFICATION_EXPIRES_IN', 15),
       resetPasswordExpiresInMin: this.configService.get<number>('RESET_PASSWORD_EXPIRES_IN', 15),
     };
