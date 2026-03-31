@@ -52,7 +52,7 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
       let totalChecked = 0;
       let totalReconciled = 0;
 
-      let activeAuctions: Auction[] = [];
+      const activeAuctions: Auction[] = [];
 
       do {
         const now = new Date();
