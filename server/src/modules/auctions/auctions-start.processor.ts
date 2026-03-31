@@ -51,8 +51,7 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
       let skip = 0;
       let totalChecked = 0;
       let totalReconciled = 0;
-
-      const activeAuctions: Auction[] = [];
+      let fetchedBatchLength = 0;
 
       do {
         const now = new Date();
@@ -64,9 +63,12 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
           take: batchSize,
         });
 
-        if (activeAuctions.length === 0) break;
+        fetchedBatchLength = activeAuctions.length;
+
+        if (fetchedBatchLength === 0) break;
 
         const auctionIds = activeAuctions.map((a) => a.id);
+
         const activeInRedis = await this.redisService.areAuctionsActive(auctionIds);
         const orphanedAuctions = activeAuctions.filter((a) => !activeInRedis.has(a.id));
 
@@ -74,7 +76,6 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
           const orphanedIds = orphanedAuctions.map((a) => a.id);
 
           const highestBids = await this.bidRepository.findByOrphanedIds(orphanedIds);
-
           const highestBidMap = new Map(highestBids.map((b) => [b.auctionId, b.userId]));
 
           for (const auction of orphanedAuctions) {
@@ -105,9 +106,9 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
           }
         }
 
-        totalChecked += activeAuctions.length;
+        totalChecked += fetchedBatchLength;
         skip += batchSize;
-      } while (activeAuctions.length === batchSize);
+      } while (fetchedBatchLength === batchSize);
 
       if (totalReconciled > 0 || totalChecked > 0) this.logger.log(`Reconciliation complete — checked: ${totalChecked}, re-initialized: ${totalReconciled}`);
     } catch (error) {

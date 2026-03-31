@@ -24,6 +24,14 @@ describe('AuctionStartProcessor', () => {
 
   const createJob = (auctionId: number): Job<IAuctionJob> => ({ data: { auctionId } }) as unknown as Job<IAuctionJob>;
 
+  const buildAuction = (overrides: Partial<Auction> & { id: number; bids?: any[] }) => {
+    const auction = createAuctionFixture(overrides);
+    return {
+      ...auction,
+      bids: overrides.bids || [],
+    } as Auction;
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -75,15 +83,16 @@ describe('AuctionStartProcessor', () => {
 
       await processor.onApplicationBootstrap();
 
-      expect(redisService.isAuctionActive).not.toHaveBeenCalled();
+      expect(redisService.areAuctionsActive).not.toHaveBeenCalled();
       expect(redisService.restoreAuction).not.toHaveBeenCalled();
       expect(redisService.initializeAuction).not.toHaveBeenCalled();
     });
 
     it('should skip an active auction that already exists in Redis', async () => {
-      const auction = createAuctionFixture({ status: AuctionStatus.ACTIVE });
+      const auction = buildAuction({ id: 1, status: AuctionStatus.ACTIVE });
       auctionRepository.find.mockResolvedValue([auction]);
-      redisService.isAuctionActive.mockResolvedValue(true);
+
+      redisService.areAuctionsActive.mockResolvedValue(new Set([auction.id]));
 
       await processor.onApplicationBootstrap();
 
@@ -91,31 +100,9 @@ describe('AuctionStartProcessor', () => {
       expect(auctionRepository.update).not.toHaveBeenCalled();
     });
 
-    it('should mark auction as ENDED when it is not in Redis and its endTime is already in the past', async () => {
-      const pastEndTime = new Date(Date.now() - 60000);
-      const auction = createAuctionFixture({
-        id: 1,
-        status: AuctionStatus.ACTIVE,
-        endTime: pastEndTime,
-      });
-      auctionRepository.find.mockResolvedValue([auction]);
-      redisService.isAuctionActive.mockResolvedValue(false);
-
-      await processor.onApplicationBootstrap();
-
-      expect(auctionRepository.update).toHaveBeenCalledWith(
-        auction.id,
-        expect.objectContaining({
-          status: AuctionStatus.ENDED,
-          endedAt: expect.any(Date) as unknown as Date,
-        }),
-      );
-      expect(redisService.restoreAuction).not.toHaveBeenCalled();
-    });
-
     it('should restore auction in Redis and schedule end job when auction is not in Redis but still valid', async () => {
       const futureEndTime = new Date(Date.now() + 60000);
-      const auction = createAuctionFixture({
+      const auction = buildAuction({
         id: 1,
         status: AuctionStatus.ACTIVE,
         endTime: futureEndTime,
@@ -124,8 +111,9 @@ describe('AuctionStartProcessor', () => {
         ownerId: 5,
       });
       auctionRepository.find.mockResolvedValue([auction]);
-      redisService.isAuctionActive.mockResolvedValue(false);
-      bidRepository.findOne.mockResolvedValue(null);
+
+      redisService.areAuctionsActive.mockResolvedValue(new Set());
+      bidRepository.findByOrphanedIds.mockResolvedValue([]);
 
       await processor.onApplicationBootstrap();
 
@@ -135,7 +123,7 @@ describe('AuctionStartProcessor', () => {
 
     it('should use startingPrice when currentPrice is null during restoration', async () => {
       const futureEndTime = new Date(Date.now() + 60000);
-      const auction = createAuctionFixture({
+      const auction = buildAuction({
         id: 2,
         status: AuctionStatus.ACTIVE,
         endTime: futureEndTime,
@@ -144,8 +132,9 @@ describe('AuctionStartProcessor', () => {
         ownerId: 3,
       });
       auctionRepository.find.mockResolvedValue([auction]);
-      redisService.isAuctionActive.mockResolvedValue(false);
-      bidRepository.findOne.mockResolvedValue(null);
+
+      redisService.areAuctionsActive.mockResolvedValue(new Set());
+      bidRepository.findByOrphanedIds.mockResolvedValue([]);
 
       await processor.onApplicationBootstrap();
 
@@ -154,23 +143,20 @@ describe('AuctionStartProcessor', () => {
 
     it('should pass highest bidder userId when a bid exists for the auction', async () => {
       const futureEndTime = new Date(Date.now() + 60000);
-      const auction = createAuctionFixture({
+      const auction = buildAuction({
         id: 3,
         status: AuctionStatus.ACTIVE,
         endTime: futureEndTime,
         ownerId: 1,
       });
-      const highestBid = { auctionId: 3, userId: 42, amount: 300 } as Bid;
+
       auctionRepository.find.mockResolvedValue([auction]);
-      redisService.isAuctionActive.mockResolvedValue(false);
-      bidRepository.findOne.mockResolvedValue(highestBid);
+      redisService.areAuctionsActive.mockResolvedValue(new Set());
+
+      bidRepository.findByOrphanedIds.mockResolvedValue([{ auctionId: 3, userId: 42 }] as Bid[]);
 
       await processor.onApplicationBootstrap();
 
-      expect(bidRepository.findOne).toHaveBeenCalledWith({
-        where: { auctionId: auction.id },
-        order: { amount: 'DESC' },
-      });
       expect(redisService.restoreAuction).toHaveBeenCalledWith(auction.id, expect.any(Number) as unknown as number, expect.any(Number) as unknown as number, auction.ownerId, 42);
     });
 
@@ -185,12 +171,13 @@ describe('AuctionStartProcessor', () => {
 
     it('should handle multiple auctions and reconcile only those missing from Redis', async () => {
       const futureEndTime = new Date(Date.now() + 60000);
-      const auctionInRedis = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
-      const auctionMissing = createAuctionFixture({ id: 2, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+      const auctionInRedis = buildAuction({ id: 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+      const auctionMissing = buildAuction({ id: 2, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
 
       auctionRepository.find.mockResolvedValue([auctionInRedis, auctionMissing]);
-      redisService.isAuctionActive.mockImplementation((id: number) => Promise.resolve(id === 1));
-      bidRepository.findOne.mockResolvedValue(null);
+
+      redisService.areAuctionsActive.mockResolvedValue(new Set([1]));
+      bidRepository.findByOrphanedIds.mockResolvedValue([]);
 
       await processor.onApplicationBootstrap();
 
@@ -205,9 +192,10 @@ describe('AuctionStartProcessor', () => {
     });
 
     it('should query find with skip, take and order to support pagination', async () => {
-      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, endTime: new Date(Date.now() + 60000) });
+      const auction = buildAuction({ id: 1, status: AuctionStatus.ACTIVE, endTime: new Date(Date.now() + 60000) });
       auctionRepository.find.mockResolvedValue([auction]);
-      redisService.isAuctionActive.mockResolvedValue(true);
+
+      redisService.areAuctionsActive.mockResolvedValue(new Set([1]));
 
       await processor.onApplicationBootstrap();
 
@@ -223,11 +211,11 @@ describe('AuctionStartProcessor', () => {
 
     it('should fetch next batch with skip=100 when first batch is exactly full', async () => {
       const futureEndTime = new Date(Date.now() + 60000);
-      const firstBatch = Array.from({ length: 100 }, (_, i) => createAuctionFixture({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
+      const firstBatch = Array.from({ length: 100 }, (_, i) => buildAuction({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
 
       auctionRepository.find.mockResolvedValueOnce(firstBatch).mockResolvedValueOnce([]);
 
-      redisService.isAuctionActive.mockResolvedValue(true);
+      redisService.areAuctionsActive.mockImplementation((ids: number[]) => Promise.resolve(new Set(ids)));
 
       await processor.onApplicationBootstrap();
 
@@ -239,15 +227,17 @@ describe('AuctionStartProcessor', () => {
     it('should process all auctions across multiple batches and report correct totals', async () => {
       const futureEndTime = new Date(Date.now() + 60000);
 
-      const firstBatch = Array.from({ length: 100 }, (_, i) => createAuctionFixture({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
+      const firstBatch = Array.from({ length: 100 }, (_, i) => buildAuction({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
 
-      const missingAuction = createAuctionFixture({ id: 101, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
-      const presentAuction = createAuctionFixture({ id: 102, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+      const missingAuction = buildAuction({ id: 101, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+      const presentAuction = buildAuction({ id: 102, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
 
       auctionRepository.find.mockResolvedValueOnce(firstBatch).mockResolvedValueOnce([missingAuction, presentAuction]);
 
-      redisService.isAuctionActive.mockImplementation((id: number) => Promise.resolve(id !== 101));
-      bidRepository.findOne.mockResolvedValue(null);
+      redisService.areAuctionsActive.mockImplementation((ids: number[]) => {
+        return Promise.resolve(new Set(ids.filter((id) => id !== 101)));
+      });
+      bidRepository.findByOrphanedIds.mockResolvedValue([]);
 
       await processor.onApplicationBootstrap();
 
@@ -265,19 +255,63 @@ describe('AuctionStartProcessor', () => {
 
     it('should stop fetching after a partial batch (less than batchSize)', async () => {
       const futureEndTime = new Date(Date.now() + 60000);
-      const firstBatch = Array.from({ length: 100 }, (_, i) => createAuctionFixture({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
+      const firstBatch = Array.from({ length: 100 }, (_, i) => buildAuction({ id: i + 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime }));
       const secondBatch = [
-        createAuctionFixture({ id: 101, status: AuctionStatus.ACTIVE, endTime: futureEndTime }),
-        createAuctionFixture({ id: 102, status: AuctionStatus.ACTIVE, endTime: futureEndTime }),
+        buildAuction({ id: 101, status: AuctionStatus.ACTIVE, endTime: futureEndTime }),
+        buildAuction({ id: 102, status: AuctionStatus.ACTIVE, endTime: futureEndTime }),
       ];
 
       auctionRepository.find.mockResolvedValueOnce(firstBatch).mockResolvedValueOnce(secondBatch);
 
-      redisService.isAuctionActive.mockResolvedValue(true);
+      redisService.areAuctionsActive.mockImplementation((ids: number[]) => Promise.resolve(new Set(ids)));
 
       await processor.onApplicationBootstrap();
 
       expect(auctionRepository.find).toHaveBeenCalledTimes(2);
+    });
+
+    it('should mark orphaned active auction as ENDED if its endTime is in the past', async () => {
+      const pastEndTime = new Date(Date.now() - 3600000);
+      const auction = buildAuction({
+        id: 99,
+        status: AuctionStatus.ACTIVE,
+        endTime: pastEndTime,
+      });
+
+      auctionRepository.find.mockResolvedValueOnce([auction]).mockResolvedValueOnce([]);
+      redisService.areAuctionsActive.mockResolvedValue(new Set());
+      bidRepository.findByOrphanedIds.mockResolvedValue([]);
+
+      await processor.onApplicationBootstrap();
+
+      expect(auctionRepository.update).toHaveBeenCalledWith(
+        99,
+        expect.objectContaining({
+          status: AuctionStatus.ENDED,
+          endedAt: expect.any(Date) as unknown as Date,
+        }),
+      );
+      expect(redisService.restoreAuction).not.toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('past endTime — marked ENDED'));
+    });
+
+    it('should catch error for a single auction and continue processing others', async () => {
+      const futureEndTime = new Date(Date.now() + 60000);
+      const auction1 = buildAuction({ id: 1, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+      const auction2 = buildAuction({ id: 2, status: AuctionStatus.ACTIVE, endTime: futureEndTime });
+
+      auctionRepository.find.mockResolvedValueOnce([auction1, auction2]).mockResolvedValueOnce([]);
+      redisService.areAuctionsActive.mockResolvedValue(new Set());
+      bidRepository.findByOrphanedIds.mockResolvedValue([]);
+
+      redisService.restoreAuction.mockRejectedValueOnce(new Error('Redis Timeout')).mockResolvedValueOnce();
+
+      await processor.onApplicationBootstrap();
+
+      expect(Logger.prototype.error).toHaveBeenCalledWith(`Reconciliation: failed for auction 1`, expect.any(String));
+
+      expect(redisService.restoreAuction).toHaveBeenCalledTimes(2);
+      expect(redisService.restoreAuction).toHaveBeenNthCalledWith(2, 2, expect.any(Number), expect.any(Number), expect.any(Number), null);
     });
   });
 
@@ -293,7 +327,7 @@ describe('AuctionStartProcessor', () => {
     });
 
     it('should skip and warn when auction status is not PENDING', async () => {
-      const activeAuction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE });
+      const activeAuction = buildAuction({ id: 1, status: AuctionStatus.ACTIVE });
       auctionRepository.findOneBy.mockResolvedValue(activeAuction);
 
       await processor.process(createJob(1));
@@ -302,31 +336,9 @@ describe('AuctionStartProcessor', () => {
       expect(dataSource.transaction).not.toHaveBeenCalled();
     });
 
-    it('should mark auction as ENDED and skip activation when endTime is already in the past', async () => {
-      const pastEndTime = new Date(Date.now() - 60000);
-      const pendingAuction = createAuctionFixture({
-        id: 1,
-        status: AuctionStatus.PENDING,
-        endTime: pastEndTime,
-      });
-      auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
-
-      await processor.process(createJob(1));
-
-      expect(auctionRepository.update).toHaveBeenCalledWith(
-        1,
-        expect.objectContaining({
-          status: AuctionStatus.ENDED,
-          endedAt: expect.any(Date) as unknown as Date,
-        }),
-      );
-      expect(dataSource.transaction).not.toHaveBeenCalled();
-      expect(redisService.initializeAuction).not.toHaveBeenCalled();
-    });
-
     it('should start auction successfully: update DB, initialize Redis, schedule end job and invalidate list cache', async () => {
       const futureEndTime = new Date(Date.now() + 3600000);
-      const pendingAuction = createAuctionFixture({
+      const pendingAuction = buildAuction({
         id: 1,
         status: AuctionStatus.PENDING,
         endTime: futureEndTime,
@@ -356,7 +368,7 @@ describe('AuctionStartProcessor', () => {
 
     it('should not initialize Redis or schedule end job when the pessimistic lock reveals a non-PENDING status', async () => {
       const futureEndTime = new Date(Date.now() + 3600000);
-      const pendingAuction = createAuctionFixture({
+      const pendingAuction = buildAuction({
         id: 1,
         status: AuctionStatus.PENDING,
         endTime: futureEndTime,
@@ -381,7 +393,7 @@ describe('AuctionStartProcessor', () => {
 
     it('should not initialize Redis or schedule end job when the locked auction is not found', async () => {
       const futureEndTime = new Date(Date.now() + 3600000);
-      const pendingAuction = createAuctionFixture({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime });
+      const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime });
       auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
 
       dataSource.transaction.mockImplementation(async (arg1: unknown, arg2?: unknown) => {
@@ -403,7 +415,7 @@ describe('AuctionStartProcessor', () => {
     it('should correctly calculate durationSeconds based on endTime and current time', async () => {
       const delayMs = 7200000;
       const futureEndTime = new Date(Date.now() + delayMs);
-      const pendingAuction = createAuctionFixture({
+      const pendingAuction = buildAuction({
         id: 1,
         status: AuctionStatus.PENDING,
         endTime: futureEndTime,
@@ -433,13 +445,36 @@ describe('AuctionStartProcessor', () => {
 
     it('should propagate errors thrown during the database transaction', async () => {
       const futureEndTime = new Date(Date.now() + 3600000);
-      const pendingAuction = createAuctionFixture({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime });
+      const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime });
       auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
 
       const dbError = new Error('Transaction failed');
       dataSource.transaction.mockRejectedValue(dbError);
 
       await expect(processor.process(createJob(1))).rejects.toThrow('Transaction failed');
+      expect(redisService.initializeAuction).not.toHaveBeenCalled();
+    });
+
+    it('should mark PENDING auction as ENDED and skip activation when endTime is already in the past', async () => {
+      const pastEndTime = new Date(Date.now() - 60000);
+      const pendingAuction = buildAuction({
+        id: 77,
+        status: AuctionStatus.PENDING,
+        endTime: pastEndTime,
+      });
+      auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
+
+      await processor.process(createJob(77));
+
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('end time is already in the past — marking as ENDED'));
+      expect(auctionRepository.update).toHaveBeenCalledWith(
+        77,
+        expect.objectContaining({
+          status: AuctionStatus.ENDED,
+          endedAt: expect.any(Date) as unknown as Date,
+        }),
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
       expect(redisService.initializeAuction).not.toHaveBeenCalled();
     });
   });
