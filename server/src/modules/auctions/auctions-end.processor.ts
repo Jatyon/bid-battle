@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { UserPreferencesService, UsersService } from '@modules/users';
+import { UserPreferencesService, UsersService, User, UserPreferences } from '@modules/users';
 import { BidGateway } from '@modules/bid/bid.gateway';
 import { RedisService } from '@shared/redis';
 import { MailService } from '@shared/mail';
@@ -103,11 +103,23 @@ export class AuctionEndProcessor extends WorkerHost {
 
   /**
    * Orchestrates sending end-of-auction emails independently to the owner and the winner.
+   * Fetches owner, winner (if any) and their preferences in parallel to avoid N+1 queries.
    */
   private async sendEndNotificationEmails(auction: Auction, auctionId: number, finalPrice: number, winnerId: number | null): Promise<void> {
-    const notifications = [this.notifyAuctionOwner(auction, auctionId, finalPrice, winnerId)];
+    const [owner, winner] = await Promise.all([
+      this.usersService.findOneBy({ id: auction.ownerId }),
+      winnerId ? this.usersService.findOneBy({ id: winnerId }) : Promise.resolve(null),
+    ]);
 
-    if (winnerId) notifications.push(this.notifyAuctionWinner(auction, auctionId, finalPrice, winnerId));
+    const [ownerPrefs, winnerPrefs] = await Promise.all([
+      owner ? this.userPreferencesService.findOrCreateByUserId(owner.id) : Promise.resolve(null),
+      winner ? this.userPreferencesService.findOrCreateByUserId(winner.id) : Promise.resolve(null),
+    ]);
+
+    const notifications: Promise<void>[] = [];
+
+    if (owner && ownerPrefs) notifications.push(this.notifyAuctionOwner(auction, auctionId, finalPrice, owner, ownerPrefs, winner ?? undefined));
+    if (winner && winnerPrefs) notifications.push(this.notifyAuctionWinner(auction, auctionId, finalPrice, winner, winnerPrefs));
 
     const results = await Promise.allSettled(notifications);
 
@@ -119,25 +131,10 @@ export class AuctionEndProcessor extends WorkerHost {
   /**
    * Sends end-of-auction notification to the auction OWNER.
    */
-  private async notifyAuctionOwner(auction: Auction, auctionId: number, finalPrice: number, winnerId: number | null): Promise<void> {
-    const owner = await this.usersService.findOneBy({ id: auction.ownerId });
-
-    if (!owner) return;
-
-    const prefs = await this.userPreferencesService.findOrCreateByUserId(owner.id);
-
+  private async notifyAuctionOwner(auction: Auction, auctionId: number, finalPrice: number, owner: User, prefs: UserPreferences, winner?: User): Promise<void> {
     if (!prefs.notifyOnAuctionEnd) return;
 
-    let winnerName: string | undefined;
-
-    if (winnerId) {
-      const winner = await this.usersService.findOneBy({ id: winnerId });
-      winnerName = winner?.concatName;
-    }
-
-    const lang = prefs.lang;
-
-    await this.mailService.sendAuctionOwnerEmail(owner.email, lang, owner.concatName, auction.title, finalPrice, auctionId, winnerName);
+    await this.mailService.sendAuctionOwnerEmail(owner.email, prefs.lang, owner.concatName, auction.title, finalPrice, auctionId, winner?.concatName);
 
     this.logger.log(`Owner email sent to user ${owner.id} for auction ${auctionId}`);
   }
@@ -145,18 +142,10 @@ export class AuctionEndProcessor extends WorkerHost {
   /**
    * Sends winning notification to the auction WINNER.
    */
-  private async notifyAuctionWinner(auction: Auction, auctionId: number, finalPrice: number, winnerId: number): Promise<void> {
-    const winner = await this.usersService.findOneBy({ id: winnerId });
-
-    if (!winner) return;
-
-    const prefs = await this.userPreferencesService.findOrCreateByUserId(winner.id);
-
+  private async notifyAuctionWinner(auction: Auction, auctionId: number, finalPrice: number, winner: User, prefs: UserPreferences): Promise<void> {
     if (!prefs.notifyOnAuctionEnd) return;
 
-    const lang = prefs.lang;
-
-    await this.mailService.sendAuctionWinnerEmail(winner.email, lang, winner.concatName, auction.title, finalPrice, auctionId);
+    await this.mailService.sendAuctionWinnerEmail(winner.email, prefs.lang, winner.concatName, auction.title, finalPrice, auctionId);
 
     this.logger.log(`Winner email sent to user ${winner.id} for auction ${auctionId}`);
   }

@@ -322,6 +322,97 @@ describe('AuctionEndProcessor', () => {
       expect(mailService.sendAuctionOwnerEmail).not.toHaveBeenCalled();
     });
 
+    it('should not send winner email when winner is not found in DB', async () => {
+      const owner = createUserFixture({ id: 1, email: 'owner@example.com' });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(400);
+      redisService.getHighestBidderId.mockResolvedValue(99);
+      mockTransactionWith(auction);
+
+      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === owner.id ? owner : null));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionWinnerEmail).not.toHaveBeenCalled();
+      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledWith(owner.email, Language.EN, owner.concatName, auction.title, 400, 1, undefined);
+    });
+
+    it('should send only owner email when owner notify=true but winner notify=false', async () => {
+      const owner = createUserFixture({ id: 1, email: 'owner@example.com', firstName: 'Alice', lastName: 'A' });
+      const winner = createUserFixture({ id: 5, email: 'winner@example.com', firstName: 'Bob', lastName: 'B' });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(800);
+      redisService.getHighestBidderId.mockResolvedValue(5);
+      mockTransactionWith(auction);
+
+      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 5 ? winner : owner));
+      userPreferencesService.findOrCreateByUserId.mockImplementation((userId: number) =>
+        Promise.resolve(createUserPreferencesFixture({ notifyOnAuctionEnd: userId === owner.id, lang: Language.EN })),
+      );
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionOwnerEmail).toHaveBeenCalledTimes(1);
+      expect(mailService.sendAuctionWinnerEmail).not.toHaveBeenCalled();
+    });
+
+    it('should send only winner email when winner notify=true but owner notify=false', async () => {
+      const owner = createUserFixture({ id: 1, email: 'owner@example.com', firstName: 'Alice', lastName: 'A' });
+      const winner = createUserFixture({ id: 5, email: 'winner@example.com', firstName: 'Bob', lastName: 'B' });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+
+      redisService.getLivePrice.mockResolvedValue(800);
+      redisService.getHighestBidderId.mockResolvedValue(5);
+      mockTransactionWith(auction);
+
+      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 5 ? winner : owner));
+      userPreferencesService.findOrCreateByUserId.mockImplementation((userId: number) =>
+        Promise.resolve(createUserPreferencesFixture({ notifyOnAuctionEnd: userId === winner.id, lang: Language.PL })),
+      );
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      expect(mailService.sendAuctionWinnerEmail).toHaveBeenCalledTimes(1);
+      expect(mailService.sendAuctionOwnerEmail).not.toHaveBeenCalled();
+    });
+
+    it('should fetch owner and winner in parallel (both usersService.findOneBy calls happen before preferences)', async () => {
+      const owner = createUserFixture({ id: 1 });
+      const winner = createUserFixture({ id: 7 });
+      const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
+      const callOrder: string[] = [];
+
+      redisService.getLivePrice.mockResolvedValue(500);
+      redisService.getHighestBidderId.mockResolvedValue(7);
+      mockTransactionWith(auction);
+
+      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => {
+        callOrder.push(`findOneBy:${id}`);
+        return Promise.resolve(id === 7 ? winner : owner);
+      });
+      userPreferencesService.findOrCreateByUserId.mockImplementation((userId: number) => {
+        callOrder.push(`findOrCreateByUserId:${userId}`);
+        return Promise.resolve(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+      });
+
+      await processor.process(createJob(1));
+      await flushPromises();
+
+      const userFetches = callOrder.filter((c) => c.startsWith('findOneBy'));
+      const prefsFetches = callOrder.filter((c) => c.startsWith('findOrCreateByUserId'));
+
+      expect(userFetches).toHaveLength(2);
+      expect(prefsFetches).toHaveLength(2);
+      expect(callOrder.indexOf('findOrCreateByUserId:1')).toBeGreaterThan(callOrder.indexOf('findOneBy:1'));
+      expect(callOrder.indexOf('findOrCreateByUserId:7')).toBeGreaterThan(callOrder.indexOf('findOneBy:7'));
+    });
+
     it('should log error and not throw when email sending fails', async () => {
       const owner = createUserFixture({ id: 1 });
       const auction = createAuctionFixture({ id: 1, status: AuctionStatus.ACTIVE, ownerId: 1, owner });
