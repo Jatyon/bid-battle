@@ -29,7 +29,7 @@ export class UsersController {
   @ApiStandardResponse(UserPreferences, false)
   @Get('/preferences')
   async getUserPreferences(@CurrentUser() user: User): Promise<UserPreferences> {
-    return this.userPreferencesService.findByUserId(user.id);
+    return this.userPreferencesService.findOrCreateByUserId(user.id);
   }
 
   @ApiOperation({

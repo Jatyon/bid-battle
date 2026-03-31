@@ -51,11 +51,11 @@ describe('UsersController', () => {
 
   describe('getUserPreferences', () => {
     it('should return user preferences', async () => {
-      userPreferencesService.findByUserId.mockResolvedValue(mockUserPreferences);
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(mockUserPreferences);
 
       const result = await controller.getUserPreferences(mockUser);
 
-      expect(userPreferencesService.findByUserId).toHaveBeenCalledWith(mockUser.id);
+      expect(userPreferencesService.findOrCreateByUserId).toHaveBeenCalledWith(mockUser.id);
       expect(result).toEqual(mockUserPreferences);
     });
   });
