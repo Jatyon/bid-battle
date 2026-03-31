@@ -18,7 +18,10 @@ export class UserRepository extends Repository<User> {
 
     const queryBuilder = this.createQueryBuilder('user');
 
-    if (q) queryBuilder.where('user.firstName LIKE :search OR user.lastName LIKE :search', { search: `%${q}%` });
+    if (q) {
+      const escaped = q.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+      queryBuilder.where('user.firstName LIKE :search OR user.lastName LIKE :search', { search: `%${escaped}%` }).setParameter('escape', '\\');
+    }
 
     return queryBuilder.take(limit).orderBy('user.createdAt', 'DESC').getMany();
   }

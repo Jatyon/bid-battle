@@ -8,6 +8,7 @@ describe('UserRepository', () => {
   const mockQueryBuilder = {
     where: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
+    setParameter: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     getOne: jest.fn(),
@@ -64,10 +65,20 @@ describe('UserRepository', () => {
 
       expect(repository.createQueryBuilder).toHaveBeenCalledWith('user');
       expect(mockQueryBuilder.where).toHaveBeenCalledWith('user.firstName LIKE :search OR user.lastName LIKE :search', { search: '%Jan%' });
+      expect(mockQueryBuilder.setParameter).toHaveBeenCalledWith('escape', '\\');
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('user.createdAt', 'DESC');
       expect(mockQueryBuilder.getMany).toHaveBeenCalled();
       expect(result).toEqual(mockUsers);
+    });
+
+    it('should escape LIKE special characters (%, _, \\) in search query', async () => {
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+
+      await repository.searchUsers({ q: '100%_test\\path' });
+
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('user.firstName LIKE :search OR user.lastName LIKE :search', { search: '%100\\%\\_test\\\\path%' });
+      expect(mockQueryBuilder.setParameter).toHaveBeenCalledWith('escape', '\\');
     });
 
     it('should NOT apply where clause if "q" is omitted, and use provided limit', async () => {
