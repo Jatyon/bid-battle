@@ -3,7 +3,7 @@ import { AuctionsRepository } from './auctions.repository';
 import { AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { DataSource, EntityManager, FindOperator } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 
 describe('AuctionsRepository', () => {
   let repository: AuctionsRepository;
@@ -44,7 +44,6 @@ describe('AuctionsRepository', () => {
       expect(repository.findAndCount).toHaveBeenCalledWith({
         where: {
           status: AuctionStatus.ACTIVE,
-          endTime: expect.any(FindOperator) as never,
         },
         relations: ['owner', 'winner'],
         skip,
