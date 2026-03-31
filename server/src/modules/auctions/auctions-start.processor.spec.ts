@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { createAuctionFixture } from '@test/fixtures/auctions.fixtures';
+import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { Bid } from '@modules/bid';
 import { RedisService } from '@shared/redis';
 import { AuctionStartProcessor } from './auctions-start.processor';
@@ -16,7 +17,7 @@ import { Job } from 'bullmq';
 describe('AuctionStartProcessor', () => {
   let processor: AuctionStartProcessor;
   let auctionRepository: DeepMocked<Repository<Auction>>;
-  let bidRepository: DeepMocked<Repository<Bid>>;
+  let bidRepository: DeepMocked<BidRepository>;
   let redisService: DeepMocked<RedisService>;
   let auctionScheduler: DeepMocked<AuctionScheduler>;
   let dataSource: DeepMocked<DataSource>;
@@ -32,8 +33,8 @@ describe('AuctionStartProcessor', () => {
           useValue: createMock<Repository<Auction>>(),
         },
         {
-          provide: getRepositoryToken(Bid),
-          useValue: createMock<Repository<Bid>>(),
+          provide: BidRepository,
+          useValue: createMock<BidRepository>(),
         },
         {
           provide: RedisService,
@@ -52,7 +53,7 @@ describe('AuctionStartProcessor', () => {
 
     processor = module.get<AuctionStartProcessor>(AuctionStartProcessor);
     auctionRepository = module.get(getRepositoryToken(Auction));
-    bidRepository = module.get(getRepositoryToken(Bid));
+    bidRepository = module.get(BidRepository);
     redisService = module.get(RedisService);
     auctionScheduler = module.get(AuctionScheduler);
     dataSource = module.get(DataSource);
