@@ -124,7 +124,7 @@ export class AuctionEndProcessor extends WorkerHost {
 
     if (!owner) return;
 
-    const prefs = await this.userPreferencesService.findByUserId(owner.id);
+    const prefs = await this.userPreferencesService.findOrCreateByUserId(owner.id);
 
     if (!prefs.notifyOnAuctionEnd) return;
 
@@ -150,9 +150,9 @@ export class AuctionEndProcessor extends WorkerHost {
 
     if (!winner) return;
 
-    const prefs = await this.userPreferencesService.findByUserId(winner.id);
+    const prefs = await this.userPreferencesService.findOrCreateByUserId(winner.id);
 
-    if (!prefs?.notifyOnAuctionEnd) return;
+    if (!prefs.notifyOnAuctionEnd) return;
 
     const lang = prefs.lang;
 

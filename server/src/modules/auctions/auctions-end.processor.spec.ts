@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
-import { Language } from '@core/enums/language.enum';
 import { createAuctionFixture } from '@test/fixtures/auctions.fixtures';
 import { createUserFixture, createUserPreferencesFixture } from '@test/fixtures/users.fixtures';
 import { BidGateway } from '@modules/bid/bid.gateway';
 import { RedisService } from '@shared/redis';
 import { MailService } from '@shared/mail';
 import { UsersService, UserPreferencesService } from '@modules/users';
+import { Language } from '@core/enums/language.enum';
 import { AuctionEndProcessor } from './auctions-end.processor';
 import { IAuctionJob } from './interfaces';
 import { AuctionStatus } from './enums';
@@ -109,7 +109,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(42);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       await processor.process(createJob(1));
 
@@ -164,7 +164,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       await processor.process(createJob(2));
 
@@ -178,7 +178,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getLivePrice.mockResolvedValue(100);
       redisService.getHighestBidderId.mockResolvedValue(null);
       usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       let capturedUpdate: Record<string, unknown> = {};
 
@@ -213,7 +213,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(owner);
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
       await flushPromises();
@@ -231,7 +231,7 @@ describe('AuctionEndProcessor', () => {
       mockTransactionWith(auction);
 
       usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
       await flushPromises();
@@ -249,7 +249,7 @@ describe('AuctionEndProcessor', () => {
       mockTransactionWith(auction);
 
       usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.PL }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.PL }));
 
       await processor.process(createJob(1));
       await flushPromises();
@@ -265,7 +265,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(owner);
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
       await flushPromises();
@@ -281,7 +281,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(owner);
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       await processor.process(createJob(1));
       await flushPromises();
@@ -299,7 +299,7 @@ describe('AuctionEndProcessor', () => {
       mockTransactionWith(auction);
 
       usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       await processor.process(createJob(1));
       await flushPromises();
@@ -330,7 +330,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(owner);
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true }));
       mailService.sendAuctionOwnerEmail.mockRejectedValue(new Error('SMTP error'));
 
       await expect(processor.process(createJob(1))).resolves.not.toThrow();
@@ -406,7 +406,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(null);
       mockTransactionWith(auction);
       usersService.findOneBy.mockResolvedValue(createUserFixture({ id: 1 }));
-      userPreferencesService.findByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
+      userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
       redisService.cleanupAuction.mockRejectedValue(new Error('Redis unavailable'));
 
       await expect(processor.process(createJob(1))).rejects.toThrow('Redis unavailable');

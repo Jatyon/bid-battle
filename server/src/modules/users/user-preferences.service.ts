@@ -11,16 +11,24 @@ export class UserPreferencesService {
     private readonly userPreferencesRepository: Repository<UserPreferences>,
   ) {}
 
-  async findByUserId(userId: number): Promise<UserPreferences> {
-    return (await this.userPreferencesRepository.findOne({
+  async findByUserId(userId: number): Promise<UserPreferences | null> {
+    return this.userPreferencesRepository.findOne({
       where: { userId },
-    })) as UserPreferences;
+    });
+  }
+
+  async findOrCreateByUserId(userId: number): Promise<UserPreferences> {
+    const existing = await this.userPreferencesRepository.findOne({
+      where: { userId },
+    });
+
+    if (existing) return existing;
+
+    return this.createDefaultPreferences(userId);
   }
 
   async updatePreferences(userId: number, updateDto: UpdateUserPreferencesDto): Promise<UserPreferences> {
-    const preferences = (await this.userPreferencesRepository.findOne({
-      where: { userId },
-    })) as UserPreferences;
+    const preferences = await this.findOrCreateByUserId(userId);
 
     preferences.lang = updateDto.lang;
     preferences.notifyOnOutbid = updateDto.notifyOnOutbid;
