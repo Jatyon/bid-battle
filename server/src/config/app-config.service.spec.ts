@@ -29,11 +29,12 @@ describe('AppConfigService', () => {
   describe('app', () => {
     it('should return app config with values from configService', () => {
       configService.get.mockImplementation((key: string, defaultValue: any) => {
-        const values = {
+        const values: Record<string, any> = {
           NODE_ENV: 'production',
           NAME: 'Production App',
+          CORS_ORIGIN: 'https://bidapp.com',
         };
-        return values[key] || defaultValue;
+        return values[key] !== undefined ? values[key] : defaultValue;
       });
 
       const config = service.app;
@@ -41,6 +42,16 @@ describe('AppConfigService', () => {
       expect(config.mode).toBe('production');
       expect(config.name).toBe('Production App');
       expect(config.port).toBe(3000);
+      expect(config.corsOrigin).toBe('https://bidapp.com');
+    });
+
+    it('should throw when CORS_ORIGIN is missing', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => {
+        if (key === 'CORS_ORIGIN') return undefined;
+        return defaultValue || 'some-value';
+      });
+
+      expect(() => service.app).toThrow('Missing required environment variable: CORS_ORIGIN');
     });
   });
 
