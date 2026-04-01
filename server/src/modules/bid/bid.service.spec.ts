@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
-import { RedisService } from '@shared/redis';
+import { BidRejectionCode, RedisService } from '@shared/redis';
 import { BidRepository } from './repositories/bid.repository';
 import { calcMinIncrement } from './bid.constants';
 import { BidService } from './bid.service';
@@ -259,9 +259,9 @@ describe('BidService', () => {
       expect(redisService.rollbackBid).toHaveBeenCalledWith(1, null, null);
     });
 
-    it('should return OUTBID with current price when atomic bid fails', async () => {
+    it('should return OUTBID with current price when atomic bid fails with code 4 (amount too low at Lua level)', async () => {
       setupActiveAuction({ currentPrice: 100 });
-      redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false });
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false, rejectionCode: BidRejectionCode.BID_TOO_LOW });
       redisService.getLivePrice.mockResolvedValueOnce(100).mockResolvedValueOnce(120);
 
       const result = await service.placeBid(1, 5, 150);
@@ -274,6 +274,44 @@ describe('BidService', () => {
           currentPrice: 120,
         }),
       );
+    });
+
+    it('should return OUTBID when atomic bid fails with no rejection code (unknown/exception fallback)', async () => {
+      setupActiveAuction({ currentPrice: 100 });
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false });
+      redisService.getLivePrice.mockResolvedValueOnce(100).mockResolvedValueOnce(120);
+
+      const result = await service.placeBid(1, 5, 150);
+
+      expect(result).toEqual(expect.objectContaining({ success: false, code: 'OUTBID' }));
+    });
+
+    it('should return ALREADY_LEADING with current price when atomic bid fails with code 3 (self-outbid)', async () => {
+      setupActiveAuction({ currentPrice: 100 });
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false, rejectionCode: BidRejectionCode.ALREADY_LEADING });
+      redisService.getLivePrice.mockResolvedValue(100);
+
+      const result = await service.placeBid(1, 5, 150);
+
+      expect(bidRepository.save).not.toHaveBeenCalled();
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: false,
+          code: 'ALREADY_LEADING',
+          currentPrice: 100,
+        }),
+      );
+    });
+
+    it('should return AUCTION_ENDED when atomic bid fails with code 2 (auction became inactive)', async () => {
+      setupActiveAuction({ currentPrice: 100 });
+      redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false, rejectionCode: BidRejectionCode.AUCTION_INACTIVE });
+
+      const result = await service.placeBid(1, 5, 150);
+
+      expect(bidRepository.save).not.toHaveBeenCalled();
+      expect(result).toEqual(expect.objectContaining({ success: false, code: 'AUCTION_ENDED' }));
+      expect(redisService.getLivePrice).not.toHaveBeenCalledTimes(2);
     });
 
     it('should use snapshot from atomic script as rollback data — not a separate getHighestBidderId call', async () => {

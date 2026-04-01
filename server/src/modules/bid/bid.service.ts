@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { Paginator, PaginatorResponse } from '@core/models';
-import { RedisService } from '@shared/redis';
+import { RedisService, BidRejectionCode } from '@shared/redis';
 import { BidRepository } from './repositories/bid.repository';
 import { IAuctionState, IBidResult } from './interfaces';
 import { calcMinIncrement } from './bid.constants';
@@ -103,6 +103,20 @@ export class BidService {
         this.logger.log(`Bid placed: auction=${auctionId}, user=${userId}, amount=${amount}`);
         return { success: true };
       }
+
+      const { rejectionCode } = atomicResult;
+
+      if (rejectionCode === BidRejectionCode.ALREADY_LEADING) {
+        const newCurrentPrice = await this.redisService.getLivePrice(auctionId);
+        return {
+          success: false,
+          reason: await this.i18n.translate('bid.error.already_leading'),
+          code: 'ALREADY_LEADING',
+          currentPrice: newCurrentPrice ?? undefined,
+        };
+      }
+
+      if (rejectionCode === BidRejectionCode.AUCTION_INACTIVE) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended');
 
       const newCurrentPrice = await this.redisService.getLivePrice(auctionId);
       return {

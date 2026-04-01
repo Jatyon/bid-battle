@@ -6,9 +6,10 @@ import Redis, { Result } from 'ioredis';
 declare module 'ioredis' {
   interface RedisCommander<Context> {
     /**
-     * Returns a 3-element array: [success (1|0), previousPrice (string|false), previousBidderId (string|false)]
-     * previousPrice / previousBidderId are the Redis bulk-string values before the bid was applied,
-     * or the boolean false (nil in Lua) when the key did not exist.
+     * Returns a 3-element array: [success (1|0), previousPrice|rejectionCode (string|null), previousBidderId (string|null)]
+     * On success: previousPrice and previousBidderId are the Redis bulk-string values before the bid was applied,
+     * or null (nil in Lua) when the key did not exist.
+     * On failure: the second element is the rejection code as a string ("2"=inactive, "3"=already_leading, "4"=too_low).
      */
     placeBidAtomicCommand(
       priceKey: string,
@@ -49,7 +50,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    *
    * Returns a 3-element array:
    *   [1, previousPrice|false, previousBidderId|false]  – bid accepted
-   *   [0, false, false]                                 – bid rejected (any reason)
+   *   [0, 2, false]                                     – bid rejected: auction inactive
+   *   [0, 3, false]                                     – bid rejected: user is already leading
+   *   [0, 4, false]                                     – bid rejected: amount too low
    *
    * Using the returned snapshot for rollback guarantees the restored values are
    * consistent with the exact moment of the atomic write, eliminating the TOCTOU
@@ -65,7 +68,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     -- Check if auction is active
     if redis.call('EXISTS', activeKey) == 0 then
-      return {0, false, false}
+      return {0, 2, false}
     end
 
     local currentPriceStr = redis.call('GET', priceKey)
@@ -78,12 +81,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     -- Prevent user from outbidding themselves
     if currentBidderStr == userIdStr then
-      return {0, false, false}
+      return {0, 3, false}
     end
 
     -- Validate minimum increment
     if newAmount < currentPrice + minIncrement then
-      return {0, false, false}
+      return {0, 4, false}
     end
 
     -- Update price and bidder, preserving existing TTLs
@@ -531,7 +534,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param minIncrement - The minimum required difference between the current and new bid.
    * @returns {@link Result} discriminated by `success`:
    * - `{ success: true, data: BidAtomicSnapshot }` — bid accepted; `data` contains the pre-write snapshot.
-   * - `{ success: false }` — bid rejected (auction inactive, self-outbid, or increment too low).
+   * - `{ success: false, rejectionCode: 2 }` — auction is no longer active.
+   * - `{ success: false, rejectionCode: 3 }` — user is already the highest bidder.
+   * - `{ success: false, rejectionCode: 4 }` — bid amount is below the required minimum increment.
+   * - `{ success: false }` — unexpected Redis/Lua exception (no code available).
    */
   async placeBidAtomicWithSnapshot(auctionId: number, userId: number, newAmount: number, minIncrement: number): Promise<ResultPlateBidAtomic<BidAtomicSnapshot>> {
     try {
@@ -546,7 +552,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
       const [accepted, rawPrice, rawBidder] = result;
 
-      if (accepted !== 1) return { success: false };
+      if (accepted !== 1) {
+        const rejectionCode = rawPrice != null ? parseInt(rawPrice, 10) : undefined;
+        return { success: false, rejectionCode };
+      }
 
       return {
         success: true,
