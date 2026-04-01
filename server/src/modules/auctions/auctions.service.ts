@@ -213,9 +213,8 @@ export class AuctionsService {
       throw new BadRequestException('error.auction.cancel_forbidden_not_active');
 
     let previousStatus: AuctionStatus;
-    let updatedAuction: Auction;
 
-    await this.dataSource.transaction(async (em) => {
+    const updatedAuction = await this.dataSource.transaction(async (em) => {
       const auction = await em.findOne(Auction, {
         where: { id: auctionId },
         lock: { mode: 'pessimistic_write' },
@@ -233,7 +232,7 @@ export class AuctionsService {
 
       previousStatus = auction.status;
       auction.status = AuctionStatus.CANCELED;
-      updatedAuction = await em.save(Auction, auction);
+      return await em.save(Auction, auction);
     });
 
     if (previousStatus! === AuctionStatus.PENDING) {
@@ -246,13 +245,22 @@ export class AuctionsService {
     await this.invalidateAuctionsCache();
     await this.invalidatePriceCache(auctionId);
 
-    return new AuctionResponse(updatedAuction!);
+    return new AuctionResponse(updatedAuction);
   }
 
   /**
    * Updates auction details.
    * End time can only be extended and only if no bids are placed (for ACTIVE status).
    * Infrastructure (BullMQ/Redis) is updated only for already ACTIVE auctions.
+   *
+   * @remarks
+   * **TOCTOU fix for endTime change on ACTIVE auctions:**
+   * When `endTime` is being changed and the auction is ACTIVE, the bid-count check
+   * and the save are executed inside a single transaction with a pessimistic write lock.
+   * This eliminates the race condition where a bid could be placed between the `count()`
+   * query and the `save()` call (identical pattern to `cancelAuction`).
+   * For PENDING auctions (no live bids possible) the transaction/lock overhead is skipped.
+   *
    * @param auctionId - Unique ID of the auction to update.
    * @param updateAuctionDto - Data transfer object containing title, description, or endTime.
    * @param userId - ID of the user requesting the update (must be the owner).
@@ -267,30 +275,54 @@ export class AuctionsService {
 
     if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.update_forbidden_not_active');
 
-    let endTimeChanged = false;
+    const requestedEndTime = updateAuctionDto.endTime ? new Date(updateAuctionDto.endTime) : undefined;
 
-    if (updateAuctionDto.endTime) {
-      const newEndTime = new Date(updateAuctionDto.endTime);
+    if (requestedEndTime) {
       const now = new Date();
 
-      if (newEndTime <= now) throw new BadRequestException('auction.error.update_forbidden_end_time_past');
+      if (requestedEndTime <= now) throw new BadRequestException('auction.error.update_forbidden_end_time_past');
 
-      if (newEndTime <= auction.endTime) throw new BadRequestException('auction.error.update_forbidden_end_time');
-
-      if (auction.status === AuctionStatus.ACTIVE) {
-        const bidCount = await this.bidRepository.count({ where: { auctionId } });
-
-        if (bidCount > 0) throw new BadRequestException('auction.error.update_forbidden_end_time_has_bids');
-      }
-
-      auction.endTime = newEndTime;
-      endTimeChanged = true;
+      if (requestedEndTime <= auction.endTime) throw new BadRequestException('auction.error.update_forbidden_end_time');
     }
 
-    if (updateAuctionDto.title) auction.title = updateAuctionDto.title;
-    if (updateAuctionDto.description) auction.description = updateAuctionDto.description;
+    let updatedAuction: Auction;
+    let endTimeChanged = false;
 
-    const updatedAuction = await this.auctionsRepository.save(auction);
+    if (requestedEndTime && auction.status === AuctionStatus.ACTIVE) {
+      updatedAuction = await this.dataSource.transaction(async (em) => {
+        const lockedAuction = await em.findOne(Auction, {
+          where: { id: auctionId },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (!lockedAuction) throw new NotFoundException('error.auction.not_found');
+
+        if (lockedAuction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.update_forbidden_not_active');
+
+        const bidCount = await em.count(Bid, { where: { auctionId } });
+
+        if (bidCount > 0) throw new BadRequestException('auction.error.update_forbidden_end_time_has_bids');
+
+        lockedAuction.endTime = requestedEndTime;
+
+        if (updateAuctionDto.title) lockedAuction.title = updateAuctionDto.title;
+        if (updateAuctionDto.description) lockedAuction.description = updateAuctionDto.description;
+
+        updatedAuction = await em.save(Auction, lockedAuction);
+        return em.save(Auction, lockedAuction);
+      });
+      endTimeChanged = true;
+    } else {
+      if (requestedEndTime) {
+        auction.endTime = requestedEndTime;
+        endTimeChanged = true;
+      }
+
+      if (updateAuctionDto.title) auction.title = updateAuctionDto.title;
+      if (updateAuctionDto.description) auction.description = updateAuctionDto.description;
+
+      updatedAuction = await this.auctionsRepository.save(auction);
+    }
 
     if (endTimeChanged && updatedAuction.status === AuctionStatus.ACTIVE) {
       await this.auctionScheduler.cancelAuctionEnd(auctionId);
