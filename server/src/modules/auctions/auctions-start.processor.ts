@@ -118,7 +118,16 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
 
   /**
    * Core execution method for the BullMQ job.
-   * * @param job - The BullMQ job payload containing the auctionId.
+   *
+   * @remarks
+   * **Rollback strategy:**
+   * The DB status is updated to ACTIVE inside a transaction first. If the subsequent
+   * Redis initialization or BullMQ end-job scheduling fails, the DB is rolled back to
+   * PENDING so that the BullMQ retry mechanism can safely re-execute the full flow.
+   * Without this rollback the retry would find status=ACTIVE, treat it as a duplicate
+   * and skip — leaving the auction as a "zombie" (ACTIVE in DB, no Redis keys, no end job).
+   *
+   * @param job - The BullMQ job payload containing the auctionId.
    */
   async process(job: Job<IAuctionJob>): Promise<void> {
     const { auctionId } = job.data;
@@ -169,11 +178,27 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
 
     if (!wasStarted) return;
 
-    await this.redisService.initializeAuction(auctionId, auction.startingPrice, durationSeconds, auction.ownerId);
+    try {
+      await this.redisService.initializeAuction(auctionId, auction.startingPrice, durationSeconds, auction.ownerId);
+      await this.auctionScheduler.scheduleAuctionEnd(auctionId, new Date(auction.endTime));
+      await this.redisService.invalidateCache('auctions:active:*');
+    } catch (error) {
+      this.logger.error(`Auction ${auctionId} post-activation setup failed — rolling back DB to PENDING for BullMQ retry`, error instanceof Error ? error.stack : String(error));
 
-    await this.auctionScheduler.scheduleAuctionEnd(auctionId, new Date(auction.endTime));
+      try {
+        await this.auctionRepository.update(auctionId, {
+          status: AuctionStatus.PENDING,
+          startedAt: null,
+        });
+      } catch (rollbackError) {
+        this.logger.error(
+          `CRITICAL: Auction ${auctionId} rollback failed — manual intervention required`,
+          rollbackError instanceof Error ? rollbackError.stack : String(rollbackError),
+        );
+      }
 
-    await this.redisService.invalidateCache('auctions:active:*');
+      throw error;
+    }
 
     this.logger.log(`Auction ${auctionId} started — ends in ${durationSeconds}s`);
   }

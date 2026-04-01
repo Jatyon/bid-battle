@@ -477,5 +477,105 @@ describe('AuctionStartProcessor', () => {
       expect(dataSource.transaction).not.toHaveBeenCalled();
       expect(redisService.initializeAuction).not.toHaveBeenCalled();
     });
+
+    describe('rollback on post-activation failure', () => {
+      const futureEndTime = new Date(Date.now() + 3600000);
+
+      const setupSuccessfulTransaction = () => {
+        dataSource.transaction.mockImplementation(async (arg1: unknown, arg2?: unknown) => {
+          const cb = (arg2 || arg1) as (em: EntityManager) => Promise<boolean>;
+          const mockEm = createMock<EntityManager>();
+          mockEm.findOne.mockResolvedValue({ ...buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime }), status: AuctionStatus.PENDING });
+          mockEm.update.mockResolvedValue({ affected: 1, raw: [], generatedMaps: [] });
+          return cb(mockEm);
+        });
+      };
+
+      it('should roll back DB to PENDING and rethrow when initializeAuction fails', async () => {
+        const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime, startingPrice: 100, ownerId: 5 });
+        auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
+        setupSuccessfulTransaction();
+
+        const redisError = new Error('Redis connection refused');
+        redisService.initializeAuction.mockRejectedValue(redisError);
+
+        await expect(processor.process(createJob(1))).rejects.toThrow('Redis connection refused');
+
+        expect(auctionRepository.update).toHaveBeenCalledWith(1, expect.objectContaining({ status: AuctionStatus.PENDING, startedAt: null }));
+        expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('post-activation setup failed — rolling back DB to PENDING'), expect.any(String));
+      });
+
+      it('should roll back DB to PENDING and rethrow when scheduleAuctionEnd fails', async () => {
+        const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime, startingPrice: 100, ownerId: 5 });
+        auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
+        setupSuccessfulTransaction();
+
+        redisService.initializeAuction.mockResolvedValue(undefined);
+        const bullError = new Error('BullMQ queue unavailable');
+        auctionScheduler.scheduleAuctionEnd.mockRejectedValue(bullError);
+
+        await expect(processor.process(createJob(1))).rejects.toThrow('BullMQ queue unavailable');
+
+        expect(auctionRepository.update).toHaveBeenCalledWith(1, expect.objectContaining({ status: AuctionStatus.PENDING, startedAt: null }));
+        expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('post-activation setup failed — rolling back DB to PENDING'), expect.any(String));
+      });
+
+      it('should roll back DB to PENDING and rethrow when invalidateCache fails', async () => {
+        const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime, startingPrice: 100, ownerId: 5 });
+        auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
+        setupSuccessfulTransaction();
+
+        redisService.initializeAuction.mockResolvedValue(undefined);
+        auctionScheduler.scheduleAuctionEnd.mockResolvedValue(undefined);
+        const cacheError = new Error('Cache invalidation failed');
+        redisService.invalidateCache.mockRejectedValue(cacheError);
+
+        await expect(processor.process(createJob(1))).rejects.toThrow('Cache invalidation failed');
+
+        expect(auctionRepository.update).toHaveBeenCalledWith(1, expect.objectContaining({ status: AuctionStatus.PENDING, startedAt: null }));
+      });
+
+      it('should NOT roll back DB when all post-activation steps succeed', async () => {
+        const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime, startingPrice: 100, ownerId: 5 });
+        auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
+        setupSuccessfulTransaction();
+
+        redisService.initializeAuction.mockResolvedValue(undefined);
+        auctionScheduler.scheduleAuctionEnd.mockResolvedValue(undefined);
+        redisService.invalidateCache.mockResolvedValue(undefined);
+
+        await processor.process(createJob(1));
+
+        // update should only have been called inside the transaction (via em.update), not via auctionRepository.update
+        expect(auctionRepository.update).not.toHaveBeenCalled();
+        expect(Logger.prototype.error).not.toHaveBeenCalled();
+      });
+
+      it('should not call scheduleAuctionEnd or invalidateCache when initializeAuction fails', async () => {
+        const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime, startingPrice: 100, ownerId: 5 });
+        auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
+        setupSuccessfulTransaction();
+
+        redisService.initializeAuction.mockRejectedValue(new Error('Redis down'));
+
+        await expect(processor.process(createJob(1))).rejects.toThrow();
+
+        expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
+        expect(redisService.invalidateCache).not.toHaveBeenCalled();
+      });
+
+      it('should not call invalidateCache when scheduleAuctionEnd fails', async () => {
+        const pendingAuction = buildAuction({ id: 1, status: AuctionStatus.PENDING, endTime: futureEndTime, startingPrice: 100, ownerId: 5 });
+        auctionRepository.findOneBy.mockResolvedValue(pendingAuction);
+        setupSuccessfulTransaction();
+
+        redisService.initializeAuction.mockResolvedValue(undefined);
+        auctionScheduler.scheduleAuctionEnd.mockRejectedValue(new Error('BullMQ down'));
+
+        await expect(processor.process(createJob(1))).rejects.toThrow();
+
+        expect(redisService.invalidateCache).not.toHaveBeenCalled();
+      });
+    });
   });
 });
