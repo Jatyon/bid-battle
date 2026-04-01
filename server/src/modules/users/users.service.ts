@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { UserRepository } from './repositories/users.repository';
 import { User } from './entities/user.entity';
@@ -9,6 +9,8 @@ import { I18nContext } from 'nestjs-i18n';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly userRepository: UserRepository,
     private readonly fileUploadService: FileUploadService,
@@ -72,10 +74,20 @@ export class UsersService {
       throw new BadRequestException(i18n.t('user.error.update_avatar_failed'));
     }
 
-    if (user.avatar) await this.fileUploadService.deleteFile(user.avatar);
+    const oldAvatarPath = user.avatar ?? null;
 
     user.avatar = uploadedFile.url;
-    return this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    if (oldAvatarPath) {
+      await this.fileUploadService.deleteFile(oldAvatarPath).catch((err) => {
+        this.logger.warn(
+          `Failed to delete old avatar for user ${userId}: ${err instanceof Error ? err.message : String(err)} — stale file left on disk, recoverable via cleanup job`,
+        );
+      });
+    }
+
+    return savedUser;
   }
 
   async deleteAccount(userId: number): Promise<void> {
