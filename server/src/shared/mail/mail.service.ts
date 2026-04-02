@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
 import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData, IMailAuctionWinner, IMailAuctionOwner, IMailEmailVerification } from './interfaces';
+import { MAIL_QUEUE } from './mail.constants';
 import { MailContext } from './types';
 import { JobName } from './enums';
 import { I18nService } from 'nestjs-i18n';
@@ -14,7 +15,7 @@ export class MailService {
   private readonly appUrl: string;
 
   constructor(
-    @InjectQueue('mail-queue') private mailQueue: Queue<IMailOptions>,
+    @InjectQueue(MAIL_QUEUE) private mailQueue: Queue<IMailOptions>,
     private configService: AppConfigService,
     private readonly i18n: I18nService,
   ) {

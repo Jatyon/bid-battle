@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
+import { MAIL_QUEUE } from './mail.constants';
 import { MailService } from './mail.service';
 import { MailContext } from './types';
 import { JobName } from './enums';
@@ -36,14 +37,14 @@ describe('MailService', () => {
           useValue: i18nService,
         },
         {
-          provide: getQueueToken('mail-queue'),
+          provide: getQueueToken(MAIL_QUEUE),
           useValue: createMock<Queue>(),
         },
       ],
     }).compile();
 
     service = module.get<MailService>(MailService);
-    mailQueue = module.get(getQueueToken('mail-queue'));
+    mailQueue = module.get(getQueueToken(MAIL_QUEUE));
   });
 
   describe('sendTestEmail', () => {

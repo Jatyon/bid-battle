@@ -13,7 +13,7 @@ import { AuctionsModule } from '@modules/auctions';
 import { UsersModule } from '@modules/users';
 import { AuthModule } from '@modules/auth';
 import { BidModule } from '@modules/bid';
-import { HealthController } from '@health/health.controller';
+import { HealthModule } from '@health/health.module';
 import { I18nConfigProvider, MailerConfigProvider, ProvidersModule } from '@shared/providers';
 import { FileUploadModule } from '@shared/file-upload';
 import { RedisModule } from '@shared/redis';
@@ -86,8 +86,8 @@ import { join } from 'path';
     AuthModule,
     BidModule,
     UsersModule,
+    HealthModule,
   ],
-  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

@@ -110,6 +110,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.redis.disconnect();
   }
 
+  // --- Health ---
+
+  /**
+   * Verifies connectivity by issuing a PING command to Redis.
+   * @returns Round-trip time in milliseconds.
+   * @throws Error if Redis does not respond with PONG within the call.
+   */
+  async ping(): Promise<number> {
+    const start = Date.now();
+    const reply = await this.redis.ping();
+
+    if (reply !== 'PONG') throw new Error(`Unexpected Redis PING response`);
+
+    return Date.now() - start;
+  }
+
   // --- Generic Cache Methods ---
 
   /**

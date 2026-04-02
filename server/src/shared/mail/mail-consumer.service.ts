@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { WorkerHost, Processor } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
 import { IMailOptions, IMailOptionsTemplate } from './interfaces';
+import { MAIL_QUEUE } from './mail.constants';
 import { JobName } from './enums';
 import hbs from 'nodemailer-express-handlebars';
 import { Transporter } from 'nodemailer';
@@ -10,7 +11,7 @@ import * as path from 'path';
 import { Job } from 'bullmq';
 
 @Injectable()
-@Processor('mail-queue')
+@Processor(MAIL_QUEUE)
 export class MailConsumerService extends WorkerHost implements OnModuleInit {
   private transporter: Transporter;
   private readonly logger = new Logger(MailConsumerService.name);
