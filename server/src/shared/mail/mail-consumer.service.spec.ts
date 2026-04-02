@@ -6,7 +6,6 @@ import { JobName } from './enums';
 import { createMock } from '@golevelup/ts-jest';
 import * as nodemailer from 'nodemailer';
 import { Job } from 'bullmq';
-
 jest.mock('nodemailer-express-handlebars', () => {
   return jest.fn(() => {
     return (_mail: unknown, callback: () => void): void => callback();
@@ -136,6 +135,98 @@ describe('MailConsumerService', () => {
       expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to send email'));
 
       loggerSpy.mockRestore();
+    });
+  });
+
+  describe('onWorkerFailed', () => {
+    let errorSpy: jest.SpyInstance;
+    let warnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      errorSpy = jest.spyOn(service['logger'] as unknown as Logger, 'error').mockImplementation(() => {});
+      warnSpy = jest.spyOn(service['logger'] as unknown as Logger, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('should log ERROR with [DLQ] prefix when all attempts are exhausted', () => {
+      const job = createMock<Job<any>>({
+        id: 'job-1',
+        name: JobName.CRITICAL_MAIL,
+        attemptsMade: 3,
+        opts: { attempts: 3 },
+        data: { to: 'user@test.com', subject: 'Verify email' },
+      });
+      const error = new Error('SMTP timeout');
+
+      service.onWorkerFailed(job, error);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[DLQ]'),
+        error.stack,
+      );
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('permanently failed after 3 attempt(s)'),
+        error.stack,
+      );
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('user@test.com'),
+        error.stack,
+      );
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should log WARN with [RETRY] prefix on intermediate failures', () => {
+      const job = createMock<Job<any>>({
+        id: 'job-2',
+        name: JobName.CRITICAL_MAIL,
+        attemptsMade: 1,
+        opts: { attempts: 3 },
+        data: { to: 'user@test.com', subject: 'Reset password' },
+      });
+      const error = new Error('Connection refused');
+
+      service.onWorkerFailed(job, error);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[RETRY]'),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('attempt 1/3'),
+      );
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('should log ERROR with [DLQ] prefix when job is undefined', () => {
+      const error = new Error('No job context');
+
+      service.onWorkerFailed(undefined, error);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[DLQ]'),
+        error.stack,
+      );
+    });
+
+    it('should treat missing opts.attempts as 1 and log DLQ on first failure', () => {
+      const job = createMock<Job<any>>({
+        id: 'job-3',
+        name: JobName.BULK_MAIL,
+        attemptsMade: 1,
+        opts: {},
+        data: { to: 'bulk@test.com', subject: 'Newsletter' },
+      });
+      const error = new Error('Rate limited');
+
+      service.onWorkerFailed(job, error);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[DLQ]'),
+        error.stack,
+      );
     });
   });
 });

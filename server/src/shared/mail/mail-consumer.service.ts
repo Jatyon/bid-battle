@@ -79,6 +79,39 @@ export class MailConsumerService extends WorkerHost implements OnModuleInit {
     }
   }
 
+  /**
+   * Called by BullMQ WorkerHost after every failed attempt — including the final one.
+   * When all retry attempts are exhausted (`job.attemptsMade >= job.opts.attempts`),
+   * the job is permanently dead. We emit an ERROR-level log here so that any log
+   * aggregator (Winston → file/cloud) or alerting pipeline can pick it up.
+   *
+   * The job itself is kept in the `failed` set (removeOnFail: false on critical mails)
+   * so it can be inspected and manually retried via the BullMQ dashboard or CLI.
+   */
+  onWorkerFailed(job: Job<IMailOptions> | undefined, error: Error): void {
+    if (!job) {
+      this.logger.error(`[DLQ] Mail job failed with no job context — error: ${error.message}`, error.stack);
+      return;
+    }
+
+    const maxAttempts = job.opts?.attempts ?? 1;
+    const isPermanentFailure = job.attemptsMade >= maxAttempts;
+
+    if (isPermanentFailure) {
+      this.logger.error(
+        `[DLQ] Mail job permanently failed after ${job.attemptsMade} attempt(s) — ` +
+          `job.id=${job.id}, name=${job.name}, to=${job.data?.to ?? 'unknown'}, ` +
+          `subject="${job.data?.subject ?? 'unknown'}" — manual retry required`,
+        error.stack,
+      );
+      return;
+    }
+
+    this.logger.warn(
+      `[RETRY] Mail job failed (attempt ${job.attemptsMade}/${maxAttempts}) — ` + `job.id=${job.id}, name=${job.name}, to=${job.data?.to ?? 'unknown'}: ${error.message}`,
+    );
+  }
+
   private async handleCriticalMail(options: IMailOptions) {
     await this.sendEmail(options);
   }

@@ -163,8 +163,9 @@ export class MailService {
     return this.mailQueue.add(JobName.CRITICAL_MAIL, payload, {
       priority: 1,
       attempts: 3,
-      backoff: 5000,
+      backoff: { type: 'exponential', delay: 5000 },
       removeOnComplete: true,
+      removeOnFail: false,
     });
   }
 
