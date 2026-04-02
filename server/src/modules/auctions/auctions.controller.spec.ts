@@ -5,7 +5,7 @@ import { createAuctionResponseFixture, createAuctionDetailResponseFixture, creat
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { FileUploadService, IUploadOptions, IUploadedFile } from '@shared/file-upload';
-import { AuctionResponse, UploadAuctionImagesDto, UpdateAuctionDto, UpdateAuctionImagesDto, UploadedFileDto } from './dto';
+import { AuctionResponse, GetAuctionsQueryDto, UploadAuctionImagesDto, UpdateAuctionDto, UpdateAuctionImagesDto, UploadedFileDto } from './dto';
 import { AuctionsController } from './auctions.controller';
 import { AuctionsService } from './auctions.service';
 import { AuctionStatus } from './enums';
@@ -79,13 +79,30 @@ describe('AuctionsController', () => {
 
       service.findActiveAuctions.mockResolvedValue(mockResponse);
 
-      const paginator = new Paginator();
-      paginator.page = 1;
-      paginator.limit = 10;
+      const query = new GetAuctionsQueryDto();
+      query.page = 1;
+      query.limit = 10;
 
-      const result = await controller.getAuctions(paginator);
+      const result = await controller.getAuctions(query);
 
-      expect(service.findActiveAuctions).toHaveBeenCalledWith(paginator);
+      expect(service.findActiveAuctions).toHaveBeenCalledWith(query);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should forward filter parameters to the service', async () => {
+      const mockResponse: PaginatorResponse<AuctionResponse> = { items: [], total: 0, page: 1, limit: 10 };
+      service.findActiveAuctions.mockResolvedValue(mockResponse);
+
+      const query = new GetAuctionsQueryDto();
+      query.page = 1;
+      query.limit = 10;
+      query.search = 'watch';
+      query.minPrice = 100;
+      query.maxPrice = 5000;
+
+      const result = await controller.getAuctions(query);
+
+      expect(service.findActiveAuctions).toHaveBeenCalledWith(query);
       expect(result).toEqual(mockResponse);
     });
   });

@@ -1,16 +1,17 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
+import { SortOrder } from '@core/enums';
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { Bid } from '@modules/bid/entities';
 import { BidResponse } from '@modules/bid';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UpdateAuctionDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, UpdateAuctionDto } from './dto';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
-import { AuctionStatus } from './enums';
+import { AuctionSortBy, AuctionStatus } from './enums';
 import { DataSource, In, Repository } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
 
@@ -114,35 +115,71 @@ export class AuctionsService {
   }
 
   /**
-   * Get active auctions with pagination.
+   * Get active auctions with optional filtering, sorting and pagination.
    * Implements a cache-aside strategy: results are stored in Redis for 30 seconds.
-   * The cache is invalidated proactively whenever the auction list can change:
+   * Cache key is derived from all query parameters so each unique filter combination
+   * is cached independently. The cache is invalidated proactively whenever the auction
+   * list can change:
    * - auction transitions to ACTIVE (AuctionStartProcessor)
    * - auction transitions to ENDED (AuctionEndProcessor)
    * - auction is canceled (cancelAuction)
    * - auction details or images are updated (updateAuction, updateAuctionImages)
-   * @param paginator - Pagination data
-   * @returns Paginated list of auctions
+   * @param query - Pagination + filter + sort parameters
+   * @returns Paginated list of auctions matching the criteria
    */
-  async findActiveAuctions(paginator: Paginator): Promise<PaginatorResponse<AuctionResponse>> {
-    const page: number = paginator.page || 1;
-    const limit: number = paginator.limit || 10;
-    const skip: number = paginator.skip;
+  async findActiveAuctions(query: GetAuctionsQueryDto): Promise<PaginatorResponse<AuctionResponse>> {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = query.skip;
 
-    const cacheKey = `auctions:active:${page}:${limit}`;
+    const filters = {
+      search: query.search,
+      minPrice: query.minPrice,
+      maxPrice: query.maxPrice,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    };
+
+    const cacheKey = this.buildAuctionsCacheKey(page, limit, filters);
 
     const cachedData = await this.redisService.getCache<PaginatorResponse<AuctionResponse>>(cacheKey);
     if (cachedData) return cachedData;
 
-    const [auctions, total] = await this.auctionsRepository.findActiveAuctions(skip, limit);
+    const [auctions, total] = await this.auctionsRepository.findActiveAuctions(skip, limit, filters);
 
     const items = auctions.map((auction) => new AuctionResponse(auction, true));
 
-    const response = paginator.response(items, page, limit, total);
+    const response = query.response(items, page, limit, total);
 
     await this.redisService.setCache(cacheKey, response, 30);
 
     return response;
+  }
+
+  /**
+   * Build a deterministic Redis cache key for the active-auctions list query.
+   * Only non-default / truthy filter values are included so that the canonical
+   * "no filters" key stays identical to the old `auctions:active:${page}:${limit}`.
+   * Default values (sortBy=createdAt, sortOrder=DESC) are omitted intentionally.
+   */
+  private buildAuctionsCacheKey(page: number, limit: number, filters: Record<string, unknown>): string {
+    const parts: string[] = [`auctions:active:${page}:${limit}`];
+
+    const { search, minPrice, maxPrice, sortBy, sortOrder } = filters as {
+      search?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      sortBy?: string;
+      sortOrder?: string;
+    };
+
+    if (search) parts.push(`s=${encodeURIComponent(search.trim())}`);
+    if (minPrice) parts.push(`min=${minPrice}`);
+    if (maxPrice) parts.push(`max=${maxPrice}`);
+    if (sortBy && String(sortBy) !== String(AuctionSortBy.CREATED_AT)) parts.push(`by=${sortBy}`);
+    if (sortOrder && String(sortOrder) !== String(SortOrder.DESC)) parts.push(`ord=${sortOrder}`);
+
+    return parts.join(':');
   }
 
   /**

@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Logger, NotFoundException } fr
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Paginator, PaginatorResponse } from '@core/models';
+import { SortOrder } from '@core/enums';
 import {
   createAuctionFixture,
   createCreateAuctionDtoFixture,
@@ -10,14 +11,15 @@ import {
   createMockFilesFixture,
 } from '@test/fixtures/auctions.fixtures';
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
+import { Bid } from '@modules/bid';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionsRepository } from './repositories/auctions.repository';
-import { AuctionResponse, AuctionDetailResponse } from './dto';
+import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto } from './dto';
 import { AuctionScheduler } from './auction.scheduler';
 import { AuctionsService } from './auctions.service';
 import { AuctionImage, Auction } from './entities';
-import { AuctionStatus } from './enums';
+import { AuctionSortBy, AuctionStatus } from './enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { DataSource, Repository } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
@@ -229,47 +231,98 @@ describe('AuctionsService', () => {
   });
 
   describe('findActiveAuctions', () => {
-    let mockPaginator: Paginator;
+    let mockQuery: GetAuctionsQueryDto;
 
     beforeEach(() => {
-      mockPaginator = new Paginator();
-      mockPaginator.page = 1;
-      mockPaginator.limit = 10;
+      mockQuery = new GetAuctionsQueryDto();
+      mockQuery.page = 1;
+      mockQuery.limit = 10;
     });
 
-    it('should return cached data for first page without hitting the database', async () => {
+    it('should return cached data without hitting the database when cache hit', async () => {
       const cachedData = new PaginatorResponse();
       redisService.getCache.mockResolvedValue(cachedData);
 
-      const result = await service.findActiveAuctions(mockPaginator);
+      const result = await service.findActiveAuctions(mockQuery);
 
       expect(redisService.getCache).toHaveBeenCalledWith('auctions:active:1:10');
       expect(result).toBe(cachedData);
       expect(auctionsRepository.findActiveAuctions).not.toHaveBeenCalled();
     });
 
-    it('should fetch from database and populate cache when first page has no cache', async () => {
+    it('should fetch from database and populate cache when cache miss', async () => {
       redisService.getCache.mockResolvedValue(null);
       auctionsRepository.findActiveAuctions.mockResolvedValue([[createAuctionFixture()], 1]);
 
-      const result = await service.findActiveAuctions(mockPaginator);
+      const result = await service.findActiveAuctions(mockQuery);
 
-      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10);
-      expect(redisService.setCache).toHaveBeenCalledWith('auctions:active:1:10', expect.any(PaginatorResponse), 30);
-      expect(result).toBeInstanceOf(PaginatorResponse);
+      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10, expect.objectContaining({ search: undefined, minPrice: undefined, maxPrice: undefined }));
+      expect(redisService.setCache).toHaveBeenCalledWith('auctions:active:1:10', expect.any(Object), 30);
+      expect(result.items).toBeInstanceOf(Array);
+      expect(result).toMatchObject({ total: 1, page: 1, limit: 10 });
     });
 
-    it('should use cache for pages other than first as well', async () => {
-      mockPaginator.page = 2;
+    it('should use page/limit in cache key for page 2', async () => {
+      mockQuery.page = 2;
       redisService.getCache.mockResolvedValue(null);
       auctionsRepository.findActiveAuctions.mockResolvedValue([[createAuctionFixture()], 1]);
 
-      const result = await service.findActiveAuctions(mockPaginator);
+      await service.findActiveAuctions(mockQuery);
 
       expect(redisService.getCache).toHaveBeenCalledWith('auctions:active:2:10');
-      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(10, 10);
-      expect(redisService.setCache).toHaveBeenCalledWith('auctions:active:2:10', expect.any(Object), 30);
-      expect(result).toBeDefined();
+      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(10, 10, expect.any(Object));
+    });
+
+    it('should include search term in cache key when search is provided', async () => {
+      mockQuery.search = 'vintage watch';
+      redisService.getCache.mockResolvedValue(null);
+      auctionsRepository.findActiveAuctions.mockResolvedValue([[], 0]);
+
+      await service.findActiveAuctions(mockQuery);
+
+      const cacheKeyArg = redisService.getCache.mock.calls[0][0];
+      expect(cacheKeyArg).toContain('s=vintage%20watch');
+      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10, expect.objectContaining({ search: 'vintage watch' }));
+    });
+
+    it('should include minPrice and maxPrice in cache key and pass them to repository', async () => {
+      mockQuery.minPrice = 100;
+      mockQuery.maxPrice = 5000;
+      redisService.getCache.mockResolvedValue(null);
+      auctionsRepository.findActiveAuctions.mockResolvedValue([[], 0]);
+
+      await service.findActiveAuctions(mockQuery);
+
+      const cacheKeyArg = redisService.getCache.mock.calls[0][0];
+      expect(cacheKeyArg).toContain('min=100');
+      expect(cacheKeyArg).toContain('max=5000');
+      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10, expect.objectContaining({ minPrice: 100, maxPrice: 5000 }));
+    });
+
+    it('should include sortBy and sortOrder in cache key when provided', async () => {
+      mockQuery.sortBy = AuctionSortBy.END_TIME;
+      mockQuery.sortOrder = SortOrder.ASC;
+      redisService.getCache.mockResolvedValue(null);
+      auctionsRepository.findActiveAuctions.mockResolvedValue([[], 0]);
+
+      await service.findActiveAuctions(mockQuery);
+
+      const cacheKeyArg = redisService.getCache.mock.calls[0][0];
+      expect(cacheKeyArg).toContain(`by=${AuctionSortBy.END_TIME}`);
+      expect(cacheKeyArg).toContain('ord=ASC');
+      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10, expect.objectContaining({ sortBy: AuctionSortBy.END_TIME, sortOrder: SortOrder.ASC }));
+    });
+
+    it('should map auction list to AuctionResponse instances', async () => {
+      const mockAuctions = [createAuctionFixture({ id: 1 }), createAuctionFixture({ id: 2 })];
+      redisService.getCache.mockResolvedValue(null);
+      auctionsRepository.findActiveAuctions.mockResolvedValue([mockAuctions, 2]);
+
+      const result = await service.findActiveAuctions(mockQuery);
+
+      expect(result.items).toHaveLength(2);
+      result.items.forEach((item) => expect(item).toBeInstanceOf(AuctionResponse));
+      expect(result.total).toBe(2);
     });
   });
 
@@ -314,7 +367,7 @@ describe('AuctionsService', () => {
       const mockAuctionId = 10;
       const mockAuction = createAuctionFixture({ id: mockAuctionId, status: AuctionStatus.ACTIVE });
 
-      const mockBids = [{ id: 1, amount: 200, auctionId: mockAuctionId, userId: 2 }] as any[];
+      const mockBids = [{ id: 1, amount: 200, auctionId: mockAuctionId, userId: 2 }] as unknown as Bid[];
 
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
       bidRepository.findPaginatedBidByAuction.mockResolvedValue([mockBids, 1]);

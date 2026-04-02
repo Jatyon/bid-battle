@@ -8,7 +8,16 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { BidResponse } from '@modules/bid';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, UploadAuctionImagesDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto } from './dto';
+import {
+  AuctionDetailResponse,
+  AuctionResponse,
+  CreateAuctionDto,
+  GetAuctionsQueryDto,
+  UploadAuctionImagesDto,
+  UploadedFileDto,
+  UpdateAuctionDto,
+  UpdateAuctionImagesDto,
+} from './dto';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -58,13 +67,13 @@ export class AuctionsController {
 
   @ApiOperation({
     summary: 'Get active auctions',
-    description: 'Get list of active auctions with pagination. Results are cached for faster response.',
+    description: 'Get list of active auctions with pagination, optional full-text search on title, price range filter and sorting.',
   })
   @ApiStandardResponse(PaginatorResponse, false, AuctionResponse)
   @Public()
   @Get()
-  async getAuctions(@Query() paginator: Paginator): Promise<PaginatorResponse<AuctionResponse>> {
-    return this.auctionsService.findActiveAuctions(paginator);
+  async getAuctions(@Query() query: GetAuctionsQueryDto): Promise<PaginatorResponse<AuctionResponse>> {
+    return this.auctionsService.findActiveAuctions(query);
   }
 
   @ApiOperation({

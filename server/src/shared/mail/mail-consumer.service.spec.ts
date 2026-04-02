@@ -164,18 +164,9 @@ describe('MailConsumerService', () => {
 
       service.onWorkerFailed(job, error);
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[DLQ]'),
-        error.stack,
-      );
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('permanently failed after 3 attempt(s)'),
-        error.stack,
-      );
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('user@test.com'),
-        error.stack,
-      );
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('[DLQ]'), error.stack);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('permanently failed after 3 attempt(s)'), error.stack);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('user@test.com'), error.stack);
       expect(warnSpy).not.toHaveBeenCalled();
     });
 
@@ -191,12 +182,8 @@ describe('MailConsumerService', () => {
 
       service.onWorkerFailed(job, error);
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[RETRY]'),
-      );
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('attempt 1/3'),
-      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[RETRY]'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('attempt 1/3'));
       expect(errorSpy).not.toHaveBeenCalled();
     });
 
@@ -205,10 +192,7 @@ describe('MailConsumerService', () => {
 
       service.onWorkerFailed(undefined, error);
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[DLQ]'),
-        error.stack,
-      );
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('[DLQ]'), error.stack);
     });
 
     it('should treat missing opts.attempts as 1 and log DLQ on first failure', () => {
@@ -223,10 +207,7 @@ describe('MailConsumerService', () => {
 
       service.onWorkerFailed(job, error);
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[DLQ]'),
-        error.stack,
-      );
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('[DLQ]'), error.stack);
     });
   });
 });

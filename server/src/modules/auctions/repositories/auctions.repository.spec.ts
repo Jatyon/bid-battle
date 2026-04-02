@@ -1,13 +1,31 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { SortOrder } from '@core/enums';
 import { AuctionsRepository } from './auctions.repository';
-import { AuctionStatus } from '../enums';
+import { AuctionSortBy, AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
 
 describe('AuctionsRepository', () => {
   let repository: AuctionsRepository;
   let dataSource: DeepMocked<DataSource>;
+
+  function buildQbMock(result: [Auction[], number] = [[], 0]) {
+    const qb = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue(result),
+    } as unknown as SelectQueryBuilder<Auction>;
+    return qb;
+  }
+
+  function spyQb(qb: SelectQueryBuilder<Auction>) {
+    jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(qb as unknown as SelectQueryBuilder<Auction>);
+  }
 
   beforeEach(async () => {
     dataSource = createMock<DataSource>({
@@ -30,36 +48,97 @@ describe('AuctionsRepository', () => {
   });
 
   describe('findActiveAuctions', () => {
-    it('should call inherited findAndCount with correct criteria, endTime filter and pagination', async () => {
+    it('should query with ACTIVE status, owner/winner joins, default sort and pagination', async () => {
       const skip = 10;
       const take = 20;
-
       const mockAuctions = [createMock<Auction>(), createMock<Auction>()];
-      const mockResult: [Auction[], number] = [mockAuctions, 2];
-
-      jest.spyOn(repository, 'findAndCount').mockResolvedValue(mockResult);
+      const qb = buildQbMock([mockAuctions, 2]);
+      spyQb(qb);
 
       const result = await repository.findActiveAuctions(skip, take);
 
-      expect(repository.findAndCount).toHaveBeenCalledWith({
-        where: {
-          status: AuctionStatus.ACTIVE,
-        },
-        relations: ['owner', 'winner'],
-        skip,
-        take,
-        order: { createdAt: 'DESC' },
-      });
-
-      expect(result).toEqual(mockResult);
+      expect(repository.createQueryBuilder).toHaveBeenCalledWith('auction');
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('auction.owner', 'owner');
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('auction.winner', 'winner');
+      expect(qb.where).toHaveBeenCalledWith('auction.status = :status', { status: AuctionStatus.ACTIVE });
+      expect(qb.orderBy).toHaveBeenCalledWith(`auction.${AuctionSortBy.CREATED_AT}`, SortOrder.DESC);
+      expect(qb.skip).toHaveBeenCalledWith(skip);
+      expect(qb.take).toHaveBeenCalledWith(take);
+      expect(qb.andWhere).not.toHaveBeenCalled();
+      expect(result).toEqual([mockAuctions, 2]);
     });
 
     it('should return empty array and zero count when no active auctions exist', async () => {
-      jest.spyOn(repository, 'findAndCount').mockResolvedValue([[], 0]);
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
 
       const result = await repository.findActiveAuctions(0, 10);
 
       expect(result).toEqual([[], 0]);
+    });
+
+    it('should add LIKE filter when search is provided', async () => {
+      const qb = buildQbMock([[], 2]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { search: 'watch' });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%watch%' });
+    });
+
+    it('should add minPrice filter when minPrice is provided', async () => {
+      const qb = buildQbMock([[], 2]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { minPrice: 100 });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.currentPrice >= :minPrice', { minPrice: 100 });
+    });
+
+    it('should add maxPrice filter when maxPrice is provided', async () => {
+      const qb = buildQbMock([[], 2]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { maxPrice: 5000 });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.currentPrice <= :maxPrice', { maxPrice: 5000 });
+    });
+
+    it('should apply minPrice AND maxPrice simultaneously', async () => {
+      const qb = buildQbMock([[], 2]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { minPrice: 100, maxPrice: 5000 });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.currentPrice >= :minPrice', { minPrice: 100 });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.currentPrice <= :maxPrice', { maxPrice: 5000 });
+    });
+
+    it('should use custom sortBy and sortOrder when provided', async () => {
+      const qb = buildQbMock([[], 2]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { sortBy: AuctionSortBy.END_TIME, sortOrder: SortOrder.ASC });
+
+      expect(qb.orderBy).toHaveBeenCalledWith(`auction.${AuctionSortBy.END_TIME}`, SortOrder.ASC);
+    });
+
+    it('should trim whitespace from search term', async () => {
+      const qb = buildQbMock([[], 2]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { search: '  vintage  ' });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%vintage%' });
+    });
+
+    it('should not add search filter when search is an empty string', async () => {
+      const qb = buildQbMock([[], 2]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { search: '' });
+
+      expect(qb.andWhere).not.toHaveBeenCalled();
     });
   });
 
