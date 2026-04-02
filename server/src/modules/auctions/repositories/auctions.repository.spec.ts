@@ -133,8 +133,8 @@ describe('AuctionsRepository', () => {
     });
 
     it('should not add search filter when search is an empty string', async () => {
-      const qb = buildQbMock();
-      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(qb as any);
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { search: '' });
 
