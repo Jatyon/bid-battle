@@ -31,26 +31,41 @@ export class AuctionsService {
 
   /**
    * Creates a new auction, persists it to the database, and schedules its activation.
-   * * @remarks
-   * All newly created auctions initially receive a `PENDING` status, regardless of their start time.
-   * The actual activation (changing status to `ACTIVE` and initializing Redis) is delegated
-   * to a BullMQ background job (`AuctionStartProcessor`) to ensure transactional consistency.
-   * If the scheduling process fails, a compensation mechanism automatically rolls back
-   * the auction's status to `CANCELED` to prevent "zombie" auctions that exist in the DB
-   * but have no corresponding background jobs.
+   *
+   * @remarks
+   * All newly created auctions initially receive a `PENDING` status, regardless of their
+   * start time. The actual activation (changing status to `ACTIVE` and initializing Redis)
+   * is delegated to a BullMQ background job (`AuctionStartProcessor`).
+   *
+   * **Crash-safety — "hard rollback" pattern:**
+   * The auction is saved inside a DB transaction. If the subsequent BullMQ enqueue fails,
+   * the transaction is rolled back via `queryRunner.rollbackTransaction()`, completely
+   * removing the row from the database. This eliminates the "zombie PENDING" failure mode
+   * of the previous Saga pattern, where:
+   *  1. `save()` succeeded,
+   *  2. `scheduleAuctionStart()` failed, and
+   *  3. the compensating `update(status=CANCELED)` itself could also fail on a second crash,
+   *     leaving the row permanently stuck in PENDING with no job ever assigned to it.
+   *
+   * Crash scenarios and their outcomes with the new pattern:
+   * - BullMQ unavailable → `scheduleAuctionStart` throws → transaction is rolled back →
+   *   no row exists in DB, request fails cleanly, nothing to fix manually.
+   * - Crash between `commitTransaction` and `scheduleAuctionStart` resolving →
+   *   row committed to DB, job not enqueued. The startup reconciliation in
+   *   `AuctionStartProcessor.onApplicationBootstrap` handles this: PENDING auctions
+   *   with a `startTime` in the past are rescheduled immediately on next server boot.
+   * - Normal flow → transaction committed, job enqueued, everything consistent.
    *
    * @param createAuctionDto - The payload containing auction details (title, price, dates, images).
    * @param ownerId - The ID of the user creating the auction.
    * @returns A promise resolving to the fully constructed `AuctionResponse` object.
    * @throws {BadRequestException} If the provided `primaryImageIndex` is out of bounds.
-   * @throws {Error} Rethrows any error encountered during BullMQ job scheduling after rolling back the DB state.
+   * @throws {Error} Rethrows any error from the DB save or BullMQ enqueue after full rollback.
    */
   async createAuction(createAuctionDto: CreateAuctionDto, ownerId: number): Promise<AuctionResponse> {
     const primaryImageIndex: number = createAuctionDto.primaryImageIndex ?? 0;
 
-    if (primaryImageIndex >= createAuctionDto.imageUrls.length) {
-      throw new BadRequestException('error.validation.auction.primaryImageIndex_must_be_valid');
-    }
+    if (primaryImageIndex >= createAuctionDto.imageUrls.length) throw new BadRequestException('error.validation.auction.primaryImageIndex_must_be_valid');
 
     const primaryImageUrl: string = createAuctionDto.imageUrls[primaryImageIndex];
 
@@ -62,27 +77,37 @@ export class AuctionsService {
     const now = new Date();
     const startTime = createAuctionDto.startTime ? new Date(createAuctionDto.startTime) : now;
 
-    const auction: Auction = this.auctionsRepository.create({
-      title: createAuctionDto.title,
-      description: createAuctionDto.description,
-      startingPrice: createAuctionDto.startingPrice,
-      startTime,
-      endTime: createAuctionDto.endTime,
-      ownerId,
-      currentPrice: createAuctionDto.startingPrice,
-      status: AuctionStatus.PENDING,
-      mainImageUrl: primaryImageUrl,
-      images: mappedImages,
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const savedAuction: Auction = await this.auctionsRepository.save(auction);
+    let savedAuction: Auction;
 
     try {
+      const auction = queryRunner.manager.create(Auction, {
+        title: createAuctionDto.title,
+        description: createAuctionDto.description,
+        startingPrice: createAuctionDto.startingPrice,
+        startTime,
+        endTime: createAuctionDto.endTime,
+        ownerId,
+        currentPrice: createAuctionDto.startingPrice,
+        status: AuctionStatus.PENDING,
+        mainImageUrl: primaryImageUrl,
+        images: mappedImages,
+      });
+
+      savedAuction = await queryRunner.manager.save(Auction, auction);
+
       await this.auctionScheduler.scheduleAuctionStart(savedAuction.id, startTime);
+
+      await queryRunner.commitTransaction();
     } catch (error) {
-      this.logger.error(`Auction ${savedAuction.id} scheduling failed — rolling back to CANCELED`, error instanceof Error ? error.stack : String(error));
-      await this.auctionsRepository.update(savedAuction.id, { status: AuctionStatus.CANCELED });
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Auction creation failed — transaction rolled back`, error instanceof Error ? error.stack : String(error));
       throw error;
+    } finally {
+      await queryRunner.release();
     }
 
     return new AuctionResponse(savedAuction);

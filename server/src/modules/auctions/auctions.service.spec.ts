@@ -16,7 +16,7 @@ import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionResponse, AuctionDetailResponse } from './dto';
 import { AuctionScheduler } from './auction.scheduler';
 import { AuctionsService } from './auctions.service';
-import { AuctionImage } from './entities';
+import { AuctionImage, Auction } from './entities';
 import { AuctionStatus } from './enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { DataSource, Repository } from 'typeorm';
@@ -33,6 +33,18 @@ describe('AuctionsService', () => {
   let dataSource: DeepMocked<DataSource>;
 
   const mockManager = { delete: jest.fn(), save: jest.fn(), findOne: jest.fn(), count: jest.fn() };
+
+  const mockQueryRunner = {
+    connect: jest.fn(),
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    rollbackTransaction: jest.fn(),
+    release: jest.fn(),
+    manager: {
+      create: jest.fn(),
+      save: jest.fn(),
+    },
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -85,18 +97,28 @@ describe('AuctionsService', () => {
   });
 
   describe('createAuction', () => {
+    beforeEach(() => {
+      (dataSource.createQueryRunner as jest.Mock).mockReturnValue(mockQueryRunner);
+      mockQueryRunner.connect.mockResolvedValue(undefined);
+      mockQueryRunner.startTransaction.mockResolvedValue(undefined);
+      mockQueryRunner.commitTransaction.mockResolvedValue(undefined);
+      mockQueryRunner.rollbackTransaction.mockResolvedValue(undefined);
+      mockQueryRunner.release.mockResolvedValue(undefined);
+    });
+
     it('should create auction successfully with status PENDING and schedule it', async () => {
       const mockDto = createCreateAuctionDtoFixture();
       const mockAuction = createAuctionFixture();
       const savedAuction = { ...mockAuction, id: 1 };
 
-      auctionsRepository.create.mockReturnValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue(savedAuction);
+      mockQueryRunner.manager.create.mockReturnValue(mockAuction);
+      mockQueryRunner.manager.save.mockResolvedValue(savedAuction);
       auctionScheduler.scheduleAuctionStart.mockResolvedValue(undefined);
 
       const result = await service.createAuction(mockDto, 1);
 
-      expect(auctionsRepository.create).toHaveBeenCalledWith(
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        Auction,
         expect.objectContaining({
           title: mockDto.title,
           description: mockDto.description,
@@ -113,10 +135,10 @@ describe('AuctionsService', () => {
         }),
       );
 
-      expect(auctionsRepository.save).toHaveBeenCalledWith(mockAuction);
-
+      expect(mockQueryRunner.manager.save).toHaveBeenCalledWith(Auction, mockAuction);
       expect(auctionScheduler.scheduleAuctionStart).toHaveBeenCalledWith(savedAuction.id, expect.any(Date));
-
+      expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
+      expect(mockQueryRunner.release).toHaveBeenCalled();
       expect(result).toBeInstanceOf(AuctionResponse);
     });
 
@@ -124,13 +146,14 @@ describe('AuctionsService', () => {
       const mockDto = createCreateAuctionDtoFixture({ primaryImageIndex: 1 });
       const mockAuction = createAuctionFixture();
 
-      auctionsRepository.create.mockReturnValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue({ ...mockAuction, id: 1 });
+      mockQueryRunner.manager.create.mockReturnValue(mockAuction);
+      mockQueryRunner.manager.save.mockResolvedValue({ ...mockAuction, id: 1 });
       auctionScheduler.scheduleAuctionStart.mockResolvedValue(undefined);
 
       await service.createAuction(mockDto, 1);
 
-      expect(auctionsRepository.create).toHaveBeenCalledWith(
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        Auction,
         expect.objectContaining({
           mainImageUrl: mockDto.imageUrls[1],
           images: expect.arrayContaining([
@@ -145,13 +168,14 @@ describe('AuctionsService', () => {
       const dtoWithoutIndex = createCreateAuctionDtoFixture({ primaryImageIndex: undefined });
       const mockAuction = createAuctionFixture();
 
-      auctionsRepository.create.mockReturnValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue({ ...mockAuction, id: 1 });
+      mockQueryRunner.manager.create.mockReturnValue(mockAuction);
+      mockQueryRunner.manager.save.mockResolvedValue({ ...mockAuction, id: 1 });
       auctionScheduler.scheduleAuctionStart.mockResolvedValue(undefined);
 
       await service.createAuction(dtoWithoutIndex, 1);
 
-      expect(auctionsRepository.create).toHaveBeenCalledWith(
+      expect(mockQueryRunner.manager.create).toHaveBeenCalledWith(
+        Auction,
         expect.objectContaining({
           mainImageUrl: dtoWithoutIndex.imageUrls[0],
         }),
@@ -163,31 +187,44 @@ describe('AuctionsService', () => {
 
       await expect(service.createAuction(invalidDto, 1)).rejects.toThrow(BadRequestException);
 
-      expect(auctionsRepository.create).not.toHaveBeenCalled();
-      expect(auctionsRepository.save).not.toHaveBeenCalled();
+      expect(mockQueryRunner.manager.create).not.toHaveBeenCalled();
+      expect(mockQueryRunner.manager.save).not.toHaveBeenCalled();
+      expect(dataSource.createQueryRunner).not.toHaveBeenCalled();
     });
 
-    it('should rollback auction to CANCELED status if BullMQ scheduling fails', async () => {
+    it('should rollback the DB transaction and rethrow if BullMQ scheduling fails', async () => {
       const mockDto = createCreateAuctionDtoFixture();
       const mockAuction = createAuctionFixture();
       const savedAuction = { ...mockAuction, id: 1 };
       const schedulingError = new Error('BullMQ connection failed');
 
-      auctionsRepository.create.mockReturnValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue(savedAuction);
-
+      mockQueryRunner.manager.create.mockReturnValue(mockAuction);
+      mockQueryRunner.manager.save.mockResolvedValue(savedAuction);
       auctionScheduler.scheduleAuctionStart.mockRejectedValue(schedulingError);
-      auctionsRepository.update.mockResolvedValue({
-        raw: [],
-        generatedMaps: [],
-        affected: 1,
-      });
 
       await expect(service.createAuction(mockDto, 1)).rejects.toThrow(schedulingError);
 
-      expect(auctionsRepository.update).toHaveBeenCalledWith(savedAuction.id, {
-        status: AuctionStatus.CANCELED,
-      });
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+
+      expect(auctionsRepository.update).not.toHaveBeenCalled();
+      expect(mockQueryRunner.release).toHaveBeenCalled();
+    });
+
+    it('should rollback the DB transaction and rethrow if the DB save itself fails', async () => {
+      const mockDto = createCreateAuctionDtoFixture();
+      const mockAuction = createAuctionFixture();
+      const dbError = new Error('DB write failed');
+
+      mockQueryRunner.manager.create.mockReturnValue(mockAuction);
+      mockQueryRunner.manager.save.mockRejectedValue(dbError);
+
+      await expect(service.createAuction(mockDto, 1)).rejects.toThrow(dbError);
+
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+      expect(auctionScheduler.scheduleAuctionStart).not.toHaveBeenCalled();
+      expect(mockQueryRunner.release).toHaveBeenCalled();
     });
   });
 

@@ -219,4 +219,31 @@ describe('AuctionScheduler', () => {
       await expect(scheduler.cancelAuctionEnd(5)).rejects.toThrow('Redis connection lost');
     });
   });
+
+  describe('getStartJob', () => {
+    it('should return the job when it exists in the queue', async () => {
+      const mockJob = createMock<Job>();
+      auctionStartQueue.getJob.mockResolvedValue(mockJob);
+
+      const result = await scheduler.getStartJob(7);
+
+      expect(auctionStartQueue.getJob).toHaveBeenCalledWith(`${AUCTION_START_QUEUE}-7`);
+      expect(result).toBe(mockJob);
+    });
+
+    it('should return null when no job exists for the given auctionId', async () => {
+      auctionStartQueue.getJob.mockResolvedValue(undefined);
+
+      const result = await scheduler.getStartJob(99);
+
+      expect(auctionStartQueue.getJob).toHaveBeenCalledWith(`${AUCTION_START_QUEUE}-99`);
+      expect(result).toBeNull();
+    });
+
+    it('should propagate errors thrown by getJob', async () => {
+      auctionStartQueue.getJob.mockRejectedValue(new Error('Redis connection lost'));
+
+      await expect(scheduler.getStartJob(1)).rejects.toThrow('Redis connection lost');
+    });
+  });
 });

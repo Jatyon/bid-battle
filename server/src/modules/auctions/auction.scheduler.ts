@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AUCTION_END_QUEUE, AUCTION_START_QUEUE } from './auction.constants';
 import { IAuctionJob } from './interfaces';
-import { Queue } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 
 /**
  * Service responsible for scheduling and managing time-based auction events.
@@ -67,6 +67,18 @@ export class AuctionScheduler {
 
     await job.remove();
     this.logger.log(`Auction ${auctionId} start job cancelled`);
+  }
+
+  /**
+   * Returns the BullMQ Job object for a scheduled auction start, or `null` if no such
+   * job exists in the queue. Used by the startup reconciliation to detect PENDING auctions
+   * that lost their job due to a crash between DB commit and BullMQ enqueue.
+   *
+   * @param auctionId - The unique identifier of the auction.
+   * @returns The Job instance if found, or `null`.
+   */
+  async getStartJob(auctionId: number): Promise<Job<IAuctionJob> | null> {
+    return (await this.auctionStartQueue.getJob(`${AUCTION_START_QUEUE}-${auctionId}`)) ?? null;
   }
 
   /**
