@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsFutureDateString, IsWithinMaxDurationFromNow } from './create-auction.dto';
 import { AUCTION_MAX_DURATION_HOURS } from '../auction.constants';
-import { IsString, IsDateString, IsOptional, MaxLength } from 'class-validator';
+import { AuctionCategory } from '../enums';
+import { IsString, IsDateString, IsOptional, MaxLength, IsEnum } from 'class-validator';
 
 export class UpdateAuctionDto {
   @ApiProperty({
@@ -38,4 +39,14 @@ export class UpdateAuctionDto {
     message: 'error.validation.auction.end_time_exceeds_max_duration',
   })
   endTime?: string;
+
+  @ApiProperty({
+    description: 'Auction category',
+    enum: AuctionCategory,
+    example: AuctionCategory.ELECTRONICS,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(AuctionCategory, { message: 'error.validation.auction.category_invalid' })
+  category?: AuctionCategory;
 }

@@ -4,7 +4,6 @@ import { AuctionSortBy, AuctionStatus } from '../enums';
 import { IAuctionFilters } from '../interfaces';
 import { Auction } from '../entities';
 import { DataSource, Repository } from 'typeorm';
-
 @Injectable()
 export class AuctionsRepository extends Repository<Auction> {
   constructor(private readonly dataSource: DataSource) {
@@ -12,7 +11,7 @@ export class AuctionsRepository extends Repository<Auction> {
   }
 
   findActiveAuctions(skip: number, take: number, filters: IAuctionFilters = {}): Promise<[Auction[], number]> {
-    const { search, minPrice, maxPrice, sortBy = AuctionSortBy.CREATED_AT, sortOrder = SortOrder.DESC } = filters;
+    const { search, category, minPrice, maxPrice, sortBy = AuctionSortBy.CREATED_AT, sortOrder = SortOrder.DESC } = filters;
 
     const qb = this.createQueryBuilder('auction')
       .leftJoinAndSelect('auction.owner', 'owner')
@@ -20,6 +19,8 @@ export class AuctionsRepository extends Repository<Auction> {
       .where('auction.status = :status', { status: AuctionStatus.ACTIVE });
 
     if (search?.trim()) qb.andWhere('auction.title LIKE :search', { search: `%${search.trim()}%` });
+
+    if (category) qb.andWhere('auction.category = :category', { category });
 
     if (minPrice) qb.andWhere('auction.currentPrice >= :minPrice', { minPrice });
 

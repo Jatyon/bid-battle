@@ -1,4 +1,4 @@
-import { Auction, AuctionDetailResponse, AuctionImage, AuctionResponse, AuctionStatus, CreateAuctionDto, UpdateAuctionDto } from '@modules/auctions';
+import { Auction, AuctionCategory, AuctionDetailResponse, AuctionImage, AuctionResponse, AuctionStatus, CreateAuctionDto, UpdateAuctionDto } from '@modules/auctions';
 export { createMockFilesFixture } from './file.fixtures';
 import { createUserFixture } from './users.fixtures';
 
@@ -14,6 +14,7 @@ export const createAuctionFixture = (overrides?: Partial<Auction>): Auction => (
   endedAt: null,
   ownerId: 1,
   status: AuctionStatus.ACTIVE,
+  category: AuctionCategory.OTHER,
   mainImageUrl: '/uploads/image1.jpg',
   images: [],
   bids: [],

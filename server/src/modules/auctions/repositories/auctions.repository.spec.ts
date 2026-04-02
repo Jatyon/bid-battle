@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SortOrder } from '@core/enums';
+import { AuctionCategory, AuctionSortBy, AuctionStatus } from '../enums';
 import { AuctionsRepository } from './auctions.repository';
-import { AuctionSortBy, AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
@@ -78,7 +78,7 @@ describe('AuctionsRepository', () => {
     });
 
     it('should add LIKE filter when search is provided', async () => {
-      const qb = buildQbMock([[], 2]);
+      const qb = buildQbMock([[], 0]);
       spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { search: 'watch' });
@@ -87,7 +87,7 @@ describe('AuctionsRepository', () => {
     });
 
     it('should add minPrice filter when minPrice is provided', async () => {
-      const qb = buildQbMock([[], 2]);
+      const qb = buildQbMock([[], 0]);
       spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { minPrice: 100 });
@@ -96,7 +96,7 @@ describe('AuctionsRepository', () => {
     });
 
     it('should add maxPrice filter when maxPrice is provided', async () => {
-      const qb = buildQbMock([[], 2]);
+      const qb = buildQbMock([[], 0]);
       spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { maxPrice: 5000 });
@@ -105,7 +105,7 @@ describe('AuctionsRepository', () => {
     });
 
     it('should apply minPrice AND maxPrice simultaneously', async () => {
-      const qb = buildQbMock([[], 2]);
+      const qb = buildQbMock([[], 0]);
       spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { minPrice: 100, maxPrice: 5000 });
@@ -115,7 +115,7 @@ describe('AuctionsRepository', () => {
     });
 
     it('should use custom sortBy and sortOrder when provided', async () => {
-      const qb = buildQbMock([[], 2]);
+      const qb = buildQbMock([[], 0]);
       spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { sortBy: AuctionSortBy.END_TIME, sortOrder: SortOrder.ASC });
@@ -124,7 +124,7 @@ describe('AuctionsRepository', () => {
     });
 
     it('should trim whitespace from search term', async () => {
-      const qb = buildQbMock([[], 2]);
+      const qb = buildQbMock([[], 0]);
       spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { search: '  vintage  ' });
@@ -133,12 +133,45 @@ describe('AuctionsRepository', () => {
     });
 
     it('should not add search filter when search is an empty string', async () => {
-      const qb = buildQbMock([[], 2]);
-      spyQb(qb);
+      const qb = buildQbMock();
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(qb as any);
 
       await repository.findActiveAuctions(0, 10, { search: '' });
 
       expect(qb.andWhere).not.toHaveBeenCalled();
+    });
+
+    it('should add category filter when category is provided', async () => {
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, { category: AuctionCategory.ELECTRONICS });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.category = :category', { category: AuctionCategory.ELECTRONICS });
+    });
+
+    it('should not add category filter when category is undefined', async () => {
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, {});
+
+      expect(qb.andWhere).not.toHaveBeenCalled();
+    });
+
+    it('should combine category with other filters', async () => {
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
+
+      await repository.findActiveAuctions(0, 10, {
+        category: AuctionCategory.FASHION,
+        search: 'shoes',
+        minPrice: 50,
+      });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%shoes%' });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.category = :category', { category: AuctionCategory.FASHION });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.currentPrice >= :minPrice', { minPrice: 50 });
     });
   });
 

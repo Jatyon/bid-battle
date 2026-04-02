@@ -11,7 +11,7 @@ import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQu
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
-import { AuctionSortBy, AuctionStatus } from './enums';
+import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
 import { DataSource, In, Repository } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
 
@@ -94,6 +94,7 @@ export class AuctionsService {
         ownerId,
         currentPrice: createAuctionDto.startingPrice,
         status: AuctionStatus.PENDING,
+        category: createAuctionDto.category ?? AuctionCategory.OTHER,
         mainImageUrl: primaryImageUrl,
         images: mappedImages,
       });
@@ -134,6 +135,7 @@ export class AuctionsService {
 
     const filters = {
       search: query.search,
+      category: query.category,
       minPrice: query.minPrice,
       maxPrice: query.maxPrice,
       sortBy: query.sortBy,
@@ -165,8 +167,9 @@ export class AuctionsService {
   private buildAuctionsCacheKey(page: number, limit: number, filters: Record<string, unknown>): string {
     const parts: string[] = [`auctions:active:${page}:${limit}`];
 
-    const { search, minPrice, maxPrice, sortBy, sortOrder } = filters as {
+    const { search, category, minPrice, maxPrice, sortBy, sortOrder } = filters as {
       search?: string;
+      category?: string;
       minPrice?: number;
       maxPrice?: number;
       sortBy?: string;
@@ -174,6 +177,7 @@ export class AuctionsService {
     };
 
     if (search) parts.push(`s=${encodeURIComponent(search.trim())}`);
+    if (category) parts.push(`cat=${category}`);
     if (minPrice) parts.push(`min=${minPrice}`);
     if (maxPrice) parts.push(`max=${maxPrice}`);
     if (sortBy && String(sortBy) !== String(AuctionSortBy.CREATED_AT)) parts.push(`by=${sortBy}`);
@@ -369,6 +373,7 @@ export class AuctionsService {
 
         if (updateAuctionDto.title) lockedAuction.title = updateAuctionDto.title;
         if (updateAuctionDto.description) lockedAuction.description = updateAuctionDto.description;
+        if (updateAuctionDto.category !== undefined) lockedAuction.category = updateAuctionDto.category ?? null;
 
         updatedAuction = await em.save(Auction, lockedAuction);
         return em.save(Auction, lockedAuction);
@@ -382,6 +387,7 @@ export class AuctionsService {
 
       if (updateAuctionDto.title) auction.title = updateAuctionDto.title;
       if (updateAuctionDto.description) auction.description = updateAuctionDto.description;
+      if (updateAuctionDto.category !== undefined) auction.category = updateAuctionDto.category ?? null;
 
       updatedAuction = await this.auctionsRepository.save(auction);
     }

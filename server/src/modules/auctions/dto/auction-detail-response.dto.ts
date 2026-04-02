@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { type IAuctionUser } from '../interfaces';
-import { AuctionStatus } from '../enums';
+import { AuctionCategory, AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 
 export class AuctionDetailResponse {
@@ -64,6 +64,13 @@ export class AuctionDetailResponse {
   status: AuctionStatus;
 
   @ApiProperty({
+    description: 'Auction category',
+    enum: AuctionCategory,
+    example: AuctionCategory.ELECTRONICS,
+  })
+  category: AuctionCategory;
+
+  @ApiProperty({
     description: 'Owner user ID',
     example: 1,
   })
@@ -122,6 +129,7 @@ export class AuctionDetailResponse {
     this.startTime = auction.startTime;
     this.endTime = auction.endTime;
     this.status = auction.status;
+    this.category = auction.category;
     this.ownerId = auction.ownerId;
     this.winnerId = auction.winnerId;
     this.createdAt = auction.createdAt;

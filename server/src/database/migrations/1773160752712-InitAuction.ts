@@ -66,6 +66,12 @@ export class InitAuction1773160752712 implements MigrationInterface {
             default: "'PENDING'",
           },
           {
+            name: 'category',
+            type: 'enum',
+            enum: ['electronics', 'fashion', 'home_garden', 'collectibles', 'vehicles', 'sports', 'art', 'books', 'toys', 'other'],
+            default: "'other'",
+          },
+          {
             name: 'owner_id',
             type: 'int',
           },

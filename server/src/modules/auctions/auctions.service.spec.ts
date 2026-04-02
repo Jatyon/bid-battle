@@ -11,15 +11,14 @@ import {
   createMockFilesFixture,
 } from '@test/fixtures/auctions.fixtures';
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
-import { Bid } from '@modules/bid';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
-import { AuctionsRepository } from './repositories/auctions.repository';
+import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
 import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto } from './dto';
+import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { AuctionsService } from './auctions.service';
 import { AuctionImage, Auction } from './entities';
-import { AuctionSortBy, AuctionStatus } from './enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { DataSource, Repository } from 'typeorm';
 import { I18nContext } from 'nestjs-i18n';
@@ -256,7 +255,11 @@ describe('AuctionsService', () => {
 
       const result = await service.findActiveAuctions(mockQuery);
 
-      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10, expect.objectContaining({ search: undefined, minPrice: undefined, maxPrice: undefined }));
+      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(
+        0,
+        10,
+        expect.objectContaining({ search: undefined, category: undefined, minPrice: undefined, maxPrice: undefined }),
+      );
       expect(redisService.setCache).toHaveBeenCalledWith('auctions:active:1:10', expect.any(Object), 30);
       expect(result.items).toBeInstanceOf(Array);
       expect(result).toMatchObject({ total: 1, page: 1, limit: 10 });
@@ -297,6 +300,18 @@ describe('AuctionsService', () => {
       expect(cacheKeyArg).toContain('min=100');
       expect(cacheKeyArg).toContain('max=5000');
       expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10, expect.objectContaining({ minPrice: 100, maxPrice: 5000 }));
+    });
+
+    it('should include category in cache key and pass it to repository', async () => {
+      mockQuery.category = AuctionCategory.ELECTRONICS;
+      redisService.getCache.mockResolvedValue(null);
+      auctionsRepository.findActiveAuctions.mockResolvedValue([[], 0]);
+
+      await service.findActiveAuctions(mockQuery);
+
+      const cacheKeyArg = redisService.getCache.mock.calls[0][0];
+      expect(cacheKeyArg).toContain('cat=electronics');
+      expect(auctionsRepository.findActiveAuctions).toHaveBeenCalledWith(0, 10, expect.objectContaining({ category: AuctionCategory.ELECTRONICS }));
     });
 
     it('should include sortBy and sortOrder in cache key when provided', async () => {
@@ -367,7 +382,7 @@ describe('AuctionsService', () => {
       const mockAuctionId = 10;
       const mockAuction = createAuctionFixture({ id: mockAuctionId, status: AuctionStatus.ACTIVE });
 
-      const mockBids = [{ id: 1, amount: 200, auctionId: mockAuctionId, userId: 2 }] as unknown as Bid[];
+      const mockBids = [{ id: 1, amount: 200, auctionId: mockAuctionId, userId: 2 }] as any[];
 
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
       bidRepository.findPaginatedBidByAuction.mockResolvedValue([mockBids, 1]);

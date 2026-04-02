@@ -1,10 +1,19 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { BasePaginatedSearchDto } from '@core/dto';
-import { AuctionSortBy } from '../enums';
+import { AuctionCategory, AuctionSortBy } from '../enums';
 import { IsOptional, IsNumber, IsEnum, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class GetAuctionsQueryDto extends BasePaginatedSearchDto {
+  @ApiPropertyOptional({
+    description: 'Filter by category',
+    enum: AuctionCategory,
+    example: AuctionCategory.ELECTRONICS,
+  })
+  @IsOptional()
+  @IsEnum(AuctionCategory, { message: 'error.validation.auction.category_invalid' })
+  category?: AuctionCategory;
+
   @ApiPropertyOptional({
     description: 'Minimum current price filter (in smallest currency unit)',
     example: 100,

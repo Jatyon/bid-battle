@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { BigIntTransformer } from '@core/transformers';
 import { AuctionImage } from './auction-images.entity';
-import { AuctionStatus } from '../enums';
+import { AuctionCategory, AuctionStatus } from '../enums';
 import { User } from '../../users/entities/user.entity';
 import { Bid } from '../../bid/entities/bid.entity';
 import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId, OneToMany, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
@@ -60,6 +60,11 @@ export class Auction {
   @Index()
   @Column({ name: 'status', type: 'enum', enum: AuctionStatus, default: AuctionStatus.PENDING })
   status: AuctionStatus;
+
+  @ApiProperty({ description: 'Auction category', enum: AuctionCategory, example: AuctionCategory.ELECTRONICS })
+  @Index()
+  @Column({ name: 'category', type: 'enum', enum: AuctionCategory, default: AuctionCategory.OTHER })
+  category: AuctionCategory;
 
   @ApiProperty({ description: 'Owner user ID', example: 1 })
   @Index()

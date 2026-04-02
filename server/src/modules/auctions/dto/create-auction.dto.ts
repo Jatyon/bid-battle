@@ -1,8 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsNotEmpty, Min, Max, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize } from 'class-validator';
+import { AUCTION_MAX_DURATION_HOURS, AUCTION_PRICE_MAX } from '../auction.constants';
+import { AuctionCategory } from '../enums';
+import { IsString, IsDateString, IsNotEmpty, Min, Max, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize, IsEnum } from 'class-validator';
 import { registerDecorator, ValidationOptions } from 'class-validator';
 import { addHours, isAfter, isBefore } from 'date-fns';
-import { AUCTION_MAX_DURATION_HOURS, AUCTION_PRICE_MAX } from '../auction.constants';
 
 export class CreateAuctionDto {
   @ApiProperty({
@@ -84,6 +85,16 @@ export class CreateAuctionDto {
   @IsInt({ message: 'error.validation.auction.primary_image_index_must_be_integer' })
   @Min(0, { message: 'error.validation.auction.primary_image_index_must_be_non_negative' })
   primaryImageIndex?: number;
+
+  @ApiProperty({
+    description: 'Auction category',
+    enum: AuctionCategory,
+    example: AuctionCategory.ELECTRONICS,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(AuctionCategory, { message: 'error.validation.auction.category_invalid' })
+  category?: AuctionCategory;
 }
 
 export function IsFutureDateString(hoursToAdd: number, validationOptions?: ValidationOptions) {
