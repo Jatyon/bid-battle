@@ -1,12 +1,14 @@
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 import { AuthService } from './auth.service';
 import { AuthTokens } from './models';
+import { IGoogleUser } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
 @ApiTags('Authentication')
@@ -127,6 +129,29 @@ export class AuthController {
   async resendVerification(@Body() dto: ResendVerificationEmailDto, @I18n() i18n: I18nContext): Promise<MessageResponse> {
     await this.authService.resendVerificationEmail(dto, i18n);
     return { message: i18n.t('auth.info.verification_email_resent') };
+  }
+
+  @ApiOperation({
+    summary: 'Initiate Google OAuth2 login',
+    description: 'Redirects the user to Google login page',
+  })
+  @Public()
+  @UseGuards(GoogleOAuthGuard)
+  @Get('google')
+  googleAuth(): void {
+    // Passport handles the redirect
+  }
+
+  @ApiOperation({
+    summary: 'Google OAuth2 callback',
+    description: 'Handles Google OAuth2 callback and returns JWT tokens',
+  })
+  @ApiOkResponse({ description: 'Login successful', type: AuthTokens })
+  @Public()
+  @UseGuards(GoogleOAuthGuard)
+  @Get('google/callback')
+  googleAuthCallback(@Req() req: { user: IGoogleUser }): Promise<AuthTokens> {
+    return this.authService.loginWithGoogle(req.user);
   }
 
   @ApiOperation({

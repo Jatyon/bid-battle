@@ -5,6 +5,7 @@ import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { IGoogleUser } from './interfaces';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 
 const mockTokens = {
@@ -235,6 +236,31 @@ describe('AuthController', () => {
       const result = controller.getMe(mockUser);
 
       expect(result).toEqual(mockUser);
+    });
+  });
+
+  describe('googleAuth', () => {
+    it('does not throw and returns void (Passport handles redirect)', () => {
+      expect(() => controller.googleAuth()).not.toThrow();
+    });
+  });
+
+  describe('googleAuthCallback', () => {
+    const googleUser: IGoogleUser = {
+      providerId: 'google-id-123',
+      email: 'google@example.com',
+      firstName: 'Jane',
+      lastName: 'Smith',
+      avatar: 'https://example.com/avatar.jpg',
+    };
+
+    it('returns auth tokens after successful Google login', async () => {
+      authService.loginWithGoogle.mockResolvedValue(mockTokens);
+
+      const result = await controller.googleAuthCallback({ user: googleUser });
+
+      expect(authService.loginWithGoogle).toHaveBeenCalledWith(googleUser);
+      expect(result).toEqual(mockTokens);
     });
   });
 });

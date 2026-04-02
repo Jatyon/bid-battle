@@ -192,4 +192,105 @@ describe('AppConfigService', () => {
       expect(config.port).toBe(6379);
     });
   });
+
+  describe('socket', () => {
+    it('should return socket config with default values', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => defaultValue);
+
+      const config = service.socket;
+
+      expect(config.windowMs).toBe(10000);
+      expect(config.maxEvents).toBe(10);
+    });
+
+    it('should return socket config with custom values', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => {
+        const values: Record<string, unknown> = {
+          WS_RATE_LIMIT_MS: 5000,
+          WS_RATE_LIMIT_MAX: 20,
+        };
+        return values[key] ?? defaultValue;
+      });
+
+      const config = service.socket;
+
+      expect(config.windowMs).toBe(5000);
+      expect(config.maxEvents).toBe(20);
+    });
+  });
+
+  describe('bid', () => {
+    it('should return bid config with default values', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => defaultValue);
+
+      const config = service.bid;
+
+      expect(config.minIncrementPercent).toBe(1);
+      expect(config.minIncrementAbsolute).toBe(0.01);
+    });
+
+    it('should return bid config with custom values', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => {
+        const values: Record<string, unknown> = {
+          BID_MIN_INCREMENT_PERCENT: 5,
+          BID_MIN_INCREMENT_ABSOLUTE: 0.5,
+        };
+        return values[key] ?? defaultValue;
+      });
+
+      const config = service.bid;
+
+      expect(config.minIncrementPercent).toBe(5);
+      expect(config.minIncrementAbsolute).toBe(0.5);
+    });
+  });
+
+  describe('google', () => {
+    it('should return google config when all env vars are set', () => {
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          GOOGLE_CLIENT_ID: 'my-client-id',
+          GOOGLE_CLIENT_SECRET: 'my-client-secret',
+          GOOGLE_CALLBACK_URL: 'http://localhost:3000/auth/google/callback',
+        };
+        return values[key];
+      });
+
+      const config = service.google;
+
+      expect(config.clientId).toBe('my-client-id');
+      expect(config.clientSecret).toBe('my-client-secret');
+      expect(config.callbackUrl).toBe('http://localhost:3000/auth/google/callback');
+    });
+
+    it('should throw when GOOGLE_CLIENT_ID is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'GOOGLE_CLIENT_ID') return undefined;
+        return 'some-value';
+      });
+
+      expect(() => service.google).toThrow('Missing required environment variable: GOOGLE_CLIENT_ID');
+    });
+
+    it('should throw when GOOGLE_CLIENT_SECRET is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'GOOGLE_CLIENT_ID') return 'my-client-id';
+        if (key === 'GOOGLE_CLIENT_SECRET') return undefined;
+        return 'some-value';
+      });
+
+      expect(() => service.google).toThrow('Missing required environment variable: GOOGLE_CLIENT_SECRET');
+    });
+
+    it('should throw when GOOGLE_CALLBACK_URL is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'GOOGLE_CLIENT_ID') return 'my-client-id';
+        if (key === 'GOOGLE_CLIENT_SECRET') return 'my-client-secret';
+        if (key === 'GOOGLE_CALLBACK_URL') return undefined;
+        return 'some-value';
+      });
+
+      expect(() => service.google).toThrow('Missing required environment variable: GOOGLE_CALLBACK_URL');
+    });
+  });
 });

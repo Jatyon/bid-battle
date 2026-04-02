@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { StorageType } from '@shared/file-upload';
-import { IConfigApp, IConfigBid, IConfigFile, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IDatabaseConfig } from './interfaces';
+import { IConfigApp, IConfigBid, IConfigFile, IConfigGoogle, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IDatabaseConfig } from './interfaces';
 import { DatabaseType } from 'typeorm';
 
 @Injectable()
@@ -117,6 +117,14 @@ export class AppConfigService {
     return {
       minIncrementPercent: this.configService.get<number>('BID_MIN_INCREMENT_PERCENT', 1),
       minIncrementAbsolute: this.configService.get<number>('BID_MIN_INCREMENT_ABSOLUTE', 0.01),
+    };
+  }
+
+  get google(): IConfigGoogle {
+    return {
+      clientId: this.requireGet<string>('GOOGLE_CLIENT_ID'),
+      clientSecret: this.requireGet<string>('GOOGLE_CLIENT_SECRET'),
+      callbackUrl: this.requireGet<string>('GOOGLE_CALLBACK_URL'),
     };
   }
 }

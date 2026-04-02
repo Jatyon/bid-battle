@@ -20,7 +20,8 @@ export class SocialAccount {
   providerId: string;
 
   @Column({ name: 'user_id' })
-  userId: string;
+  @Index()
+  userId: number;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

@@ -65,4 +65,9 @@ export const validationSchema = Joi.object({
   // BID
   BID_MIN_INCREMENT_PERCENT: Joi.number().default(1),
   BID_MIN_INCREMENT_ABSOLUTE: Joi.number().default(0.01),
+
+  // GOOGLE OAUTH
+  GOOGLE_CLIENT_ID: Joi.string().optional(),
+  GOOGLE_CLIENT_SECRET: Joi.string().optional(),
+  GOOGLE_CALLBACK_URL: Joi.string().optional(),
 });

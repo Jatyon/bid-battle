@@ -1,6 +1,7 @@
 export * from './public-users.controller';
 export * from './users.controller';
 export * from './user-preferences.service';
+export * from './social-account.service';
 export * from './users.service';
 export * from './users-token.service';
 export * from './users.module';

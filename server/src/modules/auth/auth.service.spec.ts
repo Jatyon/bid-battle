@@ -2,16 +2,19 @@ import { UnauthorizedException, ConflictException, NotFoundException, BadRequest
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UserPreferences, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum } from '@modules/users';
+import { User, UserPreferences, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum, SocialAccountService, UserToken } from '@modules/users';
+import { SocialProviderEnum } from '@modules/users/enums';
+import { SocialAccount } from '@modules/users/entities/social-account.entity';
 import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
 import { createJwtPayload } from '@test/fixtures/auth.fixtures';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
+import { IAuthJwt, IGoogleUser } from './interfaces';
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { UpdateResult } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { IAuthJwt } from './interfaces';
 
 jest.mock('bcrypt', () => ({
   genSalt: jest.fn(),
@@ -25,6 +28,7 @@ describe('AuthService', () => {
   let usersTokenService: DeepMocked<UsersTokenService>;
   let userPreferencesService: DeepMocked<UserPreferencesService>;
   let mailService: DeepMocked<MailService>;
+  let socialAccountService: DeepMocked<SocialAccountService>;
   let authService: AuthService;
 
   const mockI18nService = createMockI18nService();
@@ -43,6 +47,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: createMock<UsersService>() },
         { provide: MailService, useValue: createMock<MailService>() },
         { provide: JwtService, useValue: createMock<JwtService>() },
+        { provide: SocialAccountService, useValue: createMock<SocialAccountService>() },
         {
           provide: AppConfigService,
           useValue: createMock<AppConfigService>({
@@ -65,6 +70,7 @@ describe('AuthService', () => {
     usersTokenService = module.get(UsersTokenService);
     userPreferencesService = module.get(UserPreferencesService);
     mailService = module.get(MailService);
+    socialAccountService = module.get(SocialAccountService);
     authService = module.get<AuthService>(AuthService);
   });
 
@@ -414,6 +420,93 @@ describe('AuthService', () => {
 
       expect(result).toEqual(userWithoutPassword);
       expect(result).not.toHaveProperty('password');
+    });
+  });
+
+  describe('loginWithGoogle', () => {
+    const googleUser: IGoogleUser = {
+      providerId: 'google-id-123',
+      email: 'google@example.com',
+      firstName: 'Jane',
+      lastName: 'Smith',
+      avatar: 'https://example.com/avatar.jpg',
+    };
+
+    it('should return tokens when social account already exists', async () => {
+      const socialAccount = new SocialAccount();
+      Object.assign(socialAccount, {
+        id: 1,
+        provider: SocialProviderEnum.GOOGLE,
+        providerId: googleUser.providerId,
+        userId: mockUser.id,
+        user: mockUser,
+      });
+
+      socialAccountService.findByProvider.mockResolvedValue(socialAccount);
+      usersService.updateBy.mockResolvedValue({} as unknown as UpdateResult);
+      jwtService.signAsync.mockResolvedValue('token' as never);
+      usersTokenService.saveRefreshToken.mockResolvedValue({} as unknown as UserToken);
+
+      const result = await authService.loginWithGoogle(googleUser);
+
+      expect(socialAccountService.findByProvider).toHaveBeenCalledWith(SocialProviderEnum.GOOGLE, googleUser.providerId);
+      expect(usersService.updateBy).toHaveBeenCalledWith({ id: socialAccount.userId }, { lastLoginAt: expect.any(Date) as unknown });
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+    });
+
+    it('should create social account and new user when neither exists', async () => {
+      const newUser = createUserFixture({ id: 2, email: googleUser.email, isEmailVerified: true });
+      const newSocialAccount = new SocialAccount();
+      Object.assign(newSocialAccount, {
+        id: 1,
+        provider: SocialProviderEnum.GOOGLE,
+        providerId: googleUser.providerId,
+        userId: newUser.id,
+        user: newUser,
+      });
+
+      socialAccountService.findByProvider.mockResolvedValue(null);
+      usersService.findOneBy.mockResolvedValue(null);
+      usersService.create.mockReturnValue(newUser);
+      usersService.save.mockResolvedValue(newUser);
+      userPreferencesService.createDefaultPreferences.mockResolvedValue({} as unknown as UserPreferences);
+      socialAccountService.createForUser.mockResolvedValue(newSocialAccount);
+      usersService.updateBy.mockResolvedValue({} as unknown as UpdateResult);
+      jwtService.signAsync.mockResolvedValue('token' as never);
+      usersTokenService.saveRefreshToken.mockResolvedValue({} as unknown as UserToken);
+
+      await authService.loginWithGoogle(googleUser);
+
+      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ email: googleUser.email, isEmailVerified: true }));
+      expect(usersService.save).toHaveBeenCalled();
+      expect(userPreferencesService.createDefaultPreferences).toHaveBeenCalledWith(newUser.id);
+      expect(socialAccountService.createForUser).toHaveBeenCalledWith(SocialProviderEnum.GOOGLE, googleUser.providerId, newUser.id);
+    });
+
+    it('should link social account to existing user when email matches', async () => {
+      const existingUser = createUserFixture({ email: googleUser.email });
+      const newSocialAccount = new SocialAccount();
+      Object.assign(newSocialAccount, {
+        id: 1,
+        provider: SocialProviderEnum.GOOGLE,
+        providerId: googleUser.providerId,
+        userId: existingUser.id,
+        user: existingUser,
+      });
+
+      socialAccountService.findByProvider.mockResolvedValue(null);
+      usersService.findOneBy.mockResolvedValue(existingUser);
+      socialAccountService.createForUser.mockResolvedValue(newSocialAccount);
+      usersService.updateBy.mockResolvedValue({} as unknown as UpdateResult);
+      jwtService.signAsync.mockResolvedValue('token' as never);
+      usersTokenService.saveRefreshToken.mockResolvedValue({} as unknown as UserToken);
+
+      await authService.loginWithGoogle(googleUser);
+
+      expect(usersService.save).not.toHaveBeenCalled();
+      expect(userPreferencesService.createDefaultPreferences).not.toHaveBeenCalled();
+      expect(socialAccountService.createForUser).toHaveBeenCalledWith(SocialProviderEnum.GOOGLE, googleUser.providerId, existingUser.id);
     });
   });
 });

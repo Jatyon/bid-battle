@@ -1,10 +1,11 @@
 import { Injectable, Logger, UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken, UserPreferencesService } from '@modules/users';
+import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken, UserPreferencesService, SocialAccountService } from '@modules/users';
+import { SocialProviderEnum } from '@modules/users/enums';
 import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
-import { IAuthJwt, IAuthJwtPayload } from './interfaces';
+import { IAuthJwt, IAuthJwtPayload, IGoogleUser } from './interfaces';
 import { AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly mailService: MailService,
     private readonly jwtService: JwtService,
+    private readonly socialAccountService: SocialAccountService,
   ) {}
 
   async validateJwtUser(payload: IAuthJwt, i18n: I18nService): Promise<User> {
@@ -216,6 +218,37 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async loginWithGoogle(googleUser: IGoogleUser): Promise<AuthTokens> {
+    let socialAccount = await this.socialAccountService.findByProvider(SocialProviderEnum.GOOGLE, googleUser.providerId);
+
+    if (!socialAccount) {
+      let user = await this.usersService.findOneBy({ email: googleUser.email });
+
+      if (!user) {
+        const newUser = this.usersService.create({
+          email: googleUser.email,
+          firstName: googleUser.firstName,
+          lastName: googleUser.lastName,
+          avatar: googleUser.avatar ?? null,
+          isEmailVerified: true,
+          password: undefined,
+        });
+
+        user = await this.usersService.save(newUser);
+
+        await this.userPreferencesService.createDefaultPreferences(user.id);
+      }
+
+      socialAccount = await this.socialAccountService.createForUser(SocialProviderEnum.GOOGLE, googleUser.providerId, user.id);
+
+      socialAccount.user = user;
+    }
+
+    await this.usersService.updateBy({ id: socialAccount.userId }, { lastLoginAt: new Date() });
+
+    return this.generateAuthTokens(socialAccount.user);
   }
 
   private async sendVerificationEmail(user: User, i18n: I18nContext): Promise<void> {
