@@ -11,8 +11,8 @@ import { Request, Response, NextFunction } from 'express';
 import { WinstonModule } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
 import compression from 'compression';
+import * as express from 'express';
 import * as path from 'path';
-import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -28,11 +28,9 @@ async function bootstrap() {
   app.useWebSocketAdapter(new SocketIoAdapter(app));
 
   app.set('trust proxy', 1);
-  app.use(helmet());
-  app.enableCors({
-    origin: configService.app.corsOrigin,
-    credentials: true,
-  });
+
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   app.use(compression());
 
