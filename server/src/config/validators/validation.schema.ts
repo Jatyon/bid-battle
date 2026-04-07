@@ -70,4 +70,8 @@ export const validationSchema = Joi.object({
   GOOGLE_CLIENT_ID: Joi.string().optional(),
   GOOGLE_CLIENT_SECRET: Joi.string().optional(),
   GOOGLE_CALLBACK_URL: Joi.string().optional(),
+
+  // BULL BOARD
+  BULL_BOARD_USER: Joi.string().optional(),
+  BULL_BOARD_PASSWORD: Joi.string().optional(),
 });

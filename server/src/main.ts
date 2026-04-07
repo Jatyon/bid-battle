@@ -1,17 +1,21 @@
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import { getQueueToken } from '@nestjs/bullmq';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@app/app.module';
 import { LoggingInterceptor, TimeoutInterceptor, TransformInterceptor } from '@core/interceptors';
 import { HttpExceptionFilter } from '@core/filters/http-exception.filter';
 import { SocketIoAdapter } from '@core/adapters/socket-io.adapter';
-import { setupSecurity, setupSwagger, winstonConfig } from '@config/config';
+import { setupBullBoard, setupSecurity, setupSwagger, winstonConfig } from '@config/config';
 import { AppConfigService } from '@config/config.service';
+import { AUCTION_END_QUEUE, AUCTION_START_QUEUE } from '@modules/auctions/auction.constants';
+import { MAIL_QUEUE } from '@shared/mail/mail.constants';
 import { Request, Response, NextFunction } from 'express';
 import { WinstonModule } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
 import compression from 'compression';
 import * as express from 'express';
+import { Queue } from 'bullmq';
 import * as path from 'path';
 
 async function bootstrap() {
@@ -22,6 +26,9 @@ async function bootstrap() {
   const logger = new Logger('APP');
 
   const configService = app.get(AppConfigService);
+
+  const bullQueues = [app.get<Queue>(getQueueToken(AUCTION_START_QUEUE)), app.get<Queue>(getQueueToken(AUCTION_END_QUEUE)), app.get<Queue>(getQueueToken(MAIL_QUEUE))];
+  setupBullBoard(app, bullQueues);
 
   setupSecurity(app);
 
