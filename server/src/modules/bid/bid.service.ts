@@ -23,7 +23,7 @@ export class BidService {
    * Get bids placed by a specific user (My Bids)
    */
   async findMyBids(userId: number, paginator: Paginator): Promise<PaginatorResponse<MyBidResponse>> {
-    const page: number = paginator.page || 1;
+    const page: number = paginator.page;
     const limit: number = paginator.limit;
     const skip: number = paginator.skip;
 

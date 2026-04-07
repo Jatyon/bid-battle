@@ -16,7 +16,7 @@ export class Paginator {
   @Type(() => Number)
   @IsInt({ message: 'error.validation.page_must_be_integer' })
   @Min(1, { message: 'error.validation.page_must_be_at_least_1' })
-  page: number;
+  page: number = 1;
 
   @ApiProperty({
     description: 'Items per page (allowed values: 10, 20, 50)',

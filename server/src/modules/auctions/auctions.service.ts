@@ -129,8 +129,8 @@ export class AuctionsService {
    * @returns Paginated list of auctions matching the criteria
    */
   async findActiveAuctions(query: GetAuctionsQueryDto): Promise<PaginatorResponse<AuctionResponse>> {
-    const page = query.page || 1;
-    const limit = query.limit || 10;
+    const page = query.page;
+    const limit = query.limit;
     const skip = query.skip;
 
     const filters = {
@@ -218,8 +218,8 @@ export class AuctionsService {
    * Get auctions created by a specific user (My Auctions)
    */
   async findMyAuctions(userId: number, paginator: Paginator): Promise<PaginatorResponse<AuctionResponse>> {
-    const page: number = paginator.page || 1;
-    const limit: number = paginator.limit || 10;
+    const page: number = paginator.page;
+    const limit: number = paginator.limit;
     const skip: number = paginator.skip;
 
     const [auctions, total] = await this.auctionsRepository.findPaginatedAuctionsByOwner(userId, skip, limit);
@@ -233,7 +233,7 @@ export class AuctionsService {
    * Get bid history for a specific auction
    */
   async findAuctionBids(auctionId: number, paginator: Paginator, requestingUserId?: number): Promise<PaginatorResponse<BidResponse>> {
-    const page: number = paginator.page || 1;
+    const page: number = paginator.page;
     const limit: number = paginator.limit;
     const skip: number = paginator.skip;
 
