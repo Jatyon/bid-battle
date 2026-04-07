@@ -143,10 +143,16 @@ export class InitAuction1773160752712 implements MigrationInterface {
         name: 'IDX_AUCTIONS_STATUS_START_TIME',
         columnNames: ['status', 'start_time'],
       }),
+      new TableIndex({
+        name: 'IDX_AUCTIONS_TITLE_FULLTEXT',
+        columnNames: ['title'],
+        isFulltext: true,
+      }),
     ]);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_TITLE_FULLTEXT');
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_STATUS');
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_WINNER_ID');
     await queryRunner.dropIndex('auctions', 'IDX_AUCTIONS_OWNER_ID');

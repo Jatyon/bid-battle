@@ -77,7 +77,17 @@ export class InitUsers1770549270677 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndices('users', [new TableIndex({ name: 'IDX_USERS_DELETED_AT', columnNames: ['deleted_at'] })]);
+    await queryRunner.createIndices('users', [
+      new TableIndex({
+        name: 'IDX_USERS_DELETED_AT',
+        columnNames: ['deleted_at'],
+      }),
+      new TableIndex({
+        name: 'IDX_USERS_NAME_FULLTEXT',
+        columnNames: ['first_name', 'last_name'],
+        isFulltext: true,
+      }),
+    ]);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

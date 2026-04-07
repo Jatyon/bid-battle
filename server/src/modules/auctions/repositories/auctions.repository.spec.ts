@@ -77,13 +77,13 @@ describe('AuctionsRepository', () => {
       expect(result).toEqual([[], 0]);
     });
 
-    it('should add LIKE filter when search is provided', async () => {
+    it('should add FULLTEXT filter when search is provided', async () => {
       const qb = buildQbMock([[], 0]);
       spyQb(qb);
 
       await repository.findActiveAuctions(0, 10, { search: 'watch' });
 
-      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%watch%' });
+      expect(qb.andWhere).toHaveBeenCalledWith('MATCH(auction.title) AGAINST (:search IN BOOLEAN MODE)', { search: 'watch*' });
     });
 
     it('should add minPrice filter when minPrice is provided', async () => {
@@ -129,7 +129,7 @@ describe('AuctionsRepository', () => {
 
       await repository.findActiveAuctions(0, 10, { search: '  vintage  ' });
 
-      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%vintage%' });
+      expect(qb.andWhere).toHaveBeenCalledWith('MATCH(auction.title) AGAINST (:search IN BOOLEAN MODE)', { search: 'vintage*' });
     });
 
     it('should not add search filter when search is an empty string', async () => {
@@ -169,7 +169,7 @@ describe('AuctionsRepository', () => {
         minPrice: 50,
       });
 
-      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%shoes%' });
+      expect(qb.andWhere).toHaveBeenCalledWith('MATCH(auction.title) AGAINST (:search IN BOOLEAN MODE)', { search: 'shoes*' });
       expect(qb.andWhere).toHaveBeenCalledWith('auction.category = :category', { category: AuctionCategory.FASHION });
       expect(qb.andWhere).toHaveBeenCalledWith('auction.currentPrice >= :minPrice', { minPrice: 50 });
     });

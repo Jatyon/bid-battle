@@ -8,7 +8,6 @@ describe('UserRepository', () => {
   const mockQueryBuilder = {
     where: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
-    setParameter: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     getOne: jest.fn(),
@@ -56,7 +55,7 @@ describe('UserRepository', () => {
       jest.clearAllMocks();
     });
 
-    it('should apply where clause and default limit when "q" is provided', async () => {
+    it('should apply FULLTEXT where clause and default limit when "q" is provided', async () => {
       const queryDto = { q: 'Jan' };
       const mockUsers = [{ id: 1, firstName: 'Jan' }];
       mockQueryBuilder.getMany.mockResolvedValue(mockUsers);
@@ -64,21 +63,19 @@ describe('UserRepository', () => {
       const result = await repository.searchUsers(queryDto);
 
       expect(repository.createQueryBuilder).toHaveBeenCalledWith('user');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('user.firstName LIKE :search OR user.lastName LIKE :search', { search: '%Jan%' });
-      expect(mockQueryBuilder.setParameter).toHaveBeenCalledWith('escape', '\\');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('MATCH(user.firstName, user.lastName) AGAINST (:search IN BOOLEAN MODE)', { search: 'Jan*' });
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('user.createdAt', 'DESC');
       expect(mockQueryBuilder.getMany).toHaveBeenCalled();
       expect(result).toEqual(mockUsers);
     });
 
-    it('should escape LIKE special characters (%, _, \\) in search query', async () => {
+    it('should trim whitespace from search query', async () => {
       mockQueryBuilder.getMany.mockResolvedValue([]);
 
-      await repository.searchUsers({ q: '100%_test\\path' });
+      await repository.searchUsers({ q: '  Anna  ' });
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('user.firstName LIKE :search OR user.lastName LIKE :search', { search: '%100\\%\\_test\\\\path%' });
-      expect(mockQueryBuilder.setParameter).toHaveBeenCalledWith('escape', '\\');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('MATCH(user.firstName, user.lastName) AGAINST (:search IN BOOLEAN MODE)', { search: 'Anna*' });
     });
 
     it('should NOT apply where clause if "q" is omitted, and use provided limit', async () => {

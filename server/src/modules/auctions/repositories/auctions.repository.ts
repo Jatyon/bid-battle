@@ -18,7 +18,7 @@ export class AuctionsRepository extends Repository<Auction> {
       .leftJoinAndSelect('auction.winner', 'winner')
       .where('auction.status = :status', { status: AuctionStatus.ACTIVE });
 
-    if (search?.trim()) qb.andWhere('auction.title LIKE :search', { search: `%${search.trim()}%` });
+    if (search?.trim()) qb.andWhere('MATCH(auction.title) AGAINST (:search IN BOOLEAN MODE)', { search: `${search.trim()}*` });
 
     if (category) qb.andWhere('auction.category = :category', { category });
 
