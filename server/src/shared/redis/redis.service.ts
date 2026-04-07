@@ -468,6 +468,24 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Returns the number of **unique users** currently in the auction room.
+   * Unlike `getAuctionParticipantsCount` (which counts socket entries),
+   * this deduplicates users who have multiple open tabs / devices.
+   *
+   * @param auctionId - The ID of the auction.
+   * @returns The count of distinct user IDs present in the room.
+   */
+  async getUniqueParticipantsCount(auctionId: number): Promise<number> {
+    try {
+      const values = await this.redis.hvals(RedisKey.auctionParticipants(auctionId));
+      return new Set(values).size;
+    } catch (error: unknown) {
+      this.handleError(`Get unique participants count error for auction "${auctionId}"`, error);
+      return 0;
+    }
+  }
+
+  /**
    * Retrieves the auction ID currently assigned to a specific socket.
    * Acts as the source of truth for multi-server/load-balanced environments.
    *
