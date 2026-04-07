@@ -73,9 +73,14 @@ export abstract class BaseGateway implements OnGatewayInit, OnGatewayConnection,
   }
 
   private getLang(client: Socket): string {
-    const lang = client.handshake.headers?.['accept-language']?.trim();
+    const raw = client.handshake.headers?.['accept-language']?.trim();
 
-    if (lang && /^[a-zA-Z]{2,3}$/.test(lang)) return lang.toLowerCase();
+    if (!raw) return 'en';
+
+    const primaryTag = raw.split(',')[0].trim().split(';')[0].trim();
+    const lang = primaryTag.split('-')[0].toLowerCase();
+
+    if (/^[a-z]{2,3}$/.test(lang)) return lang;
 
     return 'en';
   }
