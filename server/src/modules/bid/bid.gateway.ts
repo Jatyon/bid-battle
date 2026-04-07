@@ -68,8 +68,29 @@ export class BidGateway extends BaseGateway {
 
       await Promise.all([this.redisService.removeUserFromAuctionRoom(auctionId, client.id), this.redisService.deleteSocketAuction(user.sub, client.id)]);
       this.logger.log(`User disconnected: ${client.id} - ${user.email} (Removed from auction ${auctionId})`);
+
+      await this.emitPresenceUpdate(auctionId);
     } catch (error) {
       this.logger.error(`Error during disconnect cleanup for client ${client.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Broadcasts the current unique participant count to all clients in the auction room.
+   * Called after every join, leave, and disconnect to keep the presence count in sync.
+   *
+   * @param auctionId - The ID of the auction room to update.
+   */
+  private async emitPresenceUpdate(auctionId: number): Promise<void> {
+    try {
+      const count = await this.redisService.getUniqueParticipantsCount(auctionId);
+      this.server.to(`auction_room_${auctionId}`).emit('presence:update', {
+        auctionId,
+        participantsCount: count,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.error(`Error emitting presence update for auction ${auctionId}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -98,6 +119,8 @@ export class BidGateway extends BaseGateway {
         if (client.data.user) {
           await Promise.all([this.redisService.removeUserFromAuctionRoom(previousAuctionId, client.id), this.redisService.deleteSocketAuction(client.data.user.sub, client.id)]);
         }
+
+        await this.emitPresenceUpdate(previousAuctionId);
       }
 
       await client.join(`auction_room_${data.auctionId}`);
@@ -122,6 +145,8 @@ export class BidGateway extends BaseGateway {
       this.logger.log(`User ${client.data.user.email} (Socket: ${client.id}) joined auction ${data.auctionId}`);
 
       client.emit('joined:auction', responsePayload);
+
+      await this.emitPresenceUpdate(data.auctionId);
     } catch (error) {
       this.logger.error(`Error joining auction: ${error instanceof Error ? error.message : String(error)}`);
 
@@ -157,12 +182,73 @@ export class BidGateway extends BaseGateway {
       this.logger.log(`User ${client.data.user.email} (Socket: ${client.id}) left auction ${data.auctionId}`);
 
       client.emit('left:auction', responsePayload);
+
+      await this.emitPresenceUpdate(data.auctionId);
     } catch (error) {
       this.logger.error(`Error leaving auction: ${error instanceof Error ? error.message : String(error)}`);
 
       client.emit('exception', {
         message: this.i18n.translate('bid.error.leave_failed', { lang: client.data.lang }),
         code: 'LEAVE_AUCTION_ERROR',
+      });
+    }
+  }
+
+  /**
+   * Handles reconnection after a dropped connection.
+   * The client re-authenticates and re-joins the previously active auction room
+   * without needing to know the auction ID from UI state alone.
+   *
+   * @remarks
+   * The client must send the `auctionId` it was watching before the disconnect.
+   * The handler performs a full validation: auction active check, optional JWT re-auth,
+   * and Redis state restoration — identical to a fresh `join:auction` flow.
+   * This makes reconnect idempotent and safe to call multiple times.
+   */
+  @SubscribeMessage('rejoin:auction')
+  async handleRejoinAuction(@MessageBody() data: AuctionIdDto, @ConnectedSocket() client: IAuthSocket) {
+    try {
+      const isActive = await this.redisService.isAuctionActive(data.auctionId);
+
+      if (!isActive) {
+        client.emit('auction:ended', {
+          auctionId: data.auctionId,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const user = await this.wsJwtGuard.validateOptional(client);
+      client.data.user = user ?? undefined;
+
+      await client.join(`auction_room_${data.auctionId}`);
+      client.data.auctionId = data.auctionId;
+
+      if (client.data.user) {
+        await Promise.all([
+          this.redisService.addUserToAuctionRoom(data.auctionId, client.id, client.data.user.sub),
+          this.redisService.setSocketAuction(client.data.user.sub, client.id, data.auctionId),
+        ]);
+      }
+
+      const requestingUserId = client.data.user?.sub;
+      const state = await this.bidService.getCurrentState(data.auctionId, requestingUserId);
+
+      client.emit('rejoined:auction', {
+        auctionId: data.auctionId,
+        ...state,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Client ${client.id} rejoined auction ${data.auctionId} (user: ${client.data.user?.email ?? 'guest'})`);
+
+      if (client.data.user) await this.emitPresenceUpdate(data.auctionId);
+    } catch (error) {
+      this.logger.error(`Error rejoining auction: ${error instanceof Error ? error.message : String(error)}`);
+
+      client.emit('exception', {
+        message: this.i18n.translate('bid.error.join_failed', { lang: client.data.lang }),
+        code: 'REJOIN_AUCTION_ERROR',
       });
     }
   }
