@@ -33,9 +33,12 @@ export class AuctionScheduler {
    * @returns A promise resolving when the job is successfully added to the queue.
    */
   async scheduleAuctionStart(auctionId: number, startsAt: Date): Promise<void> {
-    const delay = startsAt.getTime() - Date.now();
+    let delay = startsAt.getTime() - Date.now();
 
-    if (delay <= 0) this.logger.warn(`Auction ${auctionId} start time is in the past — starting immediately`);
+    if (delay <= 0) {
+      this.logger.warn(`Auction ${auctionId} start time is in the past — starting immediately`);
+      delay = 2000;
+    }
 
     await this.auctionStartQueue.add(
       'start-auction',
@@ -93,9 +96,12 @@ export class AuctionScheduler {
    * @returns A promise resolving when the job is successfully added to the queue.
    */
   async scheduleAuctionEnd(auctionId: number, endsAt: Date): Promise<void> {
-    const delay = endsAt.getTime() - Date.now();
+    let delay = endsAt.getTime() - Date.now();
 
-    if (delay <= 0) this.logger.warn(`Auction ${auctionId} end time is in the past — ending immediately`);
+    if (delay <= 0) {
+      this.logger.warn(`Auction ${auctionId} end time is in the past — ending immediately`);
+      delay = 2000;
+    }
 
     await this.auctionEndQueue.add(
       'end-auction',
