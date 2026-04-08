@@ -10,6 +10,7 @@
     "amount_too_high": "Bid amount exceeds the maximum allowed value.",
     "outbid": "You have been outbid by a higher offer.",
     "owner_cannot_bid": "Auction owners cannot bid on their own auctions.",
+    "already_leading": "You are already leading this auction.",
     "join_failed": "Failed to join the auction room.",
     "leave_failed": "Failed to leave the auction room.",
     "place_failed": "Failed to place your bid. Please try again.",

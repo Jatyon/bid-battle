@@ -2,6 +2,7 @@ import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from
 import { Logger, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { BaseGateway } from '@core/gateways/base.gateway';
+import { Language } from '@core/enums';
 import { AuthService, IAuthJwtPayload, type IAuthSocket } from '@modules/auth';
 import { WsJwtGuard } from '@modules/auth/guards/ws-jwt.guard';
 import { UsersService } from '@modules/users';
@@ -260,8 +261,10 @@ export class BidGateway extends BaseGateway {
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('place:bid')
   async handlePlaceBid(@MessageBody() data: PlaceBidDto, @ConnectedSocket() client: IAuthSocket) {
+    const lang: Language = client.data.lang;
+
     const rejectBid = async (code: string, reasonKey: string, extraData = {}) => {
-      const reason = await this.i18n.translate(reasonKey, { lang: client.data.lang });
+      const reason = await this.i18n.translate(reasonKey, { lang });
       client.emit('bid:rejected', { reason, code, ...extraData });
     };
 
@@ -285,10 +288,10 @@ export class BidGateway extends BaseGateway {
 
       if (redisAuctionId !== auctionId) return await rejectBid('NOT_IN_AUCTION_ROOM', 'bid.error.not_in_room');
 
-      const bidResult = await this.bidService.placeBid(auctionId, userId, data.amount);
+      const bidResult = await this.bidService.placeBid(auctionId, userId, data.amount, lang);
 
       if (!bidResult.success) {
-        const reason = bidResult.reason || (await this.i18n.translate('bid.error.rejected_too_low', { lang: client.data.lang }));
+        const reason = bidResult.reason || (await this.i18n.translate('bid.error.rejected_too_low', { lang }));
 
         client.emit('bid:rejected', {
           reason,

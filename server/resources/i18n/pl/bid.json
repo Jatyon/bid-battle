@@ -10,6 +10,7 @@
     "amount_too_high": "Kwota oferty przekracza maksymalną dozwoloną wartość.",
     "outbid": "Ktoś ubiegł Cię z wyższą ofertą.",
     "owner_cannot_bid": "Właściciel aukcji nie może licytować we własnej aukcji.",
+    "already_leading": "Już prowadzisz w tej aukcji.",
     "join_failed": "Nie udało się dołączyć do pokoju aukcji.",
     "leave_failed": "Nie udało się opuścić pokoju aukcji.",
     "place_failed": "Nie udało się złożyć oferty. Spróbuj ponownie.",

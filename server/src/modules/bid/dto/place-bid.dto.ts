@@ -7,8 +7,8 @@ export class PlaceBidDto {
     description: 'Bid amount expressed as a whole integer in the smallest currency unit ' + '(e.g. grosz: 100 = 1.00 PLN). Must be between 1 and 999 999 999.',
     example: 2500,
   })
-  @IsInt({ message: 'error.validation.bid.amount_must_be_integer' })
-  @Min(1, { message: 'error.validation.bid.amount_must_be_positive' })
-  @Max(AUCTION_PRICE_MAX, { message: 'error.validation.bid.amount_too_high' })
+  @IsInt({ message: 'bid.error.amount_must_be_integer' })
+  @Min(1, { message: 'bid.error.amount_must_be_positive' })
+  @Max(AUCTION_PRICE_MAX, { message: 'bid.error.amount_too_high' })
   amount: number;
 }

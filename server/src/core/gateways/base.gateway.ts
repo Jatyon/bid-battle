@@ -1,5 +1,6 @@
 import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketServer } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
+import { Language } from '@core/enums';
 import { AppConfigService } from '@config/config.service';
 import { AuthService, IAuthSocket } from '@modules/auth';
 import { UsersService } from '@modules/users';
@@ -72,16 +73,16 @@ export abstract class BaseGateway implements OnGatewayInit, OnGatewayConnection,
     });
   }
 
-  private getLang(client: Socket): string {
+  private getLang(client: Socket): Language {
     const raw = client.handshake.headers?.['accept-language']?.trim();
 
-    if (!raw) return 'en';
+    if (!raw) return Language.EN;
 
     const primaryTag = raw.split(',')[0].trim().split(';')[0].trim();
-    const lang = primaryTag.split('-')[0].toLowerCase();
+    const lang: Language = primaryTag.split('-')[0].toLowerCase() as Language;
 
     if (/^[a-z]{2,3}$/.test(lang)) return lang;
 
-    return 'en';
+    return Language.EN;
   }
 }

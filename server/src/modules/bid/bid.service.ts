@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { Paginator, PaginatorResponse } from '@core/models';
+import { Language } from '@core/enums';
 import { RedisService, BidRejectionCode } from '@shared/redis';
 import { BidRepository } from './repositories/bid.repository';
 import { IAuctionState, IBidResult } from './interfaces';
@@ -51,9 +52,9 @@ export class BidService {
    * @param amount - The monetary amount the user wants to bid.
    * @returns An object containing the success status, and error details/current prices if applicable.
    */
-  async placeBid(auctionId: number, userId: number, amount: number): Promise<IBidResult> {
+  async placeBid(auctionId: number, userId: number, amount: number, lang: Language): Promise<IBidResult> {
     try {
-      if (amount <= 0 || !Number.isFinite(amount)) return this.fail('INVALID_AMOUNT', 'bid.error.invalid_amount');
+      if (amount <= 0 || !Number.isFinite(amount)) return this.fail('INVALID_AMOUNT', 'bid.error.invalid_amount', lang);
 
       const [ownerIdFromRedis, isActive, currentPrice] = await Promise.all([
         this.redisService.getAuctionOwner(auctionId),
@@ -63,12 +64,12 @@ export class BidService {
 
       if (ownerIdFromRedis === null) {
         this.logger.warn(`Owner key missing in Redis for auction ${auctionId} — blocking bid as fail-safe`);
-        return this.fail('AUCTION_ENDED', 'bid.error.auction_ended');
+        return this.fail('AUCTION_ENDED', 'bid.error.auction_ended', lang);
       }
 
-      if (ownerIdFromRedis === userId) return this.fail('OWNER_CANNOT_BID', 'bid.error.owner_cannot_bid');
+      if (ownerIdFromRedis === userId) return this.fail('OWNER_CANNOT_BID', 'bid.error.owner_cannot_bid', lang);
 
-      if (!isActive) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended');
+      if (!isActive) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended', lang);
 
       const { minIncrementPercent, minIncrementAbsolute } = this.configService.bid;
       const minIncrement = calcMinIncrement(currentPrice ?? 0, minIncrementPercent, minIncrementAbsolute);
@@ -76,7 +77,7 @@ export class BidService {
       if (currentPrice !== null && amount < currentPrice + minIncrement)
         return {
           success: false,
-          reason: await this.i18n.translate('bid.error.bid_too_low_#minBid', { args: { minBid: currentPrice + minIncrement } }),
+          reason: await this.i18n.translate('bid.error.bid_too_low_#minBid', { lang, args: { minBid: currentPrice + minIncrement } }),
           code: 'BID_TOO_LOW',
           currentPrice,
           minNextBid: currentPrice + minIncrement,
@@ -97,7 +98,7 @@ export class BidService {
           this.logger.error(`DB save failed after atomic bid — rolling back Redis for auction ${auctionId}`, dbError instanceof Error ? dbError.stack : String(dbError));
 
           await this.redisService.rollbackBid(auctionId, atomicResult.data.previousPrice, atomicResult.data.previousBidderId);
-          return this.fail('SERVER_ERROR', 'bid.error.bid_failed');
+          return this.fail('SERVER_ERROR', 'bid.error.bid_failed', lang);
         }
 
         this.logger.log(`Bid placed: auction=${auctionId}, user=${userId}, amount=${amount}`);
@@ -110,24 +111,24 @@ export class BidService {
         const newCurrentPrice = await this.redisService.getLivePrice(auctionId);
         return {
           success: false,
-          reason: await this.i18n.translate('bid.error.already_leading'),
+          reason: await this.i18n.translate('bid.error.already_leading', { lang }),
           code: 'ALREADY_LEADING',
           currentPrice: newCurrentPrice ?? undefined,
         };
       }
 
-      if (rejectionCode === BidRejectionCode.AUCTION_INACTIVE) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended');
+      if (rejectionCode === BidRejectionCode.AUCTION_INACTIVE) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended', lang);
 
       const newCurrentPrice = await this.redisService.getLivePrice(auctionId);
       return {
         success: false,
-        reason: await this.i18n.translate('bid.error.outbid'),
+        reason: await this.i18n.translate('bid.error.outbid', { lang }),
         code: 'OUTBID',
         currentPrice: newCurrentPrice ?? undefined,
       };
     } catch (error) {
       this.logger.error(`Error placing bid: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
-      return this.fail('SERVER_ERROR', 'bid.error.bid_failed');
+      return this.fail('SERVER_ERROR', 'bid.error.bid_failed', lang);
     }
   }
 
@@ -174,10 +175,10 @@ export class BidService {
    * @param i18nKey - The translation key for the error message.
    * @returns A consistent IBidResult object indicating failure.
    */
-  private async fail(code: string, i18nKey: string): Promise<IBidResult> {
+  private async fail(code: string, i18nKey: string, lang: Language): Promise<IBidResult> {
     return {
       success: false,
-      reason: await this.i18n.translate(i18nKey),
+      reason: await this.i18n.translate(i18nKey, { lang }),
       code,
     };
   }

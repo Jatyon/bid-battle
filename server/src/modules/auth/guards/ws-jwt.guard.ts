@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
+import { Language } from '@core/enums';
 import { IAuthJwt, IAuthJwtPayload, IAuthSocket } from '../interfaces';
 import { AuthService } from '../auth.service';
 import { I18nService } from 'nestjs-i18n';
@@ -41,17 +42,14 @@ export class WsJwtGuard implements CanActivate {
    */
   async validateClient(client: IAuthSocket): Promise<IAuthJwtPayload> {
     const token = this.extractTokenFromHandshake(client);
+    const lang: Language = client.data.lang;
 
-    if (!token) {
-      throw new WsException(await this.i18n.translate('auth.errors.no_token'));
-    }
+    if (!token) throw new WsException(await this.i18n.translate('auth.errors.no_token', { lang }));
 
     const payload: IAuthJwt = this.verifyToken(token);
     const user = await this.authService.validateJwtUser(payload, this.i18n);
 
-    if (!user) {
-      throw new WsException(await this.i18n.translate('error.Unauthorized'));
-    }
+    if (!user) throw new WsException(await this.i18n.translate('error.Unauthorized', { lang }));
 
     client.data.user = payload;
     return payload;
@@ -92,10 +90,11 @@ export class WsJwtGuard implements CanActivate {
    */
   async revalidateSocket(client: IAuthSocket): Promise<IAuthJwtPayload> {
     const token = this.extractTokenFromHandshake(client);
+    const lang: Language = client.data.lang;
 
     if (!token) {
       client.data.user = undefined;
-      throw new WsException(await this.i18n.translate('auth.errors.no_token'));
+      throw new WsException(await this.i18n.translate('auth.errors.no_token', { lang }));
     }
 
     let payload: IAuthJwt;
@@ -104,14 +103,14 @@ export class WsJwtGuard implements CanActivate {
       payload = await this.jwtService.verifyAsync<IAuthJwt>(token);
     } catch {
       client.data.user = undefined;
-      throw new WsException(await this.i18n.translate('auth.errors.invalid_token'));
+      throw new WsException(await this.i18n.translate('auth.errors.invalid_token', { lang }));
     }
 
     const user = await this.authService.validateJwtUser(payload, this.i18n);
 
     if (!user) {
       client.data.user = undefined;
-      throw new WsException(await this.i18n.translate('error.Unauthorized'));
+      throw new WsException(await this.i18n.translate('error.Unauthorized', { lang }));
     }
 
     client.data.user = payload;
