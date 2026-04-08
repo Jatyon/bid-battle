@@ -9,11 +9,16 @@ FROM node:22-alpine
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
 
+RUN apk add --no-cache mysql-client
+
 COPY package*.json ./
 
 RUN npm ci --only=production
 
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/resources ./resources
+COPY entrypoint.prod.sh ./entrypoint.prod.sh
 
-CMD ["node", "dist/main"]
+RUN chmod +x entrypoint.prod.sh
+
+CMD ["sh", "entrypoint.prod.sh"]

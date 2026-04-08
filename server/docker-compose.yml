@@ -13,6 +13,12 @@ services:
       - mysql_data_dev:/var/lib/mysql
     networks:
       - app-network
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', '${DATABASE_USER}', '--password=${DATABASE_PASSWORD}', '--ssl-mode=DISABLED']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:alpine
@@ -33,19 +39,19 @@ services:
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
-      - /usr/src/app/dist
     ports:
       - '${PORT:-3000}:3000'
     env_file:
       - .env
     environment:
       NODE_ENV: development
-      DATABASE_HOST: mysql
+      DATABASE_HOST: bidapp_mysql_dev
       REDIS_HOST: redis
-
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - app-network
 
