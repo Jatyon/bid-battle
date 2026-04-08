@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe, Delete, Patch } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiPayloadTooLargeResponse } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse, Paginator, PaginatorResponse } from '@core/models';
@@ -41,6 +41,7 @@ export class AuctionsController {
     },
   })
   @ApiStandardResponse(UploadedFileDto, true)
+  @ApiPayloadTooLargeResponse({ description: 'Payload Too Large: uploaded files are too large' })
   @ApiBearerAuth('jwt-auth')
   @HttpCode(200)
   @Post('/upload-images')

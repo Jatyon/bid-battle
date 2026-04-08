@@ -1,4 +1,4 @@
-import { ApiTags, ApiOperation, ApiUnauthorizedResponse, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiUnauthorizedResponse, ApiBearerAuth, ApiConsumes, ApiBody, ApiPayloadTooLargeResponse } from '@nestjs/swagger';
 import { Controller, Get, Put, Body, UseGuards, HttpCode, Delete, ClassSerializerInterceptor, UseInterceptors, Patch, Post, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser } from '@core/decorators';
@@ -70,6 +70,7 @@ export class UsersController {
     },
   })
   @ApiStandardResponse(User, false)
+  @ApiPayloadTooLargeResponse({ description: 'Payload Too Large: uploaded file is too large' })
   @Post('/avatar')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('file'))

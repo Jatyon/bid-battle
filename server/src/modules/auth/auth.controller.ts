@@ -1,4 +1,4 @@
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiConflictResponse } from '@nestjs/swagger';
 import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
@@ -21,7 +21,9 @@ export class AuthController {
     description: 'Create a new user account with email and password',
   })
   @ApiStandardResponse(MessageResponse, false)
+  @ApiConflictResponse({ description: 'Email already exists' })
   @Public()
+  @HttpCode(200)
   @Post('register')
   async register(@Body() registerDto: AuthRegisterDto, @I18n() i18n: I18nContext): Promise<MessageResponse> {
     await this.authService.register(registerDto, i18n);
