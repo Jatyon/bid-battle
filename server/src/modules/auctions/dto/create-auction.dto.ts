@@ -64,13 +64,13 @@ export class CreateAuctionDto {
   @ApiProperty({
     description: 'Array of auction image URLs (at least one image is required)',
     type: [String],
-    example: ['/uploads/2026/03/abc-123.jpg', '/uploads/2026/03/def-456.jpg'],
+    example: ['2026/03/auction/re90edae42366994.jpg', '2026/03/auction/7e90e8ae42366994.jpg'],
   })
   @IsArray()
   @ArrayMinSize(1, { message: 'error.validation.auction.images_must_have_at_least_one_image' })
   @ArrayMaxSize(10, { message: 'error.validation.auction.images_too_many' })
   @IsString({ each: true, message: 'error.validation.auction.image_url_must_be_string' })
-  @Matches(/^\/uploads\/[\w\-/.]+$/, {
+  @Matches(/^\d{4}\/\d{2}\/[\w\-/.]+\.(jpg|jpeg|png)$/i, {
     each: true,
     message: 'error.validation.auction.image_url_invalid_format',
   })

@@ -1,6 +1,5 @@
 export * from './auction-detail-response.dto';
 export * from './uploaded-file-response.dto';
-export * from './uplaoad-auction-images.dto';
 export * from './update-auction-images.dto';
 export * from './get-auctions-query.dto';
 export * from './auction-response.dto';

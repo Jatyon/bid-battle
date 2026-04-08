@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, HttpCode, UseInterceptors, UploadedFiles, BadRequestException, Get, Query, Param, ParseIntPipe, Delete, Patch } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
-import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse, Paginator, PaginatorResponse } from '@core/models';
 import { OptionalJwtAuthGuard } from '@modules/auth/guards/optional-jwt-auth.guard';
@@ -8,16 +8,7 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { BidResponse } from '@modules/bid';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
-import {
-  AuctionDetailResponse,
-  AuctionResponse,
-  CreateAuctionDto,
-  GetAuctionsQueryDto,
-  UploadAuctionImagesDto,
-  UploadedFileDto,
-  UpdateAuctionDto,
-  UpdateAuctionImagesDto,
-} from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto } from './dto';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -31,23 +22,36 @@ export class AuctionsController {
 
   @ApiOperation({
     summary: 'Upload auction images',
-    description: 'Upload multiple images for an auction. Returns array of uploaded file URLs.',
+    description: 'Upload multiple images for an auction (max 10). Supported formats: jpg, png.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+          description: 'Auction images (max 10 files)',
+        },
+      },
+    },
   })
   @ApiStandardResponse(UploadedFileDto, true)
   @ApiBearerAuth('jwt-auth')
-  @ApiConsumes('multipart/form-data')
   @HttpCode(200)
   @Post('/upload-images')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
-  async uploadAuctionImages(
-    @UploadedFiles() files: { images?: Express.Multer.File[] },
-    @Body() uploadDto: UploadAuctionImagesDto,
-    @I18n() i18n: I18nContext,
-  ): Promise<UploadedFileDto[]> {
-    if (!files?.images || files.images.length === 0) throw new BadRequestException(i18n.t('error.validation.file.no_file_provided'));
+  @UseInterceptors(FilesInterceptor('images', 10))
+  async uploadAuctionImages(@UploadedFiles() files: Express.Multer.File[], @I18n() i18n: I18nContext): Promise<UploadedFileDto[]> {
+    if (!files || files.length === 0) {
+      throw new BadRequestException(i18n.t('error.validation.file.no_file_provided'));
+    }
 
-    const uploadedFiles = await this.fileUploadService.uploadMultiple(files.images, this.fileUploadService.getAuctionImageUploadOptions(), i18n);
+    const uploadedFiles = await this.fileUploadService.uploadMultiple(files, this.fileUploadService.getAuctionImageUploadOptions(), i18n);
 
     return uploadedFiles.map((file) => new UploadedFileDto(file));
   }

@@ -5,7 +5,7 @@ import { createAuctionResponseFixture, createAuctionDetailResponseFixture, creat
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { FileUploadService, IUploadOptions, IUploadedFile } from '@shared/file-upload';
-import { AuctionResponse, GetAuctionsQueryDto, UploadAuctionImagesDto, UpdateAuctionDto, UpdateAuctionImagesDto, UploadedFileDto } from './dto';
+import { AuctionResponse, GetAuctionsQueryDto, UpdateAuctionDto, UpdateAuctionImagesDto, UploadedFileDto } from './dto';
 import { AuctionsController } from './auctions.controller';
 import { AuctionsService } from './auctions.service';
 import { AuctionStatus } from './enums';
@@ -232,7 +232,7 @@ describe('AuctionsController', () => {
         images: mockFiles,
       };
 
-      const uploadDto: UploadAuctionImagesDto = { images: [] };
+      const uploadDto = { images: [] };
 
       const uploadedFiles: IUploadedFile[] = [
         {
@@ -258,11 +258,11 @@ describe('AuctionsController', () => {
     it('should throw BadRequestException when no files are provided', async () => {
       const mockEmptyFiles = { images: undefined } as unknown as { images: Express.Multer.File[] };
 
-      await expect(controller.uploadAuctionImages(mockEmptyFiles, {} as UploadAuctionImagesDto, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(controller.uploadAuctionImages(mockEmptyFiles, {} , mockI18n)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when images array is empty', async () => {
-      await expect(controller.uploadAuctionImages({ images: [] }, {} as UploadAuctionImagesDto, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(controller.uploadAuctionImages({ images: [] }, {}, mockI18n)).rejects.toThrow(BadRequestException);
     });
   });
 
