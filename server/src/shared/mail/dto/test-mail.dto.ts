@@ -18,7 +18,7 @@ export class TestMailDto {
     default: Language.EN,
     required: false,
   })
-  @IsEnum(Language, { message: 'error.validation.invalid_language' })
+  @IsEnum(Language, { message: 'error.validation.lang_must_be_allowed_value' })
   @IsOptional()
   lang?: Language;
 }

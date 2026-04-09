@@ -28,7 +28,7 @@ export class AuthService {
   async validateJwtUser(payload: IAuthJwt, i18n: I18nService): Promise<User> {
     const user = await this.usersService.findOneBy({ id: payload.sub });
 
-    if (!user) throw new UnauthorizedException(i18n.t('users.user_not_found'));
+    if (!user) throw new UnauthorizedException(i18n.t('user.error.user_not_found'));
 
     if (user.passwordChangedAt && payload.iat != null) {
       const passwordChangedAtSeconds = Math.floor(user.passwordChangedAt.getTime() / 1000);
