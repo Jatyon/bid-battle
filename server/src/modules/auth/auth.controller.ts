@@ -1,5 +1,5 @@
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiConflictResponse } from '@nestjs/swagger';
 import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConflictResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
@@ -36,11 +36,7 @@ export class AuthController {
     summary: 'User login',
     description: 'Authenticate user and return JWT tokens',
   })
-  @ApiOkResponse({
-    description: 'Login successful',
-    type: AuthTokens,
-  })
-  @ApiBadRequestResponse({ description: 'Invalid credentials' })
+  @ApiStandardResponse(AuthTokens, false)
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -52,11 +48,7 @@ export class AuthController {
     summary: 'Refresh access token',
     description: 'Get new access token using refresh token',
   })
-  @ApiOkResponse({
-    description: 'Token refreshed successfully',
-    type: AuthTokens,
-  })
-  @ApiBadRequestResponse({ description: 'Invalid refresh token' })
+  @ApiStandardResponse(AuthTokens, false)
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -98,7 +90,6 @@ export class AuthController {
   })
   @ApiStandardResponse(MessageResponse, false)
   @ApiBearerAuth('jwt-auth')
-  @ApiUnauthorizedResponse({ description: 'Authentication required' })
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('change-password')
@@ -144,11 +135,7 @@ export class AuthController {
     // Passport handles the redirect
   }
 
-  @ApiOperation({
-    summary: 'Google OAuth2 callback',
-    description: 'Handles Google OAuth2 callback and returns JWT tokens',
-  })
-  @ApiOkResponse({ description: 'Login successful', type: AuthTokens })
+  @ApiExcludeEndpoint()
   @Public()
   @UseGuards(GoogleOAuthGuard)
   @Get('google/callback')
@@ -162,7 +149,6 @@ export class AuthController {
   })
   @ApiStandardResponse(User, false)
   @ApiBearerAuth('jwt-auth')
-  @ApiUnauthorizedResponse({ description: 'Authentication required' })
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(ClassSerializerInterceptor)
   @Get('me')

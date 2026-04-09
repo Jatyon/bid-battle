@@ -37,7 +37,6 @@ export class User {
   @Column({ name: 'avatar', type: 'varchar', length: 255, nullable: true })
   avatar?: string | null;
 
-  @ApiProperty({ description: 'Whether the user email address has been verified', example: false })
   @Column({ name: 'is_email_verified', type: 'boolean', default: false })
   @Exclude()
   isEmailVerified: boolean;
