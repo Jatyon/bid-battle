@@ -6,10 +6,7 @@ import { Exclude } from 'class-transformer';
 
 @Entity({ name: 'user_preferences' })
 export class UserPreferences {
-  @ApiProperty({
-    description: 'User ID (foreign key and primary key)',
-    example: 1,
-  })
+  @Exclude()
   @PrimaryColumn({ name: 'user_id', type: 'int' })
   userId: number;
 
