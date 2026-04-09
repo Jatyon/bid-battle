@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 import { AppConfigService } from '@config/config.service';
+import { Language } from '@core/enums';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
 import { AuthService, IAuthJwtPayload, IAuthSocket } from '@modules/auth';
 import { WsJwtGuard } from '@modules/auth/guards/ws-jwt.guard';
@@ -17,7 +18,7 @@ import { createMock, DeepMocked } from '@golevelup/ts-jest';
 const createMockClient = (overrides: Partial<IAuthSocket['data']> = {}): DeepMocked<IAuthSocket> => {
   const client = createMock<IAuthSocket>();
   Object.defineProperty(client, 'id', { value: 'socket-test-id', writable: true });
-  client.data = { lang: 'en', ...overrides };
+  client.data = { lang: Language.EN, ...overrides };
   return client;
 };
 
@@ -225,6 +226,15 @@ describe('BidGateway', () => {
   describe('handleLeaveAuction', () => {
     const data: AuctionIdDto = { auctionId: 10 };
 
+    it('should log error and not throw when emitPresenceUpdate fails inside handleLeaveAuction', async () => {
+      const client = createMockClient({ user: mockUser });
+      redisService.removeUserFromAuctionRoom.mockResolvedValue(undefined);
+      redisService.deleteSocketAuction.mockResolvedValue(undefined);
+      redisService.getUniqueParticipantsCount.mockRejectedValue(new Error('Redis error'));
+
+      await expect(gateway.handleLeaveAuction(data, client)).resolves.not.toThrow();
+    });
+
     it('should leave room, emit left:auction, and clean Redis for authenticated user', async () => {
       const client = createMockClient({ user: mockUser });
       redisService.removeUserFromAuctionRoom.mockResolvedValue(undefined);
@@ -256,6 +266,61 @@ describe('BidGateway', () => {
       await gateway.handleLeaveAuction(data, client);
 
       expect(client.emit).toHaveBeenCalledWith('exception', expect.objectContaining({ code: 'LEAVE_AUCTION_ERROR' }));
+    });
+  });
+
+  describe('handleRejoinAuction', () => {
+    const data: AuctionIdDto = { auctionId: 10 };
+
+    it('should emit auction:ended when auction is not active', async () => {
+      const client = createMockClient({ user: mockUser });
+      redisService.isAuctionActive.mockResolvedValue(false);
+
+      await gateway.handleRejoinAuction(data, client);
+
+      expect(client.emit).toHaveBeenCalledWith('auction:ended', expect.objectContaining({ auctionId: 10 }));
+      expect(client.join).not.toHaveBeenCalled();
+    });
+
+    it('should join room, emit rejoined:auction and restore Redis state for authenticated user', async () => {
+      const client = createMockClient();
+      redisService.isAuctionActive.mockResolvedValue(true);
+      wsJwtGuard.validateOptional.mockResolvedValue(mockUser);
+      redisService.addUserToAuctionRoom.mockResolvedValue(undefined);
+      redisService.setSocketAuction.mockResolvedValue(undefined);
+      redisService.getUniqueParticipantsCount.mockResolvedValue(2);
+      bidService.getCurrentState.mockResolvedValue({ currentPrice: 100, isLeading: false, isActive: true, participantsCount: 2 });
+
+      await gateway.handleRejoinAuction(data, client);
+
+      expect(client.join).toHaveBeenCalledWith('auction_room_10');
+      expect(client.data.auctionId).toBe(10);
+      expect(redisService.addUserToAuctionRoom).toHaveBeenCalledWith(10, client.id, mockUser.sub);
+      expect(redisService.setSocketAuction).toHaveBeenCalledWith(mockUser.sub, client.id, 10);
+      expect(client.emit).toHaveBeenCalledWith('rejoined:auction', expect.objectContaining({ auctionId: 10 }));
+    });
+
+    it('should join room and emit rejoined:auction for guest (no Redis state update)', async () => {
+      const client = createMockClient();
+      redisService.isAuctionActive.mockResolvedValue(true);
+      wsJwtGuard.validateOptional.mockResolvedValue(null);
+      bidService.getCurrentState.mockResolvedValue({ currentPrice: 100, isLeading: false, isActive: true, participantsCount: 0 });
+
+      await gateway.handleRejoinAuction(data, client);
+
+      expect(client.join).toHaveBeenCalledWith('auction_room_10');
+      expect(redisService.addUserToAuctionRoom).not.toHaveBeenCalled();
+      expect(client.emit).toHaveBeenCalledWith('rejoined:auction', expect.objectContaining({ auctionId: 10 }));
+    });
+
+    it('should emit exception with REJOIN_AUCTION_ERROR when an unexpected error occurs', async () => {
+      const client = createMockClient();
+      redisService.isAuctionActive.mockRejectedValue(new Error('Redis error'));
+
+      await gateway.handleRejoinAuction(data, client);
+
+      expect(client.emit).toHaveBeenCalledWith('exception', expect.objectContaining({ code: 'REJOIN_AUCTION_ERROR' }));
+      expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
 
