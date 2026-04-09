@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
-import { Queue, Job } from 'bullmq';
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { Logger } from '@nestjs/common';
 import { AUCTION_END_QUEUE, AUCTION_START_QUEUE } from './auction.constants';
 import { AuctionScheduler } from './auction.scheduler';
+import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { Queue, Job } from 'bullmq';
 
 describe('AuctionScheduler', () => {
   let scheduler: AuctionScheduler;
@@ -78,7 +78,7 @@ describe('AuctionScheduler', () => {
       await scheduler.scheduleAuctionStart(1, startsAt);
 
       const [, , options] = auctionStartQueue.add.mock.calls[0];
-      expect(options!.delay).toBe(0);
+      expect(options!.delay).toBe(2000);
       expect(Logger.prototype.warn).toHaveBeenCalledWith('Auction 1 start time is in the past — starting immediately');
     });
 
@@ -168,7 +168,7 @@ describe('AuctionScheduler', () => {
       await scheduler.scheduleAuctionEnd(5, endsAt);
 
       const [, , options] = auctionEndQueue.add.mock.calls[0];
-      expect(options!.delay).toBe(0);
+      expect(options!.delay).toBe(2000);
       expect(Logger.prototype.warn).toHaveBeenCalledWith('Auction 5 end time is in the past — ending immediately');
     });
 

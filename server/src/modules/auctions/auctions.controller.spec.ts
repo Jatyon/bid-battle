@@ -4,13 +4,13 @@ import { Paginator, PaginatorResponse } from '@core/models';
 import { createAuctionResponseFixture, createAuctionDetailResponseFixture, createCreateAuctionDtoFixture, createMockFilesFixture } from '@test/fixtures/auctions.fixtures';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
+import { BidResponse } from '@modules/bid';
 import { FileUploadService, IUploadOptions, IUploadedFile } from '@shared/file-upload';
 import { AuctionResponse, GetAuctionsQueryDto, UpdateAuctionDto, UpdateAuctionImagesDto, UploadedFileDto } from './dto';
 import { AuctionsController } from './auctions.controller';
 import { AuctionsService } from './auctions.service';
 import { AuctionStatus } from './enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { BidResponse } from '@modules/bid';
 
 describe('AuctionsController', () => {
   let controller: AuctionsController;
@@ -127,6 +127,17 @@ describe('AuctionsController', () => {
       expect(service.findMyAuctions).toHaveBeenCalledWith(mockUser.id, paginator);
       expect(result).toEqual(mockResponse);
     });
+
+    it('should propagate error thrown by service', async () => {
+      service.findMyAuctions.mockRejectedValue(new Error('Database error'));
+
+      const paginator = new Paginator();
+      paginator.page = 1;
+      paginator.limit = 10;
+
+      await expect(controller.getMyAuctions(paginator, mockUser)).rejects.toThrow('Database error');
+      expect(service.findMyAuctions).toHaveBeenCalledWith(mockUser.id, paginator);
+    });
   });
 
   describe('getAuctionBids', () => {
@@ -228,11 +239,6 @@ describe('AuctionsController', () => {
   describe('uploadAuctionImages', () => {
     it('should upload images and return UploadedFileDto array', async () => {
       const mockFiles = createMockFilesFixture(1);
-      const files: { images: Express.Multer.File[] } = {
-        images: mockFiles,
-      };
-
-      const uploadDto = { images: [] };
 
       const uploadedFiles: IUploadedFile[] = [
         {
@@ -249,20 +255,18 @@ describe('AuctionsController', () => {
       fileUploadService.getAuctionImageUploadOptions.mockReturnValue(options);
       fileUploadService.uploadMultiple.mockResolvedValue(uploadedFiles);
 
-      const result = await controller.uploadAuctionImages(files, uploadDto, mockI18n);
+      const result = await controller.uploadAuctionImages(mockFiles, mockI18n);
 
-      expect(fileUploadService.uploadMultiple).toHaveBeenCalledWith(files.images, options, mockI18n);
+      expect(fileUploadService.uploadMultiple).toHaveBeenCalledWith(mockFiles, options, mockI18n);
       expect(result).toEqual([new UploadedFileDto(uploadedFiles[0])]);
     });
 
     it('should throw BadRequestException when no files are provided', async () => {
-      const mockEmptyFiles = { images: undefined } as unknown as { images: Express.Multer.File[] };
-
-      await expect(controller.uploadAuctionImages(mockEmptyFiles, {} , mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(controller.uploadAuctionImages(undefined as unknown as Express.Multer.File[], mockI18n)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when images array is empty', async () => {
-      await expect(controller.uploadAuctionImages({ images: [] }, {}, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(controller.uploadAuctionImages([], mockI18n)).rejects.toThrow(BadRequestException);
     });
   });
 
