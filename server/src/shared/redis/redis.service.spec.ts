@@ -691,6 +691,90 @@ describe('RedisService', () => {
     });
   });
 
+  describe('ping', () => {
+    it('should return round-trip time in milliseconds when Redis replies PONG', async () => {
+      mockRedis.ping = jest.fn().mockResolvedValue('PONG');
+
+      const result = await service.ping();
+
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(mockRedis.ping).toHaveBeenCalled();
+    });
+
+    it('should throw when Redis replies with something other than PONG', async () => {
+      mockRedis.ping = jest.fn().mockResolvedValue('PONG_UNEXPECTED');
+
+      await expect(service.ping()).rejects.toThrow('Unexpected Redis PING response');
+    });
+  });
+
+  describe('areAuctionsActive', () => {
+    it('should return empty Set when called with empty array', async () => {
+      const result = await service.areAuctionsActive([]);
+
+      expect(result).toEqual(new Set());
+      expect(mockRedis.pipeline).not.toHaveBeenCalled();
+    });
+
+    it('should return a Set of active auction IDs based on pipeline results', async () => {
+      const mockPipeline = {
+        exists: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([
+          [null, 1],
+          [null, 0],
+          [null, 1],
+        ]),
+      };
+      (mockRedis.pipeline as jest.Mock).mockReturnValue(mockPipeline);
+
+      const result = await service.areAuctionsActive([1, 2, 3]);
+
+      expect(result).toEqual(new Set([1, 3]));
+      expect(mockPipeline.exists).toHaveBeenCalledTimes(3);
+    });
+
+    it('should return empty Set and log error when pipeline fails', async () => {
+      const mockPipeline = {
+        exists: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockRejectedValue(new Error('Pipeline error')),
+      };
+      (mockRedis.pipeline as jest.Mock).mockReturnValue(mockPipeline);
+
+      const result = await service.areAuctionsActive([1, 2]);
+
+      expect(result).toEqual(new Set());
+      expect(service['logger'].error).toHaveBeenCalledWith(expect.stringContaining('Batch check auction active error'), expect.any(String));
+    });
+  });
+
+  describe('getUniqueParticipantsCount', () => {
+    it('should return count of unique user IDs from hash values', async () => {
+      mockRedis.hvals = jest.fn().mockResolvedValue(['1', '2', '1', '3']);
+
+      const result = await service.getUniqueParticipantsCount(1);
+
+      expect(result).toBe(3);
+      expect(mockRedis.hvals).toHaveBeenCalledWith('auction:1:participants');
+    });
+
+    it('should return 0 when no participants are in the room', async () => {
+      mockRedis.hvals = jest.fn().mockResolvedValue([]);
+
+      const result = await service.getUniqueParticipantsCount(1);
+
+      expect(result).toBe(0);
+    });
+
+    it('should return 0 and log error when Redis fails', async () => {
+      mockRedis.hvals = jest.fn().mockRejectedValue(new Error('Redis error'));
+
+      const result = await service.getUniqueParticipantsCount(1);
+
+      expect(result).toBe(0);
+      expect(service['logger'].error).toHaveBeenCalledWith(expect.stringContaining('Get unique participants count error'), expect.any(String));
+    });
+  });
+
   describe('placeBidAtomicWithSnapshot', () => {
     it('should return success=true with parsed previousPrice and previousBidderId when Lua script returns accepted=1', async () => {
       (mockRedis.placeBidAtomicCommand as jest.Mock).mockResolvedValue([1, '200', '7']);
