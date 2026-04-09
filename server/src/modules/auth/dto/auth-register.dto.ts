@@ -35,14 +35,14 @@ export class AuthRegisterDto {
   email: string;
 
   @ApiProperty({
-    description: 'User password (min 8 chars, at least 1 uppercase, 1 lowercase, 1 number or special char)',
+    description: 'User password (min 8 chars, at least 1 uppercase, 1 lowercase, 1 number and 1 special char)',
     example: 'Password123!',
     minLength: 8,
-    pattern: '/((?=.*\\d)|(?=.*\\W+))(?![.\\n])(?=.*[A-Z])(?=.*[a-z]).*$/',
+    pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_]).*$',
   })
   @IsString({ message: 'error.validation.password_not_empty' })
   @MinLength(8, { message: 'error.validation.password_at_least_8_characters' })
-  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/, {
     message: 'error.validation.password_too_weak',
   })
   password: string;
