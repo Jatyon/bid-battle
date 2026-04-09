@@ -1,7 +1,8 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ApiStandardResponse, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
+import { Language } from '@core/enums';
 import { MailService } from './mail.service';
 import { TestMailDto } from './dto';
 
@@ -16,9 +17,10 @@ export class MailTestController {
   })
   @ApiStandardResponse(MessageResponse, false)
   @Public()
+  @HttpCode(200)
   @Post('test')
   async sendTestEmail(@Body() body: TestMailDto): Promise<MessageResponse> {
-    const lang: string = body.lang ? body.lang : 'en';
+    const lang: string = body.lang ? body.lang : Language.EN;
 
     await this.mailService.sendTestEmail(body.email, lang);
     return { message: 'Email has been sent' };

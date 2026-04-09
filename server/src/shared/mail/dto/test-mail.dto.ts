@@ -1,5 +1,6 @@
-import { IsEmail, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Language } from '@core/enums';
+import { IsEmail, IsEnum, IsOptional } from 'class-validator';
 
 export class TestMailDto {
   @ApiProperty({
@@ -12,11 +13,12 @@ export class TestMailDto {
 
   @ApiProperty({
     description: 'Language for email template',
-    example: 'en',
-    enum: ['en', 'pl'],
-    default: 'en',
+    example: Language.EN,
+    enum: Language,
+    default: Language.EN,
     required: false,
   })
+  @IsEnum(Language, { message: 'error.validation.invalid_language' })
   @IsOptional()
-  lang?: string;
+  lang?: Language;
 }

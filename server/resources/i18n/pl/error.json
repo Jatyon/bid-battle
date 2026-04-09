@@ -42,6 +42,7 @@
     "lang_must_be_allowed_value": "Język musi być jedną z dozwolonych wartości",
     "notify_on_outbid_must_be_boolean": "Powiadomienie o przelicytowaniu musi być wartością logiczną",
     "notify_on_auction_end_must_be_boolean": "Powiadomienie o zakończeniu aukcji musi być wartością logiczną",
+    "invalid_language": "Nieprawidłowy język.",
 
     "auction": {
       "title_required": "Tytuł aukcji jest wymagany.",

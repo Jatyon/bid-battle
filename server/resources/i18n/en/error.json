@@ -44,6 +44,7 @@
     "lang_must_be_allowed_value": "Language must be one of the allowed values",
     "notify_on_outbid_must_be_boolean": "Notify on outbid must be a boolean value",
     "notify_on_auction_end_must_be_boolean": "Notify on auction end must be a boolean value",
+    "invalid_language": "Invalid language.",
 
     "auction": {
       "title_required": "Auction title is required.",
