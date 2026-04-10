@@ -12,16 +12,13 @@ export class BidResponse {
   @ApiProperty({ description: 'Auction ID', example: 1 })
   auctionId: number;
 
-  @ApiProperty({ description: 'User ID who placed the bid', example: 2 })
-  userId: number;
-
   @ApiProperty({
     description: 'User details (partially masked for privacy in public view)',
     example: {
       id: 2,
       firstName: 'Jane',
       lastName: 'S.',
-      avatar: '/uploads/avatars/2.jpg',
+      avatar: '2026/04/avatars/he90edae42366994.jpg',
     },
     nullable: true,
   })
@@ -39,7 +36,6 @@ export class BidResponse {
     this.id = bid.id;
     this.amount = bid.amount;
     this.auctionId = bid.auctionId;
-    this.userId = bid.userId;
     this.createdAt = bid.createdAt;
 
     if (includeUser) {

@@ -24,7 +24,7 @@ export class AuctionDetailResponse {
 
   @ApiProperty({
     description: 'Auction main image URL',
-    example: '/uploads/2026/03/abc-123.jpg',
+    example: '2026/04/auctions/2fc0d381e40e96f4.jpg',
   })
   mainImageUrl: string;
 
@@ -71,12 +71,6 @@ export class AuctionDetailResponse {
   category: AuctionCategory;
 
   @ApiProperty({
-    description: 'Owner user ID',
-    example: 1,
-  })
-  ownerId: number;
-
-  @ApiProperty({
     description: 'Owner user details',
     example: {
       id: 1,
@@ -86,13 +80,6 @@ export class AuctionDetailResponse {
     nullable: true,
   })
   owner?: IAuctionUser;
-
-  @ApiProperty({
-    description: 'Winner user ID (null if auction is still active)',
-    example: 2,
-    nullable: true,
-  })
-  winnerId?: number | null;
 
   @ApiProperty({
     description: 'Winner user details',
@@ -115,7 +102,7 @@ export class AuctionDetailResponse {
 
   @ApiProperty({
     description: 'Auction images',
-    example: ['/uploads/2026/03/abc-123.jpg', '/uploads/2026/03/def-456.jpg'],
+    example: ['2026/04/auctions/2fc0d381e40e96f4.jpg', '2026/04/auctions/3gd1e592f51f07g5.jpg'],
   })
   images: string[];
 
@@ -130,8 +117,6 @@ export class AuctionDetailResponse {
     this.endTime = auction.endTime;
     this.status = auction.status;
     this.category = auction.category;
-    this.ownerId = auction.ownerId;
-    this.winnerId = auction.winnerId;
     this.createdAt = auction.createdAt;
     this.images = auction.images.map((img) => img.imageUrl);
 
@@ -158,7 +143,7 @@ export class AuctionDetailResponse {
       };
     } else if (auction.winnerId) {
       this.winner = {
-        id: auction.ownerId,
+        id: auction.winnerId,
         isDeleted: true,
       };
     }

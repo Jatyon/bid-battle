@@ -3,7 +3,7 @@ import { type IAuctionUser } from '../interfaces';
 import { AuctionCategory, AuctionStatus } from '../enums';
 import { Auction } from '../entities';
 
-export class AuctionResponse {
+export class MyAuctionResponse {
   @ApiProperty({
     description: 'Auction ID',
     example: 1,
@@ -71,18 +71,6 @@ export class AuctionResponse {
   category: AuctionCategory;
 
   @ApiProperty({
-    description: 'Owner user details',
-    example: {
-      id: 1,
-      email: 'owner@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    },
-    nullable: true,
-  })
-  owner?: IAuctionUser;
-
-  @ApiProperty({
     description: 'Winner user details',
     example: {
       id: 2,
@@ -101,7 +89,7 @@ export class AuctionResponse {
   })
   createdAt: Date;
 
-  constructor(auction: Auction, includeOwner = false, includeWinner = false) {
+  constructor(auction: Auction) {
     this.id = auction.id;
     this.title = auction.title;
     this.description = auction.description;
@@ -114,36 +102,18 @@ export class AuctionResponse {
     this.category = auction.category;
     this.createdAt = auction.createdAt;
 
-    if (includeOwner) {
-      if (auction.owner) {
-        this.owner = {
-          id: auction.owner.id,
-          firstName: auction.owner.firstName,
-          lastName: auction.owner.lastName,
-          avatar: auction.owner.avatar,
-        };
-      } else {
-        this.owner = {
-          id: auction.ownerId,
-          isDeleted: true,
-        };
-      }
-    }
-
-    if (includeWinner) {
-      if (auction.winner) {
-        this.winner = {
-          id: auction.winner.id,
-          firstName: auction.winner.firstName,
-          lastName: auction.winner.lastName,
-          avatar: auction.winner.avatar,
-        };
-      } else if (auction.winnerId) {
-        this.winner = {
-          id: auction.winnerId,
-          isDeleted: true,
-        };
-      }
+    if (auction.winner) {
+      this.winner = {
+        id: auction.winner.id,
+        firstName: auction.winner.firstName,
+        lastName: auction.winner.lastName,
+        avatar: auction.winner.avatar,
+      };
+    } else if (auction.winnerId) {
+      this.winner = {
+        id: auction.winnerId,
+        isDeleted: true,
+      };
     }
   }
 }

@@ -11,7 +11,7 @@ export class PublicUserProfileResponse {
   @ApiProperty({ description: 'Initial of the last name', example: 'D.' })
   lastNameInitial: string;
 
-  @ApiProperty({ description: 'User avatar URL or path', example: 'avatars/123.jpg', nullable: true })
+  @ApiProperty({ description: 'User avatar URL or path', example: '2026/04/avatars/he90edae42366994.jpg', nullable: true })
   avatar: string | null;
 
   @ApiProperty({ description: 'Date when user joined the platform', example: '2026-01-01T00:00:00.000Z' })

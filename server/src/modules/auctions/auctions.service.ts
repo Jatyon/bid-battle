@@ -7,7 +7,7 @@ import { Bid } from '@modules/bid/entities';
 import { BidResponse } from '@modules/bid';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, UpdateAuctionDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, MyAuctionResponse, UpdateAuctionDto } from './dto';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
@@ -145,6 +145,7 @@ export class AuctionsService {
     const cacheKey = this.buildAuctionsCacheKey(page, limit, filters);
 
     const cachedData = await this.redisService.getCache<PaginatorResponse<AuctionResponse>>(cacheKey);
+    
     if (cachedData) return cachedData;
 
     const [auctions, total] = await this.auctionsRepository.findActiveAuctions(skip, limit, filters);
@@ -217,14 +218,14 @@ export class AuctionsService {
   /**
    * Get auctions created by a specific user (My Auctions)
    */
-  async findMyAuctions(userId: number, paginator: Paginator): Promise<PaginatorResponse<AuctionResponse>> {
+  async findMyAuctions(userId: number, paginator: Paginator): Promise<PaginatorResponse<MyAuctionResponse>> {
     const page: number = paginator.page;
     const limit: number = paginator.limit;
     const skip: number = paginator.skip;
 
     const [auctions, total] = await this.auctionsRepository.findPaginatedAuctionsByOwner(userId, skip, limit);
-
-    const items = auctions.map((auction) => new AuctionResponse(auction));
+console.log(auctions);
+    const items = auctions.map((auction) => new MyAuctionResponse(auction));
 
     return paginator.response(items, page, limit, total);
   }

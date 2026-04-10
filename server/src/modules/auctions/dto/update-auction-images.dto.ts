@@ -22,7 +22,7 @@ export class UpdateAuctionImagesDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @Matches(/^\/uploads\/[\w\-/.]+$/, {
+  @Matches(/^\d{4}\/\d{2}\/[\w\-/.]+\.(jpg|jpeg|png)$/i, {
     each: true,
     message: 'error.validation.auction.image_url_invalid_format',
   })

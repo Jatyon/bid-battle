@@ -34,6 +34,7 @@ export class AuctionsRepository extends Repository<Auction> {
   findPaginatedAuctionsByOwner(ownerId: number, skip: number, take: number): Promise<[Auction[], number]> {
     return this.findAndCount({
       where: { ownerId },
+      relations: ['winner'],
       skip,
       take,
       order: { createdAt: 'DESC' },

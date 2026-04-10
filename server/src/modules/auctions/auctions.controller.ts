@@ -8,7 +8,7 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { BidResponse } from '@modules/bid';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto, MyAuctionResponse } from './dto';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -85,11 +85,11 @@ export class AuctionsController {
     summary: 'Get my auctions',
     description: 'Get list of auctions created by the currently logged-in user.',
   })
-  @ApiStandardResponse(PaginatorResponse, false, AuctionResponse)
+  @ApiStandardResponse(PaginatorResponse, false, MyAuctionResponse)
   @ApiBearerAuth('jwt-auth')
   @UseGuards(JwtAuthGuard)
   @Get('my/auctions')
-  async getMyAuctions(@Query() paginator: Paginator, @CurrentUser() user: User): Promise<PaginatorResponse<AuctionResponse>> {
+  async getMyAuctions(@Query() paginator: Paginator, @CurrentUser() user: User): Promise<PaginatorResponse<MyAuctionResponse>> {
     return this.auctionsService.findMyAuctions(user.id, paginator);
   }
 
@@ -146,6 +146,7 @@ export class AuctionsController {
     description: 'Replace auction images. Only the owner can update, and only active auctions can be modified.',
   })
   @ApiStandardResponse(MessageResponse, false)
+    @ApiPayloadTooLargeResponse({ description: 'Payload Too Large: uploaded files are too large' })
   @ApiBearerAuth('jwt-auth')
   @ApiConsumes('multipart/form-data')
   @HttpCode(200)
