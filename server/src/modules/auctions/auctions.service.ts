@@ -145,7 +145,7 @@ export class AuctionsService {
     const cacheKey = this.buildAuctionsCacheKey(page, limit, filters);
 
     const cachedData = await this.redisService.getCache<PaginatorResponse<AuctionResponse>>(cacheKey);
-    
+
     if (cachedData) return cachedData;
 
     const [auctions, total] = await this.auctionsRepository.findActiveAuctions(skip, limit, filters);
@@ -224,7 +224,7 @@ export class AuctionsService {
     const skip: number = paginator.skip;
 
     const [auctions, total] = await this.auctionsRepository.findPaginatedAuctionsByOwner(userId, skip, limit);
-console.log(auctions);
+
     const items = auctions.map((auction) => new MyAuctionResponse(auction));
 
     return paginator.response(items, page, limit, total);

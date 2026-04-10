@@ -146,7 +146,7 @@ export class AuctionsController {
     description: 'Replace auction images. Only the owner can update, and only active auctions can be modified.',
   })
   @ApiStandardResponse(MessageResponse, false)
-    @ApiPayloadTooLargeResponse({ description: 'Payload Too Large: uploaded files are too large' })
+  @ApiPayloadTooLargeResponse({ description: 'Payload Too Large: uploaded files are too large' })
   @ApiBearerAuth('jwt-auth')
   @ApiConsumes('multipart/form-data')
   @HttpCode(200)
