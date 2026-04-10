@@ -14,7 +14,7 @@ import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
-import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto } from './dto';
+import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto, MyAuctionResponse } from './dto';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { AuctionsService } from './auctions.service';
@@ -361,9 +361,9 @@ describe('AuctionsService', () => {
       const result = await service.findMyAuctions(mockUserId, mockPaginator);
 
       expect(auctionsRepository.findPaginatedAuctionsByOwner).toHaveBeenCalledWith(mockUserId, 0, 10);
-      expect(responseSpy).toHaveBeenCalledWith(expect.arrayContaining([expect.any(AuctionResponse), expect.any(AuctionResponse)]), 1, 10, 2);
+      expect(responseSpy).toHaveBeenCalledWith(expect.arrayContaining([expect.any(MyAuctionResponse), expect.any(MyAuctionResponse)]), 1, 10, 2);
       expect(result.items.length).toBe(2);
-      expect(result.items[0]).toBeInstanceOf(AuctionResponse);
+      expect(result.items[0]).toBeInstanceOf(MyAuctionResponse);
     });
   });
 

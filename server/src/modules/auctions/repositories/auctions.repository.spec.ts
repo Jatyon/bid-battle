@@ -190,6 +190,7 @@ describe('AuctionsRepository', () => {
 
       expect(repository.findAndCount).toHaveBeenCalledWith({
         where: { ownerId },
+        relations: ['winner'],
         skip,
         take,
         order: { createdAt: 'DESC' },
@@ -206,6 +207,7 @@ describe('AuctionsRepository', () => {
       expect(result).toEqual([[], 0]);
       expect(repository.findAndCount).toHaveBeenCalledWith({
         where: { ownerId: 99 },
+        relations: ['winner'],
         skip: 0,
         take: 10,
         order: { createdAt: 'DESC' },
