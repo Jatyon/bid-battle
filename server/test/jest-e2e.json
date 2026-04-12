@@ -5,5 +5,21 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "transformIgnorePatterns": ["/node_modules/(?!nodemailer-express-handlebars)"],
+  "globalSetup": "./global-setup.ts",
+  "globalTeardown": "./global-teardown.ts",
+  "setupFiles": ["./testcontainers.setup.ts"],
+  "testTimeout": 60000,
+  "forceExit": true,
+  "moduleNameMapper": {
+    "^@app/(.*)$": "<rootDir>/../src/app/$1",
+    "^@config/(.*)$": "<rootDir>/../src/config/$1",
+    "^@core/(.*)$": "<rootDir>/../src/core/$1",
+    "^@database/(.*)$": "<rootDir>/../src/database/$1",
+    "^@health/(.*)$": "<rootDir>/../src/health/$1",
+    "^@modules/(.*)$": "<rootDir>/../src/modules/$1",
+    "^@shared/(.*)$": "<rootDir>/../src/shared/$1",
+    "^@test/(.*)$": "<rootDir>/$1"
   }
 }
