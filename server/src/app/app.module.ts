@@ -37,6 +37,7 @@ import { join } from 'path';
       useFactory: (configService: AppConfigService) =>
         ({
           ...configService.database,
+          autoLoadEntities: true,
         }) as TypeOrmModuleOptions,
     }),
     I18nModule.forRootAsync({

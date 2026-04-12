@@ -43,8 +43,8 @@ export class AppConfigService {
       entities: ['dist/**/*.entity.js'],
       migrations: ['dist/database/migrations/*.js'],
       seeds: ['dist/database/seeds/*.js'],
-      synchronize: false,
-      migrationsRun: false,
+      synchronize: this.configService.get<boolean>('DATABASE_SYNCHRONIZE', false),
+      migrationsRun: this.configService.get<boolean>('DATABASE_MIGRATIONS_RUN', false),
     };
   }
 

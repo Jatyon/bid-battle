@@ -22,6 +22,8 @@ export const validationSchema = Joi.object({
   DATABASE_USER: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),
+  DATABASE_SYNCHRONIZE: Joi.boolean().default(false),
+  DATABASE_MIGRATIONS_RUN: Joi.boolean().default(false),
 
   // I18N
   I18N_FALLBACK_LANGUAGE: Joi.string().default('en'),
