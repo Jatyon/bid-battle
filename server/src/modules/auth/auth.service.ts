@@ -165,6 +165,8 @@ export class AuthService {
   }
 
   async changePassword(email: string, changePasswordDto: AuthChangePasswordDto, i18n: I18nContext): Promise<void> {
+    if (changePasswordDto.password !== changePasswordDto.passwordRepeat) throw new BadRequestException(i18n.t('error.validation.passwords_do_not_match'));
+
     const user = await this.usersService.findOneWithPasswordByEmail(email);
 
     if (!user) throw new NotFoundException(i18n.t('users.user_not_found'));
