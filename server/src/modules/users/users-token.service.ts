@@ -69,10 +69,12 @@ export class UsersTokenService {
   }
 
   async markTokenAsUsed(id: number): Promise<void> {
-    await this.tokenRepository.update(id, {
-      isUsed: true,
-      usedAt: new Date(),
-    });
+    const token = await this.tokenRepository.findOneBy({ id });
+    if (token) {
+      token.isUsed = true;
+      token.usedAt = new Date();
+      await this.tokenRepository.save(token);
+    }
   }
 
   async deleteExpiredTokens(): Promise<void> {
@@ -98,11 +100,12 @@ export class UsersTokenService {
         token: this.hashToken(token),
         type: UserTokenEnum.REFRESH_TOKEN,
         userId,
-        isUsed: false,
       },
     });
 
     if (!tokenEntity) return null;
+
+    if (tokenEntity.isUsed) return null;
 
     if (isPast(tokenEntity.expiresAt)) return null;
 
