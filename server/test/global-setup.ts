@@ -52,7 +52,12 @@ export default async function globalSetup() {
     }
   }
 
-  const mysqlContainer = await new MySqlContainer('mysql:8.0').withDatabase('bid_app_test').withUsername('test').withUserPassword('test').start();
+  const mysqlContainer = await new MySqlContainer('mysql:8.0')
+    .withDatabase('bid_app_test')
+    .withUsername('test')
+    .withUserPassword('test')
+    .withCommand(['--default-authentication-plugin=mysql_native_password'])
+    .start();
 
   const redisContainer = await new RedisContainer('redis:8.6-alpine').withPassword('password').start();
 
