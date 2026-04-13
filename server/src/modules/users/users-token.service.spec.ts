@@ -164,12 +164,28 @@ describe('UsersTokenService', () => {
 
   describe('markTokenAsUsed', () => {
     it('should update token isUsed status and usedAt date', async () => {
+      const tokenEntity = createUserTokenFixture({ id: 1 });
+      tokenRepository.findOneBy.mockResolvedValue(tokenEntity);
+      tokenRepository.save.mockResolvedValue({ ...tokenEntity, isUsed: true, usedAt: mockDate });
+
       await service.markTokenAsUsed(1);
 
-      expect(tokenRepository.update).toHaveBeenCalledWith(1, {
-        isUsed: true,
-        usedAt: mockDate,
-      });
+      expect(tokenRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(tokenRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isUsed: true,
+          usedAt: mockDate,
+        }),
+      );
+    });
+
+    it('should do nothing when token is not found', async () => {
+      tokenRepository.findOneBy.mockResolvedValue(null);
+
+      await service.markTokenAsUsed(999);
+
+      expect(tokenRepository.findOneBy).toHaveBeenCalledWith({ id: 999 });
+      expect(tokenRepository.save).not.toHaveBeenCalled();
     });
   });
 
@@ -216,7 +232,6 @@ describe('UsersTokenService', () => {
           token: expect.any(String) as string,
           type: UserTokenEnum.REFRESH_TOKEN,
           userId: mockUser.id,
-          isUsed: false,
         },
       });
     });
