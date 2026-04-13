@@ -41,7 +41,7 @@ export class AppConfigService {
       password: this.requireGet<string>('DATABASE_PASSWORD'),
       database: this.configService.get<string>('DATABASE_NAME', 'app_db'),
       entities: ['dist/**/*.entity.js'],
-      migrations: ['dist/database/migrations/*.js'],
+      migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
       seeds: ['dist/database/seeds/*.js'],
       synchronize: this.configService.get<boolean>('DATABASE_SYNCHRONIZE', false),
       migrationsRun: this.configService.get<boolean>('DATABASE_MIGRATIONS_RUN', false),
