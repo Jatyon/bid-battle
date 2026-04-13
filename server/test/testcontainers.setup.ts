@@ -42,3 +42,7 @@ process.env.REDIS_PASSWORD = 'password';
 
 process.env.BID_MIN_INCREMENT_PERCENT = '1';
 process.env.BID_MIN_INCREMENT_ABSOLUTE = '0.01';
+
+process.env.GOOGLE_CLIENT_ID = 'e2e-google-id';
+process.env.GOOGLE_CLIENT_SECRET = 'e2e-google-secret';
+process.env.GOOGLE_CALLBACK_URL = 'http://localhost:3000/api/v1/auth/google/callback';
