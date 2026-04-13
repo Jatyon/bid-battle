@@ -1,4 +1,4 @@
-import { INestApplicationContext } from '@nestjs/common';
+import { INestApplicationContext, Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { SocketIoAdapter } from './socket-io.adapter';
 
@@ -18,6 +18,15 @@ const buildAdapter = (corsOrigin: string | undefined, mode: string = 'developmen
 };
 
 describe('SocketIoAdapter', () => {
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('constructor', () => {
     it('should be created successfully with valid config', () => {
       const adapter = buildAdapter('http://localhost:4200');
