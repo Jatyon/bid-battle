@@ -1,1 +1,22 @@
-/* You can add global styles to this file, and also import other style files */
+@use 'styles/abstracts/variables' as *;
+@use 'styles/themes/light';
+@use 'styles/themes/dark';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition:
+    background-color $transition-base,
+    color $transition-base;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}

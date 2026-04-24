@@ -1,0 +1,24 @@
+[data-theme='light'] {
+  --color-bg: #f5f6fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f1f5;
+  --color-surface-3: #e8e9ef;
+  --color-border: #dcdfe6;
+
+  --color-primary: #6c5ce7;
+  --color-primary-hover: #5a4bd6;
+  --color-accent: #0891b2;
+  --color-accent-hover: #0e7490;
+
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+
+  --color-text: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
