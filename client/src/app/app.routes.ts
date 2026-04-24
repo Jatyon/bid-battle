@@ -1,24 +1,18 @@
-import { AppRoutes } from '@shared/layout/types/app-routes.type';
+import { Routes } from '@angular/router';
 
-export const routes: AppRoutes = [
+export const routes: Routes = [
   {
     path: '',
-    loadChildren: () =>
-      import('@layouts/main-layout/main-layout.routes').then((c) => c.mainLayoutRoutes),
+    loadComponent: () => import('@layouts/main-layout/main-layout').then((m) => m.MainLayout),
   },
+
   {
     path: 'auth',
-    loadChildren: () =>
-      import('@layouts/auth-layout/auth-layout.routes').then((c) => c.authLayoutRoutes),
+    loadComponent: () => import('@layouts/auth-layout/auth-layout').then((m) => m.AuthLayout),
   },
-  {
-    path: 'error',
-    loadChildren: () =>
-      import('@layouts/error-layout/error-layout.routes').then((c) => c.errorLayoutRoutes),
-  },
+
   {
     path: '**',
-    pathMatch: 'full',
-    redirectTo: 'error',
+    loadComponent: () => import('@layouts/error-layout/error-layout').then((m) => m.ErrorLayout),
   },
 ];
