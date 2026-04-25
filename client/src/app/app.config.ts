@@ -13,6 +13,7 @@ import {
   AppTitleStrategy,
   authInterceptor,
   refreshInterceptor,
+  loadingInterceptor,
 } from '@core/index';
 import { provideTransloco } from '@ngneat/transloco';
 import { routes } from './app.routes';
@@ -22,7 +23,10 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
     provideClientHydration(withEventReplay()),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor, refreshInterceptor])),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([loadingInterceptor, authInterceptor, refreshInterceptor]),
+    ),
     provideTransloco({
       config: {
         availableLangs: [Language.EN, Language.PL],
