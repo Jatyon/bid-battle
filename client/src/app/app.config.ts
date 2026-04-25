@@ -6,8 +6,8 @@ import {
 } from '@angular/router';
 import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
-import { provideHttpClient, withFetch } from '@angular/common/http';
-import { Language, TranslocoHttpLoader, AppTitleStrategy } from '@core/index';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { Language, TranslocoHttpLoader, AppTitleStrategy, authInterceptor } from '@core/index';
 import { provideTransloco } from '@ngneat/transloco';
 import { routes } from './app.routes';
 
@@ -16,7 +16,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
     provideClientHydration(withEventReplay()),
-    provideHttpClient(withFetch()),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideTransloco({
       config: {
         availableLangs: [Language.EN, Language.PL],
