@@ -5,8 +5,8 @@ import {
   withViewTransitions,
 } from '@angular/router';
 import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import {
   Language,
   TranslocoHttpLoader,
@@ -14,6 +14,7 @@ import {
   authInterceptor,
   refreshInterceptor,
   loadingInterceptor,
+  errorInterceptor,
 } from '@core/index';
 import { provideTransloco } from '@ngneat/transloco';
 import { routes } from './app.routes';
@@ -25,7 +26,7 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     provideHttpClient(
       withFetch(),
-      withInterceptors([loadingInterceptor, authInterceptor, refreshInterceptor]),
+      withInterceptors([loadingInterceptor, authInterceptor, refreshInterceptor, errorInterceptor]),
     ),
     provideTransloco({
       config: {
