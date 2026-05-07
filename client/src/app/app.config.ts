@@ -4,7 +4,12 @@ import {
   withComponentInputBinding,
   withViewTransitions,
 } from '@angular/router';
-import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  ErrorHandler,
+  isDevMode,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import {
@@ -15,12 +20,14 @@ import {
   refreshInterceptor,
   loadingInterceptor,
   errorInterceptor,
+  GlobalErrorHandler,
 } from '@core/index';
 import { provideTransloco } from '@ngneat/transloco';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
     provideClientHydration(withEventReplay()),
@@ -37,6 +44,7 @@ export const appConfig: ApplicationConfig = {
       },
       loader: TranslocoHttpLoader,
     }),
+
     { provide: TitleStrategy, useClass: AppTitleStrategy },
   ],
 };
