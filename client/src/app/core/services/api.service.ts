@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { environment } from '@env/environment';
 import { ApiResponse } from '@core/models';
@@ -16,33 +16,42 @@ export class ApiService {
   get<T>(
     path: string,
     params?: Record<string, string | number | boolean>,
+    context?: HttpContext,
   ): Observable<ApiResponse<T>> {
-    const httpParams = params
-      ? new HttpParams({ fromObject: params as Record<string, string> })
-      : undefined;
+    const httpParams = params ? new HttpParams({ fromObject: params }) : undefined;
     return this.http.get<ApiResponse<T>>(`${this.baseUrl}${path}`, {
       params: httpParams,
       withCredentials: true,
+      context,
     });
   }
 
-  post<T>(path: string, body: unknown): Observable<ApiResponse<T>> {
+  post<T>(path: string, body: unknown, context?: HttpContext): Observable<ApiResponse<T>> {
     return this.http.post<ApiResponse<T>>(`${this.baseUrl}${path}`, body, {
       withCredentials: true,
+      context,
     });
   }
 
-  put<T>(path: string, body: unknown): Observable<ApiResponse<T>> {
-    return this.http.put<ApiResponse<T>>(`${this.baseUrl}${path}`, body, { withCredentials: true });
+  put<T>(path: string, body: unknown, context?: HttpContext): Observable<ApiResponse<T>> {
+    return this.http.put<ApiResponse<T>>(`${this.baseUrl}${path}`, body, {
+      withCredentials: true,
+      context,
+    });
   }
 
-  patch<T>(path: string, body: unknown): Observable<ApiResponse<T>> {
+  patch<T>(path: string, body: unknown, context?: HttpContext): Observable<ApiResponse<T>> {
     return this.http.patch<ApiResponse<T>>(`${this.baseUrl}${path}`, body, {
       withCredentials: true,
+      context,
     });
   }
 
-  delete<T>(path: string): Observable<ApiResponse<T>> {
-    return this.http.delete<ApiResponse<T>>(`${this.baseUrl}${path}`, { withCredentials: true });
+  delete<T>(path: string, body?: unknown, context?: HttpContext): Observable<ApiResponse<T>> {
+    return this.http.delete<ApiResponse<T>>(`${this.baseUrl}${path}`, {
+      body,
+      withCredentials: true,
+      context,
+    });
   }
 }
