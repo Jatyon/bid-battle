@@ -1,28 +1,43 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { HttpClient } from '@angular/common/http';
+import { HttpContext, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { environment } from '@env/environment';
-import { AuthService, TokenService, AuthTokens } from '@core/index';
+import { ApiService, AuthService, TokenService, AuthTokens } from '@core/index';
+import { SKIP_ERROR_TOAST, SKIP_LOADING, SKIP_REFRESH_ON_401 } from './http-context.tokens';
 import { catchError, switchMap, throwError } from 'rxjs';
 
-const REFRESH_URL = `${environment.apiUrl}/auth/refresh`;
+/**
+ * Context applied to the refresh token request itself:
+ *  – SKIP_REFRESH_ON_401: breaks the potential infinite refresh loop
+ *  – SKIP_LOADING: silent refresh must not trigger the global loading spinner
+ *  – SKIP_ERROR_TOAST: the caller (logout + redirect) handles the failure UX
+ */
+const REFRESH_CONTEXT = new HttpContext()
+  .set(SKIP_REFRESH_ON_401, true)
+  .set(SKIP_LOADING, true)
+  .set(SKIP_ERROR_TOAST, true);
 
 /**
  * Intercepts 401 responses and attempts a silent token refresh.
  *
  * Flow:
  *  1. Request returns 401
- *  2. If a refresh is NOT already in progress → call POST /auth/refresh
+ *  2. If this request has SKIP_REFRESH_ON_401 → bail out (prevents refresh loops).
+ *  3. If there is no known user session (currentUser is null) → bail out immediately.
+ *     This prevents looping refresh attempts after a logout or a failed refresh, even
+ *     when in-flight requests keep returning 401 after the session has been invalidated.
+ *  4. If a refresh is NOT already in progress → call POST /auth/refresh via ApiService
  *     (the server reads the HttpOnly refresh-token cookie automatically)
- *  3. On success → store new accessToken in memory, retry original request
- *  4. If another 401 arrives during refresh → queue it, wait for the refresh to resolve
- *  5. If refresh fails → logout and propagate the error
+ *  5. On success → store new accessToken in memory, retry original request
+ *  6. If another 401 arrives during refresh → queue it, wait for the refresh to resolve
+ *  7. If refresh fails → logout and propagate the error
  *
+ * Note: ApiService is used here (not raw HttpClient) for consistency. The REFRESH_CONTEXT
+ * above ensures this request is excluded from the loading, error-toast and refresh interceptors
+ * themselves, so there is no interceptor loop.
  */
 export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
-  if (req.url.includes('/auth/refresh')) return next(req);
+  if (req.context.get(SKIP_REFRESH_ON_401)) return next(req);
 
-  const http = inject(HttpClient);
+  const api = inject(ApiService);
   const tokenService = inject(TokenService);
   const authService = inject(AuthService);
 
@@ -40,15 +55,23 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
 
+      // No known user session means either:
+      //  a) the user was never logged in,
+      //  b) logout() was already called (e.g. by a concurrent failed refresh).
+      // In both cases there is nothing to refresh — bail out immediately to
+      // prevent a refresh-loop where every in-flight 401 restarts the cycle.
+      if (!authService.currentUser()) return throwError(() => error);
+
       tokenService.startRefresh();
 
-      return http.post<AuthTokens>(REFRESH_URL, {}, { withCredentials: true }).pipe(
-        switchMap((authTokens) => {
-          tokenService.resolveRefresh(authTokens.accessToken);
-          authService.refreshAccessToken(authTokens.accessToken);
+      return api.post<AuthTokens>('/auth/refresh', {}, REFRESH_CONTEXT).pipe(
+        switchMap((response) => {
+          const { accessToken } = response.data;
+          tokenService.resolveRefresh(accessToken);
+          authService.refreshAccessToken(accessToken);
 
           const retried = req.clone({
-            setHeaders: { Authorization: `Bearer ${authTokens.accessToken}` },
+            setHeaders: { Authorization: `Bearer ${accessToken}` },
           });
           return next(retried);
         }),
