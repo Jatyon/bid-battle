@@ -12,7 +12,7 @@ export type StorageType = 'local' | 'session';
 @Injectable({ providedIn: 'root' })
 export class StorageService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
-  private readonly PREFIX = environment.storageKeyPrefix || 'bid-app-';
+  private readonly PREFIX = environment.storageKeyPrefix;
 
   /**
    * Helper to get the correct storage object safely.
