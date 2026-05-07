@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject, Observable, filter, take } from 'rxjs';
+import { Observable, Subject, of, take } from 'rxjs';
 
 /**
  * Manages the in-memory access token.
@@ -16,11 +16,11 @@ export class TokenService {
   /** Read-only access token for the auth interceptor. */
   readonly accessToken = this._accessToken.asReadonly();
 
-  private _isRefreshing = false;
-  private readonly _refreshSubject = new BehaviorSubject<string | null>(null);
+  private readonly _isRefreshing = signal(false);
+  private readonly _refreshSubject = new Subject<string | null>();
 
   get isRefreshing(): boolean {
-    return this._isRefreshing;
+    return this._isRefreshing();
   }
 
   /** Sets the token after a successful login or token refresh. */
@@ -38,8 +38,7 @@ export class TokenService {
    * Marks refresh as in-progress and resets the subject.
    */
   startRefresh(): void {
-    this._isRefreshing = true;
-    this._refreshSubject.next(null);
+    this._isRefreshing.set(true);
   }
 
   /**
@@ -47,7 +46,7 @@ export class TokenService {
    * Notifies all queued requests with the new token.
    */
   resolveRefresh(newToken: string): void {
-    this._isRefreshing = false;
+    this._isRefreshing.set(false);
     this.setAccessToken(newToken);
     this._refreshSubject.next(newToken);
   }
@@ -57,17 +56,24 @@ export class TokenService {
    * Signals queued requests that they should abort.
    */
   rejectRefresh(): void {
-    this._isRefreshing = false;
+    this._isRefreshing.set(false);
     this._refreshSubject.next(null);
   }
 
   /**
    * Returns an observable that queued requests can wait on.
+   *
+   * Two cases:
+   *  a) Refresh is still in progress → wait for the next emission from the subject.
+   *     Subject (not BehaviorSubject) never replays, so no stale null can leak through.
+   *     `resolveRefresh` emits the new token; `rejectRefresh` emits null — both handled
+   *     by the caller in the refresh interceptor.
+   *  b) Refresh already completed before this call → emit the current in-memory token
+   *     immediately via `of()`.
    */
   waitForToken(): Observable<string | null> {
-    return this._refreshSubject.pipe(
-      filter(() => !this.isRefreshing),
-      take(1),
-    );
+    if (!this._isRefreshing()) return of(this._accessToken());
+
+    return this._refreshSubject.pipe(take(1));
   }
 }
