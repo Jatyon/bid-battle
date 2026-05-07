@@ -1,6 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { NotificationService, AuthService } from '@core/index';
+import { NotificationService, AuthService, TokenService } from '@core/index';
+import { SKIP_ERROR_TOAST } from './http-context.tokens';
 import { catchError, throwError } from 'rxjs';
 
 const HTTP_STATUS = {
@@ -13,21 +14,26 @@ const HTTP_STATUS = {
 /**
  * Global HTTP error interceptor.
  * Handles errors from all HTTP requests and shows appropriate notifications.
- * Also logs out the user if a 401 Unauthorized error is encountered.
+ * Requests with `SKIP_ERROR_TOAST` context token set to `true` skip the toast.
+ *
+ * 401 handling:
+ *  – If the user still has an in-memory access token, it means the refresh also
+ *    failed and nobody has logged them out yet → we do it here.
+ *  – If the token is already gone (refreshInterceptor already called logout),
+ *    we skip the second logout to avoid a double redirect / double state reset.
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
+  const tokenService = inject(TokenService);
   const notificationService = inject(NotificationService);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      const message = resolveMessage(error);
+      if (error.status === HTTP_STATUS.UNAUTHORIZED && tokenService.accessToken())
+        authService.logout();
 
-      if (req.url.includes('/auth/refresh')) return throwError(() => error);
-
-      if (error.status === HTTP_STATUS.UNAUTHORIZED) authService.logout();
-
-      notificationService.error(message, false);
+      if (!req.context.get(SKIP_ERROR_TOAST))
+        notificationService.error(resolveMessage(error), false);
 
       return throwError(() => error);
     }),
