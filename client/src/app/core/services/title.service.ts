@@ -2,6 +2,8 @@ import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { environment } from '@env/environment';
+import { TranslocoService } from '@ngneat/transloco';
+import { take } from 'rxjs';
 
 const APP_NAME = environment.appName;
 const BLINK_INTERVAL_MS = 2000;
@@ -75,8 +77,8 @@ export class TitleService implements OnDestroy {
 
 /**
  * Custom title strategy for the Angular Router.
- * Automatically reads the `title` field from the route definition
- * and passes it to the TitleService.
+ * Reads the `title` field from the route definition, treats it as a Transloco
+ * translation key, and passes the resolved string to TitleService.
  *
  * Registration in app.config.ts:
  * { provide: TitleStrategy, useClass: AppTitleStrategy }
@@ -84,9 +86,19 @@ export class TitleService implements OnDestroy {
 @Injectable({ providedIn: 'root' })
 export class AppTitleStrategy extends TitleStrategy {
   private readonly titleService = inject(TitleService);
+  private readonly transloco = inject(TranslocoService);
 
   override updateTitle(snapshot: RouterStateSnapshot): void {
-    const title = this.buildTitle(snapshot);
-    this.titleService.setTitle(title ?? '');
+    const key = this.buildTitle(snapshot);
+
+    if (!key) {
+      this.titleService.setTitle('');
+      return;
+    }
+
+    this.transloco
+      .selectTranslate(key)
+      .pipe(take(1))
+      .subscribe((translated) => this.titleService.setTitle(translated));
   }
 }
