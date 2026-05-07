@@ -18,3 +18,47 @@ $transition-base: 300ms ease;
 $z-dropdown: 100;
 $z-modal: 200;
 $z-toast: 300;
+
+// Breakpoints (mobile-first)
+$bp-sm: 480px; // large phones / small tablets
+$bp-md: 768px; // tablets
+$bp-lg: 1024px; // small desktops / landscape tablets
+$bp-xl: 1280px; // desktops
+$bp-2xl: 1536px; // wide desktops
+
+// Breakpoint mixins
+@mixin bp-sm  { @media (min-width: $bp-sm)  { @content; } }
+@mixin bp-md  { @media (min-width: $bp-md)  { @content; } }
+@mixin bp-lg  { @media (min-width: $bp-lg)  { @content; } }
+@mixin bp-xl  { @media (min-width: $bp-xl)  { @content; } }
+@mixin bp-2xl { @media (min-width: $bp-2xl) { @content; } }
+
+// Typography scale
+$font-size-xs: 0.625rem; // 10px
+$font-size-sm: 0.75rem; // 12px
+$font-size-base: 0.875rem; // 14px
+$font-size-md: 1rem; // 16px
+$font-size-lg: 1.125rem; // 18px
+$font-size-xl: 1.25rem; // 20px
+$font-size-2xl: 1.5rem; // 24px
+$font-size-3xl: 1.75rem; // 28px
+$font-size-4xl: 2rem; // 32px
+
+// Font weights
+$fw-light: 300;
+$fw-normal: 400;
+$fw-medium: 500;
+$fw-semibold: 600;
+$fw-bold: 700;
+
+// Line heights
+$lh-base: 1.5;
+$lh-heading: 1.2;
+$lh-tight: 1.1;
+
+// Layout
+$container-max-width: 1200px;
+$navbar-height: 64px;
+$card-padding-mobile: $spacing-lg $spacing-md;
+$card-padding-sm: $spacing-xl 40px;
+$card-padding-md: $spacing-xl 48px;
