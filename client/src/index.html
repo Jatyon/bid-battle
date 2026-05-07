@@ -1,13 +1,30 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <title>Client</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <meta charset="utf-8" />
+  <title>BidBattle</title>
+  <base href="/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Joint the BidBattle community and bid on the most exciting online auctions!" />
+  <meta name="theme-color" content="#f5f6fa" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+
+  <script>
+    (function () {
+      try {
+        const saved = localStorage.getItem('bid-battle-theme');
+        const theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
 </head>
+
 <body>
   <app-root></app-root>
 </body>
+
 </html>
