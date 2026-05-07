@@ -6,3 +6,4 @@ export * from './title.service';
 export * from './theme.service';
 export * from './auth.service';
 export * from './api.service';
+export * from './socket';
