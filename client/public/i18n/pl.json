@@ -1,3 +1,7 @@
 {
-  "HELLO": "Witaj na stronie!"
+  "HELLO": "Witaj na stronie!",
+
+  "ERRORS": {
+    "UNEXPECTED": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
+  }
 }
