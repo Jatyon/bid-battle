@@ -1,8 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { User } from '@core/models';
+import { User, AuthTokens } from '@core/models';
 import { StorageService } from './storage.service';
 import { TokenService } from './token.service';
+import { ApiService } from './api.service';
+import { Observable, catchError, map, noop, of } from 'rxjs';
 
 interface AuthState {
   user: User | null;
@@ -25,6 +27,7 @@ export class AuthService {
   private readonly storage = inject(StorageService);
   private readonly tokenService = inject(TokenService);
   private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
 
   private readonly state = signal<AuthState>({
     user: this.storage.getJson<User>(STORAGE_USER_KEY),
@@ -60,10 +63,48 @@ export class AuthService {
     this.state.update((s) => ({ ...s, user }));
   }
 
+  /**
+   * Attempts a silent token refresh using the HttpOnly refresh-token cookie.
+   * Returns `true` when a new access token is obtained, `false` otherwise.
+   *
+   * Used by `authGuard` to recover a valid session after a page reload,
+   * when `currentUser()` is populated from localStorage but the in-memory
+   * `accessToken` has been lost.
+   */
+  silentRefresh(): Observable<boolean> {
+    return this.api.post<AuthTokens>('/auth/refresh', {}).pipe(
+      map((response) => {
+        this.refreshAccessToken(response.data.accessToken);
+        return true;
+      }),
+      catchError(() => {
+        this.logout(false);
+        return of(false);
+      }),
+    );
+  }
+
+  /**
+   * Logs the user out — clears local state and invalidates the refresh-token
+   * cookie on the server side by calling POST /auth/logout.
+   *
+   * The local session is always cleared immediately (optimistic logout),
+   * regardless of whether the API call succeeds, so the user is never
+   * stuck in a half-logged-in state due to a network error.
+   *
+   * @param redirect  When true (default) navigates to /auth/login after clearing state.
+   */
   logout(redirect = true): void {
     this.tokenService.clearAccessToken();
     this.storage.remove(STORAGE_USER_KEY);
     this.state.set({ user: null });
+
+    // Fire-and-forget — invalidates the HttpOnly refresh-token cookie server-side.
+    // Errors are intentionally swallowed: the local session is already gone and
+    // there is nothing the user or the app can do about a failed logout request.
+    this.api.post('/auth/logout', {}).subscribe({
+      error: noop,
+    });
 
     if (redirect) this.router.navigate(['/auth/login']);
   }
