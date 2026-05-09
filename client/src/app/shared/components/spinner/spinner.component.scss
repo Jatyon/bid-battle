@@ -1,0 +1,39 @@
+@use 'abstracts/variables' as *;
+
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+  flex-shrink: 0;
+
+  svg {
+    animation: spin $spinner-duration linear infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      opacity: 0.5;
+    }
+  }
+
+  &--sm {
+    width: $spinner-size-sm;
+    height: $spinner-size-sm;
+  }
+
+  &--md {
+    width: $spinner-size-md;
+    height: $spinner-size-md;
+  }
+
+  &--lg {
+    width: $spinner-size-lg;
+    height: $spinner-size-lg;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

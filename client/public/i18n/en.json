@@ -2,6 +2,9 @@
   "ERRORS": {
     "UNEXPECTED": "An unexpected error occurred. Please try again."
   },
+  "SPINNER": {
+    "LOADING": "Loading…"
+  },
   "TOAST": {
     "CLOSE": "Close notification"
   }

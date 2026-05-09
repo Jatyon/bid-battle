@@ -68,3 +68,9 @@ $toast-min-width: 280px;
 $toast-max-width: 420px;
 $toast-accent-border: 4px;
 $toast-icon-size: 20px;
+
+// Spinner
+$spinner-size-sm: $spacing-md; // 16px
+$spinner-size-md: $spacing-lg; // 24px
+$spinner-size-lg: 40px;
+$spinner-duration: 0.8s;
