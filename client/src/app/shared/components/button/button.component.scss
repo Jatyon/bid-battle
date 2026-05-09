@@ -1,0 +1,112 @@
+@use 'abstracts/variables' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  border: none;
+  border-radius: $radius-md;
+  font-weight: $fw-semibold;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast,
+    opacity $transition-fast,
+    transform $transition-fast;
+  white-space: nowrap;
+  text-decoration: none;
+  box-sizing: border-box;
+
+  @include bp-sm {
+    gap: $spacing-sm;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  &:disabled,
+  &--loading {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &--full {
+    width: 100%;
+  }
+
+  // Sizes – mobile-first
+  &--sm {
+    padding: $btn-padding-sm;
+    font-size: $btn-font-size-sm;
+    min-height: $btn-min-height-sm;
+
+    @include bp-sm {
+      padding: $btn-padding-sm-bp;
+    }
+  }
+
+  &--md {
+    padding: $btn-padding-md;
+    font-size: $btn-font-size-md;
+    min-height: $btn-min-height-md;
+
+    @include bp-sm {
+      padding: $btn-padding-md-bp;
+    }
+  }
+
+  &--lg {
+    padding: $btn-padding-lg;
+    font-size: $btn-font-size-lg;
+    min-height: $btn-min-height-lg;
+
+    @include bp-sm {
+      padding: $btn-padding-lg-bp;
+    }
+  }
+
+  // Variants
+  &--primary {
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-primary-hover);
+    }
+  }
+
+  &--secondary {
+    background-color: var(--color-surface-2);
+    color: var(--color-text);
+    border: $btn-border-width solid var(--color-border);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-surface-3);
+    }
+  }
+
+  &--ghost {
+    background-color: transparent;
+    color: var(--color-primary);
+    border: $btn-border-width solid var(--color-primary);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-surface-2);
+    }
+  }
+
+  &--danger {
+    background-color: var(--color-danger);
+    color: var(--color-text-primary);
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-danger-hover);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}

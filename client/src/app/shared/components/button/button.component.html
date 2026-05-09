@@ -1,0 +1,10 @@
+<button [type]="type()" [class]="classes()" [disabled]="isDisabled()" (click)="onClick($event)">
+    @if (loading()) {
+    <app-spinner size="sm" />
+    }
+    @else {
+    <span>
+        <ng-content />
+    </span>
+    }
+</button>

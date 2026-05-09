@@ -74,3 +74,18 @@ $spinner-size-sm: $spacing-md; // 16px
 $spinner-size-md: $spacing-lg; // 24px
 $spinner-size-lg: 40px;
 $spinner-duration: 0.8s;
+
+// Button
+$btn-padding-sm: 6px $spacing-sm;
+$btn-padding-sm-bp: 6px $spacing-md;
+$btn-padding-md: 10px $spacing-md;
+$btn-padding-md-bp: $spacing-sm $spacing-lg;
+$btn-padding-lg: $spacing-sm $spacing-md;
+$btn-padding-lg-bp: $spacing-sm + 2px $spacing-xl;
+$btn-font-size-sm: $font-size-sm;
+$btn-font-size-md: $font-size-base;
+$btn-font-size-lg: $font-size-md;
+$btn-border-width: 1.5px;
+$btn-min-height-sm: 32px;
+$btn-min-height-md: 44px;
+$btn-min-height-lg: 52px;
