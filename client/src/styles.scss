@@ -20,3 +20,11 @@ body {
   margin: 0;
   padding: 0;
 }
+
+// Lucide icons render as inline by default which adds ~3px from line-height descenders.
+// Force inline-flex + line-height: 0 globally so icon dimensions match exactly.
+lucide-icon {
+  display: inline-flex;
+  line-height: 0;
+  flex-shrink: 0;
+}
