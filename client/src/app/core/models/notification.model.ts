@@ -5,4 +5,5 @@ export interface Notification {
   message: string;
   type: NotificationType;
   duration?: number;
+  isLeaving?: boolean;
 }

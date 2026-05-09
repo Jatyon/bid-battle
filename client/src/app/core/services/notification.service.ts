@@ -5,6 +5,7 @@ import { take } from 'rxjs';
 
 const DEFAULT_DURATION = 4000;
 const MAX_NOTIFICATIONS = 5;
+const EXIT_ANIMATION_DURATION = 240;
 
 /**
  * Global notification service.
@@ -24,6 +25,7 @@ export class NotificationService {
 
   /** Active auto-dismiss timers keyed by notification id. */
   private readonly _timers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly _removalTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   readonly notifications = computed(() => this._notifications());
 
@@ -66,7 +68,18 @@ export class NotificationService {
   dismiss(id: string): void {
     clearTimeout(this._timers.get(id));
     this._timers.delete(id);
-    this._notifications.update((list) => list.filter((n) => n.id !== id));
+    this.cancelRemoval(id);
+
+    const notification = this._notifications().find((n) => n.id === id);
+    if (!notification || notification.isLeaving) {
+      return;
+    }
+
+    this._notifications.update((list) =>
+      list.map((n) => (n.id === id ? { ...n, isLeaving: true } : n)),
+    );
+    const timer = setTimeout(() => this.removeNotification(id), EXIT_ANIMATION_DURATION);
+    this._removalTimers.set(id, timer);
   }
 
   private push(
@@ -91,6 +104,13 @@ export class NotificationService {
     const existing = this._notifications().find((n) => n.message === message && n.type === type);
 
     if (existing) {
+      if (existing.isLeaving) {
+        this._notifications.update((list) =>
+          list.map((n) => (n.id === existing.id ? { ...n, isLeaving: false } : n)),
+        );
+        this.cancelRemoval(existing.id);
+      }
+
       this.resetTimer(existing.id, duration);
       return;
     }
@@ -113,6 +133,16 @@ export class NotificationService {
   private resetTimer(id: string, duration: number): void {
     clearTimeout(this._timers.get(id));
     this.scheduleAutoDismiss(id, duration);
+  }
+
+  private cancelRemoval(id: string): void {
+    clearTimeout(this._removalTimers.get(id));
+    this._removalTimers.delete(id);
+  }
+
+  private removeNotification(id: string): void {
+    this._removalTimers.delete(id);
+    this._notifications.update((list) => list.filter((n) => n.id !== id));
   }
 
   private scheduleAutoDismiss(id: string, duration: number): void {
