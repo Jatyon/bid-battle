@@ -2,7 +2,7 @@ import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { environment } from '@env/environment';
-import { TranslocoService } from '@ngneat/transloco';
+import { TranslocoService } from '@jsverse/transloco';
 import { take } from 'rxjs';
 
 const APP_NAME = environment.appName;

@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NotificationType, Notification } from '@core/index';
-import { TranslocoService } from '@ngneat/transloco';
+import { TranslocoService } from '@jsverse/transloco';
 import { take } from 'rxjs';
 
 const DEFAULT_DURATION = 4000;

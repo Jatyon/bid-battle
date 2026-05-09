@@ -22,7 +22,7 @@ import {
   errorInterceptor,
   GlobalErrorHandler,
 } from '@core/index';
-import { provideTransloco } from '@ngneat/transloco';
+import { provideTransloco } from '@jsverse/transloco';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
