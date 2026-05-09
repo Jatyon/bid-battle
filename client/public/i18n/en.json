@@ -1,6 +1,8 @@
 {
-  "HELLO": "Hello on the page!",
   "ERRORS": {
     "UNEXPECTED": "An unexpected error occurred. Please try again."
+  },
+  "TOAST": {
+    "CLOSE": "Close notification"
   }
 }

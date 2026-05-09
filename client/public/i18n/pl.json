@@ -1,7 +1,8 @@
 {
-  "HELLO": "Witaj na stronie!",
-
   "ERRORS": {
     "UNEXPECTED": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
+  },
+  "TOAST": {
+    "CLOSE": "Zamknij powiadomienie"
   }
 }

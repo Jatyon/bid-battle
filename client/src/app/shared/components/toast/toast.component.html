@@ -1,0 +1,13 @@
+<div class="toast-container" aria-live="polite" aria-atomic="false">
+    @for (n of notifications(); track n.id) {
+    <div class="toast toast--{{ n.type }}{{ n.isLeaving ? ' toast--leaving' : '' }}" role="alert">
+        <span class="toast__icon">
+            <lucide-icon [img]="icons[n.type]" [size]="20" />
+        </span>
+        <span class="toast__message">{{ n.message }}</span>
+        <button class="toast__close" [attr.aria-label]="closeLabel()" (click)="dismiss(n.id)">
+            <lucide-icon [img]="closeIcon" [size]="16" />
+        </button>
+    </div>
+    }
+</div>
