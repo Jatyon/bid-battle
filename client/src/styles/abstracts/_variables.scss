@@ -10,6 +10,9 @@ $radius-sm: 4px;
 $radius-md: 8px;
 $radius-lg: 16px;
 
+// Icon sizes
+$logo-icon-size: 36px;
+
 // Transitions
 $transition-fast: 150ms ease;
 $transition-base: 300ms ease;
@@ -96,4 +99,3 @@ $input-padding-y: 12px;
 $input-toggle-right: $spacing-sm + 4px; // 12px
 $input-toggle-icon-size: 18px;
 $input-toggle-area: $input-toggle-right * 2 + $input-toggle-icon-size; // 44px
-
