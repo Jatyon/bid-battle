@@ -1,0 +1,147 @@
+@use 'abstracts/variables' as *;
+
+.input-field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  width: 100%;
+
+  &__label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__label {
+    font-size: $font-size-base;
+    font-weight: $fw-medium;
+    color: var(--color-text);
+    word-break: break-word;
+    flex: 1;
+  }
+
+  &__required {
+    color: var(--color-danger);
+  }
+
+  &__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  &__input {
+    width: 100%;
+    padding: $input-padding-y-mobile $spacing-sm;
+    border: 1px solid var(--color-border);
+    border-radius: $radius-md;
+    background-color: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: $font-size-base;
+    font-family: inherit;
+    line-height: 1;
+    transition:
+      border-color $transition-fast,
+      box-shadow $transition-fast,
+      background-color $transition-fast;
+    outline: none;
+    box-sizing: border-box;
+
+    @include bp-sm {
+      padding: $input-padding-y $spacing-md;
+    }
+
+    &::placeholder {
+      color: var(--color-text-muted);
+      opacity: 1;
+    }
+
+    &:disabled {
+      background-color: var(--color-surface-3);
+      color: var(--color-text-muted);
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    &[readonly] {
+      background-color: var(--color-surface-3);
+      cursor: default;
+      border-style: dashed;
+    }
+
+    &--has-toggle {
+      padding-right: $input-toggle-area;
+    }
+  }
+
+  &--focused &__input {
+    border-color: var(--color-primary);
+  }
+
+  &--error &__input {
+    border-color: var(--color-danger);
+  }
+
+  &--disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  &__toggle {
+    position: absolute;
+    right: $spacing-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: $spacing-xs;
+    color: var(--color-text-muted);
+    transition: color $transition-fast;
+    border-radius: $radius-sm;
+
+    @include bp-sm {
+      right: $input-toggle-right;
+    }
+
+    &:hover {
+      color: var(--color-text-secondary);
+    }
+  }
+
+  &__error {
+    font-size: $font-size-sm;
+    color: var(--color-danger);
+    animation: inputHelperFadeIn $transition-fast ease;
+    line-height: 1.4;
+  }
+
+  &__hint {
+    font-size: $font-size-sm;
+    color: var(--color-text-muted);
+    animation: inputHelperFadeIn $transition-fast ease;
+    line-height: 1.4;
+  }
+
+  &__helper {
+    display: flex;
+    align-items: flex-start;
+    min-height: 0;
+
+    &--reserved {
+      min-height: 18px;
+    }
+  }
+}
+
+@keyframes inputHelperFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

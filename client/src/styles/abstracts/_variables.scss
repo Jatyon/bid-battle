@@ -89,3 +89,11 @@ $btn-border-width: 1.5px;
 $btn-min-height-sm: 32px;
 $btn-min-height-md: 44px;
 $btn-min-height-lg: 52px;
+
+// Input
+$input-padding-y-mobile: 10px;
+$input-padding-y: 12px;
+$input-toggle-right: $spacing-sm + 4px; // 12px
+$input-toggle-icon-size: 18px;
+$input-toggle-area: $input-toggle-right * 2 + $input-toggle-icon-size; // 44px
+
