@@ -1,10 +1,17 @@
-import { Injectable, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
+import { Injectable, InjectionToken, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { io } from 'socket.io-client';
 import { environment } from '@env/environment';
 import { TokenService } from '@core/index';
 import { SocketConnection } from './socket-connection';
 
 export type { ConnectionStatus } from './socket-connection';
+
+/** Injection token for the socket.io factory — override in tests. */
+export const SOCKET_IO_FACTORY = new InjectionToken<typeof io>('SOCKET_IO_FACTORY', {
+  providedIn: 'root',
+  factory: () => io,
+});
 
 /**
  * Global WebSocket connection registry.
@@ -25,6 +32,7 @@ export type { ConnectionStatus } from './socket-connection';
 export class SocketService implements OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly tokenService = inject(TokenService);
+  private readonly socketFactory = inject(SOCKET_IO_FACTORY);
 
   private readonly connections = new Map<string, SocketConnection>();
 
@@ -50,6 +58,7 @@ export class SocketService implements OnDestroy {
       const connection = new SocketConnection({
         url: `${environment.wsUrl}${namespace}`,
         getToken: () => this.tokenService.accessToken() ?? '',
+        socketFactory: this.socketFactory,
       });
       this.connections.set(namespace, connection);
     }
