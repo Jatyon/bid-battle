@@ -32,6 +32,12 @@ export class TitleService implements OnDestroy {
     this.applyTitle();
   }
 
+  /** Updates the unread notification count displayed in the title. */
+  setUnreadCount(count: number): void {
+    this.unreadCount = count;
+    this.applyTitle();
+  }
+
   /**
    * Starts a blinking tab title when the tab is in the background.
    * Blinks between `blinkMessage` and the current page title.
