@@ -9,6 +9,12 @@ export interface SocketConnectionOptions {
   url: string;
   /** Callback returning the current access token — called on every (re)connect to support silent refresh */
   getToken: () => string;
+  /**
+   * Optional factory used to create the Socket instance.
+   * Defaults to `io` from socket.io-client.
+   * Override in tests to avoid real network connections.
+   */
+  socketFactory?: typeof io;
 }
 
 /**
@@ -50,7 +56,8 @@ export class SocketConnection {
 
     this._status.set('connecting');
 
-    this.socket = io(this.options.url, {
+    const factory = this.options.socketFactory ?? io;
+    this.socket = factory(this.options.url, {
       transports: ['websocket'],
       autoConnect: true,
       reconnection: true,
