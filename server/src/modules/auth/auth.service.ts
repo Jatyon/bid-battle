@@ -6,7 +6,7 @@ import { SocialProviderEnum } from '@modules/users/enums';
 import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { IAuthJwt, IAuthJwtPayload, IGoogleUser } from './interfaces';
-import { AuthTokens } from './models';
+import { AuthSession, AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
 import { StringValue } from 'ms';
@@ -87,7 +87,7 @@ export class AuthService {
     await this.sendVerificationEmail(user, i18n);
   }
 
-  async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<AuthTokens> {
+  async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<AuthSession> {
     const user = await this.validateUser(authLoginDto.email, authLoginDto.password);
 
     if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
@@ -101,7 +101,8 @@ export class AuthService {
       },
     );
 
-    return this.generateAuthTokens(user);
+    const tokens = await this.generateAuthTokens(user);
+    return { ...tokens, user };
   }
 
   async refreshToken(refreshTokenDto: RefreshTokenDto, i18n: I18nContext): Promise<AuthTokens> {
@@ -201,25 +202,26 @@ export class AuthService {
     return null;
   }
 
-  private async generateAuthTokens(user: User): Promise<AuthTokens> {
+  private async generateAccessToken(user: User): Promise<string> {
     const payload: IAuthJwtPayload = { sub: user.id, email: user.email };
+    return this.jwtService.signAsync(payload, {
+      expiresIn: this.configService.jwt.tokenLife as StringValue,
+    });
+  }
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.jwt.tokenLife as StringValue,
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.jwt.refreshSecret,
-        expiresIn: this.configService.jwt.refreshTokenLife as StringValue,
-      }),
-    ]);
-
+  private async generateRefreshToken(user: User): Promise<string> {
+    const payload: IAuthJwtPayload = { sub: user.id, email: user.email };
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: this.configService.jwt.refreshSecret,
+      expiresIn: this.configService.jwt.refreshTokenLife as StringValue,
+    });
     await this.usersTokenService.saveRefreshToken(user, refreshToken, this.configService.jwt.refreshTokenLife as StringValue);
+    return refreshToken;
+  }
 
-    return {
-      accessToken,
-      refreshToken,
-    };
+  private async generateAuthTokens(user: User): Promise<AuthTokens> {
+    const [accessToken, refreshToken] = await Promise.all([this.generateAccessToken(user), this.generateRefreshToken(user)]);
+    return { accessToken, refreshToken };
   }
 
   async loginWithGoogle(googleUser: IGoogleUser): Promise<AuthTokens> {

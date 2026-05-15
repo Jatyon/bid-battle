@@ -1,20 +1,25 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConflictResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
+import { CookieService } from '@shared/cookies';
 import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 import { AuthService } from './auth.service';
-import { AuthTokens } from './models';
+import { AuthLoginResponse, AuthTokens } from './models';
 import { IGoogleUser } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
+import * as express from 'express';
 
 @ApiTags('Authentication')
 @Controller('/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly cookieService: CookieService,
+  ) {}
 
   @ApiOperation({
     summary: 'Register new user',
@@ -36,12 +41,14 @@ export class AuthController {
     summary: 'User login',
     description: 'Authenticate user and return JWT tokens',
   })
-  @ApiStandardResponse(AuthTokens, false)
+  @ApiStandardResponse(AuthLoginResponse, false)
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() loginDto: AuthLoginDto, @I18n() i18n: I18nContext): Promise<AuthTokens> {
-    return this.authService.login(loginDto, i18n);
+  async login(@Body() loginDto: AuthLoginDto, @Res({ passthrough: true }) res: express.Response, @I18n() i18n: I18nContext): Promise<AuthLoginResponse> {
+    const { refreshToken, ...response } = await this.authService.login(loginDto, i18n);
+    this.cookieService.setRefreshToken(res, refreshToken);
+    return response;
   }
 
   @ApiOperation({
