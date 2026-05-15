@@ -13,6 +13,7 @@ import { MAIL_QUEUE } from '@shared/mail/mail.constants';
 import { Request, Response, NextFunction } from 'express';
 import { WinstonModule } from 'nest-winston';
 import { I18nService } from 'nestjs-i18n';
+import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import * as express from 'express';
 import { Queue } from 'bullmq';
@@ -38,7 +39,7 @@ async function bootstrap() {
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
+  app.use(cookieParser());
   app.use(compression());
 
   // Static file guard — block path traversal and directory listing attempts on /uploads

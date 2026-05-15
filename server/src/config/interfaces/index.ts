@@ -1,5 +1,6 @@
 export * from './app-config.interface';
 export * from './database-config.interface';
+export * from './cookies-config.interface';
 export * from './file-config.interface';
 export * from './i18n-config.interface';
 export * from './jwt-config.interface';

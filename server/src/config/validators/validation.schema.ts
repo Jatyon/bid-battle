@@ -73,6 +73,9 @@ export const validationSchema = Joi.object({
   GOOGLE_CLIENT_SECRET: Joi.string().optional(),
   GOOGLE_CALLBACK_URL: Joi.string().optional(),
 
+  // COOKIES
+  REFRESH_TOKEN_COOKIE_NAME: Joi.string().default('refreshToken'),
+
   // BULL BOARD
   BULL_BOARD_USER: Joi.string().optional(),
   BULL_BOARD_PASSWORD: Joi.string().optional(),

@@ -1,7 +1,19 @@
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { StorageType } from '@shared/file-upload';
-import { IConfigApp, IConfigBid, IConfigFile, IConfigGoogle, IConfigI18n, IConfigJWT, IConfigMailer, IConfigRedis, IConfigSocket, IDatabaseConfig } from './interfaces';
+import {
+  IConfigApp,
+  IConfigBid,
+  IConfigCookies,
+  IConfigFile,
+  IConfigGoogle,
+  IConfigI18n,
+  IConfigJWT,
+  IConfigMailer,
+  IConfigRedis,
+  IConfigSocket,
+  IDatabaseConfig,
+} from './interfaces';
 import { DatabaseType } from 'typeorm';
 
 @Injectable()
@@ -125,6 +137,12 @@ export class AppConfigService {
       clientId: this.requireGet<string>('GOOGLE_CLIENT_ID'),
       clientSecret: this.requireGet<string>('GOOGLE_CLIENT_SECRET'),
       callbackUrl: this.requireGet<string>('GOOGLE_CALLBACK_URL'),
+    };
+  }
+
+  get cookies(): IConfigCookies {
+    return {
+      refreshTokenName: this.configService.get<string>('REFRESH_TOKEN_COOKIE_NAME', 'refreshToken'),
     };
   }
 }
