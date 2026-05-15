@@ -2,11 +2,13 @@ import { BadRequestException, ConflictException, UnauthorizedException } from '@
 import { Test, TestingModule } from '@nestjs/testing';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { CookieService } from '@shared/cookies';
 import { IGoogleUser } from './interfaces';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import * as express from 'express';
 
 const mockTokens = {
   accessToken: 'access_token',
@@ -16,17 +18,22 @@ const mockTokens = {
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: DeepMocked<AuthService>;
+  let cookieService: DeepMocked<CookieService>;
 
   const mockUser = createUserFixture();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: createMock<AuthService>() }],
+      providers: [
+        { provide: AuthService, useValue: createMock<AuthService>() },
+        { provide: CookieService, useValue: createMock<CookieService>() },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
     authService = module.get(AuthService);
+    cookieService = module.get(CookieService);
   });
 
   describe('register', () => {
@@ -63,48 +70,52 @@ describe('AuthController', () => {
       password: 'Password123!',
     } as AuthLoginDto;
 
-    it('returns auth tokens on valid credentials', async () => {
+    it('sets refresh token in cookie and returns access token on valid credentials', async () => {
       authService.login.mockResolvedValue(mockTokens);
       const i18n = createMockI18nContext();
+      const mockRes = createMock<express.Response>();
 
-      const result = await controller.login(loginDto, i18n);
+      const result = await controller.login(loginDto, mockRes, i18n);
 
       expect(authService.login).toHaveBeenCalledWith(loginDto, i18n);
-      expect(result).toEqual(mockTokens);
+      expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, mockTokens.refreshToken);
+
+      expect(result).toEqual({ accessToken: mockTokens.accessToken });
     });
 
     it('propagates UnauthorizedException on invalid credentials', async () => {
       authService.login.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
+      const mockRes = createMock<express.Response>();
 
-      await expect(controller.login(loginDto, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(loginDto, mockRes, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
     });
   });
 
   describe('refreshToken', () => {
-    const refreshTokenDto: RefreshTokenDto = {
-      refreshToken: 'valid_refresh_token',
-    } as RefreshTokenDto;
+    const validToken = 'valid_refresh_token';
 
     it('returns new auth tokens for a valid refresh token', async () => {
       authService.refreshToken.mockResolvedValue(mockTokens);
       const i18n = createMockI18nContext();
 
-      const result = await controller.refreshToken(refreshTokenDto, i18n);
+      const result = await controller.refreshToken(validToken, i18n);
 
-      expect(authService.refreshToken).toHaveBeenCalledWith(refreshTokenDto, i18n);
+      expect(authService.refreshToken).toHaveBeenCalledWith(validToken, i18n);
       expect(result).toEqual(mockTokens);
+    });
+
+    it('throws UnauthorizedException when refresh token is missing in cookie', async () => {
+      const i18n = createMockI18nContext({
+        'auth.errors.refresh_token_not_recognized': 'Refresh token not recognized',
+      });
+
+      await expect(controller.refreshToken('', i18n)).rejects.toThrow(UnauthorizedException);
     });
 
     it('propagates UnauthorizedException when refresh token is invalid', async () => {
       authService.refreshToken.mockRejectedValue(new UnauthorizedException('Token not recognized'));
 
-      await expect(controller.refreshToken(refreshTokenDto, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('propagates UnauthorizedException when user no longer exists', async () => {
-      authService.refreshToken.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
-
-      await expect(controller.refreshToken(refreshTokenDto, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+      await expect(controller.refreshToken(validToken, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
     });
   });
 

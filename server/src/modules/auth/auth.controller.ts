@@ -1,14 +1,14 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UnauthorizedException, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConflictResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { User } from '@modules/users';
-import { CookieService } from '@shared/cookies';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
+import { Cookie, CookieService } from '@shared/cookies';
+import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 import { AuthService } from './auth.service';
-import { AuthLoginResponse, AuthTokens } from './models';
+import { AuthLoginResponse, AuthRefreshResponse, AuthTokens } from './models';
 import { IGoogleUser } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import * as express from 'express';
@@ -53,14 +53,15 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Refresh access token',
-    description: 'Get new access token using refresh token',
+    description: 'Get new access token using HttpOnly refresh-token cookie',
   })
-  @ApiStandardResponse(AuthTokens, false)
+  @ApiStandardResponse(AuthRefreshResponse, false)
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  refreshToken(@Body() refreshTokenDto: RefreshTokenDto, @I18n() i18n: I18nContext): Promise<AuthTokens> {
-    return this.authService.refreshToken(refreshTokenDto, i18n);
+  async refreshToken(@Cookie('refreshToken') token: string, @I18n() i18n: I18nContext): Promise<AuthRefreshResponse> {
+    if (!token) throw new UnauthorizedException(i18n.t('auth.errors.refresh_token_not_recognized'));
+    return this.authService.refreshToken(token, i18n);
   }
 
   @ApiOperation({

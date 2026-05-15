@@ -4,9 +4,9 @@ import { AppConfigService } from '@config/config.service';
 import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken, UserPreferencesService, SocialAccountService } from '@modules/users';
 import { SocialProviderEnum } from '@modules/users/enums';
 import { MailService } from '@shared/mail';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
+import { AuthRefreshResponse, AuthSession, AuthTokens } from './models';
 import { IAuthJwt, IAuthJwtPayload, IGoogleUser } from './interfaces';
-import { AuthSession, AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import * as bcrypt from 'bcrypt';
 import { StringValue } from 'ms';
@@ -105,11 +105,11 @@ export class AuthService {
     return { ...tokens, user };
   }
 
-  async refreshToken(refreshTokenDto: RefreshTokenDto, i18n: I18nContext): Promise<AuthTokens> {
+  async refreshToken(refreshToken: string, i18n: I18nContext): Promise<AuthRefreshResponse> {
     let payload: IAuthJwtPayload;
 
     try {
-      payload = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.jwt.refreshSecret,
       });
     } catch {
@@ -120,13 +120,12 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
 
-    const storedToken = await this.usersTokenService.findActiveRefreshToken(refreshTokenDto.refreshToken, user.id);
+    const storedToken = await this.usersTokenService.findActiveRefreshToken(refreshToken, user.id);
 
     if (!storedToken) throw new UnauthorizedException(i18n.t('auth.errors.refresh_token_not_recognized'));
 
-    await this.usersTokenService.markTokenAsUsed(storedToken.id);
-
-    return this.generateAuthTokens(user);
+    const accessToken = await this.generateAccessToken(user);
+    return { accessToken };
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto, i18n: I18nContext): Promise<void> {

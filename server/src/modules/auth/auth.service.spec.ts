@@ -9,7 +9,7 @@ import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
 import { createJwtPayload } from '@test/fixtures/auth.fixtures';
-import { AuthRegisterDto, AuthLoginDto, RefreshTokenDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
+import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { IAuthJwt, IGoogleUser } from './interfaces';
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
@@ -33,8 +33,8 @@ describe('AuthService', () => {
 
   const mockI18nService = createMockI18nService();
   const mockI18nContext = createMockI18nContext();
-  const mockUser = createUserFixture();
-  const mockUserToken = createUserTokenFixture();
+  const mockUser = createUserFixture({ isEmailVerified: true });
+  const mockUserToken = createUserTokenFixture({ token: 'secret-reset-token' });
   const mockUserWithoutPassword = createUserFixture({ password: undefined });
   const mockPayload = createJwtPayload();
 
@@ -157,9 +157,7 @@ describe('AuthService', () => {
         }),
       );
       expect(usersService.save).toHaveBeenCalledWith(mockUser);
-
       expect(userPreferencesService.createDefaultPreferences).toHaveBeenCalledWith(mockUser.id);
-
       expect(usersTokenService.generateToken).toHaveBeenCalledWith(mockUser, UserTokenEnum.EMAIL_VERIFICATION, 60);
       expect(mailService.sendEmailVerificationEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName, 60, 'verification-token');
     });
@@ -177,6 +175,14 @@ describe('AuthService', () => {
       await expect(authService.login(loginDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
     });
 
+    it('should throw UnauthorizedException if email is not verified', async () => {
+      const unverifiedUser = createUserFixture({ isEmailVerified: false });
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(unverifiedUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(authService.login(loginDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+    });
+
     it('should update lastLoginAt and return tokens for valid credentials', async () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
@@ -185,40 +191,39 @@ describe('AuthService', () => {
       const result = await authService.login(loginDto, mockI18nContext);
 
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUser.id }, { lastLoginAt: expect.any(Date) as unknown });
-      expect(result).toEqual({ accessToken: 'access_token', refreshToken: 'refresh_token' });
+      expect(result).toEqual({ accessToken: 'access_token', refreshToken: 'refresh_token', user: expect.any(Object) as unknown,});
     });
   });
 
   describe('refreshToken', () => {
-    const refreshDto: RefreshTokenDto = { refreshToken: 'valid_refresh_token' };
+    const validRefreshToken = 'valid_refresh_token';
 
     it('should throw UnauthorizedException when JWT verification fails', async () => {
       jwtService.verifyAsync.mockRejectedValue(new Error('Invalid signature'));
 
-      await expect(authService.refreshToken(refreshDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refreshToken(validRefreshToken, mockI18nContext)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('pshould throw UnauthorizedException when user exist', async () => {
+    it('should throw UnauthorizedException when user does not exist', async () => {
       jwtService.verifyAsync.mockResolvedValue(mockPayload);
       usersService.findOneBy.mockResolvedValue(null);
 
-      await expect(authService.refreshToken(refreshDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refreshToken(validRefreshToken, mockI18nContext)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should generate new token pair for valid refresh token', async () => {
+    it('should generate NEW access token for valid refresh token', async () => {
       const storedToken = createUserTokenFixture({ type: UserTokenEnum.REFRESH_TOKEN });
       jwtService.verifyAsync.mockResolvedValue(mockPayload);
       usersService.findOneBy.mockResolvedValue(mockUser);
       usersTokenService.findActiveRefreshToken.mockResolvedValue(storedToken);
-      jwtService.signAsync.mockResolvedValueOnce('new_access_token').mockResolvedValueOnce('new_refresh_token');
 
-      const result = await authService.refreshToken(refreshDto, mockI18nContext);
+      jwtService.signAsync.mockResolvedValueOnce('new_access_token');
 
-      expect(usersTokenService.findActiveRefreshToken).toHaveBeenCalledWith(refreshDto.refreshToken, mockUser.id);
-      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(storedToken.id);
+      const result = await authService.refreshToken(validRefreshToken, mockI18nContext);
+
+      expect(usersTokenService.findActiveRefreshToken).toHaveBeenCalledWith(validRefreshToken, mockUser.id);
       expect(result).toEqual({
         accessToken: 'new_access_token',
-        refreshToken: 'new_refresh_token',
       });
     });
 
@@ -227,7 +232,7 @@ describe('AuthService', () => {
       usersService.findOneBy.mockResolvedValue(mockUser);
       usersTokenService.findActiveRefreshToken.mockResolvedValue(null);
 
-      await expect(authService.refreshToken(refreshDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refreshToken(validRefreshToken, mockI18nContext)).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -245,7 +250,6 @@ describe('AuthService', () => {
 
     it('should generate token and send email if user exists', async () => {
       usersService.findOneBy.mockResolvedValue(mockUser);
-
       usersTokenService.generateToken.mockResolvedValue(mockUserToken);
 
       await authService.forgotPassword(dto, mockI18nContext);
@@ -271,7 +275,7 @@ describe('AuthService', () => {
       expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 'random_salt');
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
       expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(mockUserToken.id);
-      expect(mailService.sendPasswordChangedEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName);
+      expect(mailService.sendPasswordChangedEmail).toHaveBeenCalledWith(mockUserToken.user.email, mockI18nContext.lang, mockUserToken.user.concatName);
     });
   });
 
@@ -287,7 +291,7 @@ describe('AuthService', () => {
     it('should throw BadRequestException if user has password but did not provide currentPassword', async () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUser);
 
-      const missingCurrentPassDto = { password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' };
+      const missingCurrentPassDto = { password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' } as AuthChangePasswordDto;
 
       await expect(authService.changePassword('test@example.com', missingCurrentPassDto, mockI18nContext)).rejects.toThrow(BadRequestException);
     });
@@ -316,12 +320,12 @@ describe('AuthService', () => {
     it('should throw BadRequestException if user has NO password (e.g. Google login)', async () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUserWithoutPassword);
 
-      const dto = {
+      const changeDto = {
         password: 'NewPassword123!',
         passwordRepeat: 'NewPassword123!',
       } as AuthChangePasswordDto;
 
-      await expect(authService.changePassword('test@example.com', dto, mockI18nContext)).rejects.toThrow(BadRequestException);
+      await expect(authService.changePassword('test@example.com', changeDto, mockI18nContext)).rejects.toThrow(BadRequestException);
 
       expect(bcrypt.hash).not.toHaveBeenCalled();
       expect(usersService.updateBy).not.toHaveBeenCalled();
