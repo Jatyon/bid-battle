@@ -16,6 +16,7 @@ import { BidModule } from '@modules/bid';
 import { HealthModule } from '@health/health.module';
 import { I18nConfigProvider, MailerConfigProvider, ProvidersModule } from '@shared/providers';
 import { FileUploadModule } from '@shared/file-upload';
+import { CookiesModule } from '@shared/cookies';
 import { RedisModule } from '@shared/redis';
 import { MailModule } from '@shared/mail';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
@@ -78,6 +79,7 @@ import { join } from 'path';
 
     // Global
     RedisModule,
+    CookiesModule,
     ProvidersModule,
     MailModule,
     FileUploadModule,
