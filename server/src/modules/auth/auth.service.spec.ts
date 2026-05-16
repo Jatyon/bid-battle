@@ -191,7 +191,7 @@ describe('AuthService', () => {
       const result = await authService.login(loginDto, mockI18nContext);
 
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUser.id }, { lastLoginAt: expect.any(Date) as unknown });
-      expect(result).toEqual({ accessToken: 'access_token', refreshToken: 'refresh_token', user: expect.any(Object) as unknown,});
+      expect(result).toEqual({ accessToken: 'access_token', refreshToken: 'refresh_token', user: expect.any(Object) as unknown });
     });
   });
 

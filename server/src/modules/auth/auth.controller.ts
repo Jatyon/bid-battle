@@ -2,6 +2,7 @@ import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConflictResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
+import { AppConfigService } from '@config/config.service';
 import { User } from '@modules/users';
 import { Cookie, CookieService } from '@shared/cookies';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
@@ -18,6 +19,7 @@ import * as express from 'express';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly configService: AppConfigService,
     private readonly cookieService: CookieService,
   ) {}
 
@@ -62,6 +64,21 @@ export class AuthController {
   async refreshToken(@Cookie('refreshToken') token: string, @I18n() i18n: I18nContext): Promise<AuthRefreshResponse> {
     if (!token) throw new UnauthorizedException(i18n.t('auth.errors.refresh_token_not_recognized'));
     return this.authService.refreshToken(token, i18n);
+  }
+
+  @ApiOperation({
+    summary: 'Logout',
+    description: 'Invalidate the refresh-token cookie and clear session',
+  })
+  @ApiStandardResponse(MessageResponse, false)
+  @Public()
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Cookie() cookies: Record<string, string>, @Res({ passthrough: true }) res: express.Response, @I18n() i18n: I18nContext): Promise<MessageResponse> {
+    const token = this.cookieService.getCookie({ cookies }, this.configService.cookies.refreshTokenName);
+    await this.authService.logout(token);
+    this.cookieService.clearRefreshToken(res);
+    return { message: i18n.t('auth.info.logged_out_successfully') };
   }
 
   @ApiOperation({

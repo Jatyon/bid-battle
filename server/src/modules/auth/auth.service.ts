@@ -128,6 +128,23 @@ export class AuthService {
     return { accessToken };
   }
 
+  async logout(refreshToken: string | undefined): Promise<void> {
+    if (!refreshToken) return;
+
+    let payload: IAuthJwtPayload;
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.jwt.refreshSecret,
+        ignoreExpiration: true,
+      });
+    } catch {
+      return;
+    }
+
+    const storedToken = await this.usersTokenService.findActiveRefreshToken(refreshToken, payload.sub);
+    if (storedToken) await this.usersTokenService.markTokenAsUsed(storedToken.id);
+  }
+
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto, i18n: I18nContext): Promise<void> {
     const user = await this.usersService.findOneBy({
       email: forgotPasswordDto.email,
