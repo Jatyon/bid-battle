@@ -4,5 +4,5 @@ export interface IOAuthProfile {
   emailVerified: boolean;
   firstName: string;
   lastName: string;
-  avatar?: string;
+  avatar: string | null;
 }

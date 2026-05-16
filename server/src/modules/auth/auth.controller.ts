@@ -13,6 +13,7 @@ import { AuthService } from './auth.service';
 import { IOAuthProfile } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import * as express from 'express';
+import { GithubOAuthGuard } from './guards/github-oauth.guard';
 
 @ApiTags('Authentication')
 @Controller('/auth')
@@ -165,15 +166,23 @@ export class AuthController {
   @UseGuards(GoogleOAuthGuard)
   @Get('google/callback')
   async googleAuthCallback(@Req() req: { user: IOAuthProfile }, @Res() res: express.Response): Promise<void> {
-    const { refreshToken, accessToken, user } = await this.authService.validateOAuthLogin(req.user, SocialProviderEnum.GOOGLE);
-    this.cookieService.setRefreshToken(res, refreshToken);
-    const exchangeCode = await this.authService.createOAuthExchangeCode({
-      accessToken,
-      refreshToken,
-      user,
-    });
+    return this.handleOAuthCallback(req.user, res, SocialProviderEnum.GOOGLE);
+  }
 
-    res.redirect(`${this.configService.app.frontendHost}/auth/oauth-callback?code=${exchangeCode}`);
+  @ApiOperation({ summary: 'Initiate GitHub OAuth2 login', description: 'Redirects the user to GitHub login page' })
+  @Public()
+  @UseGuards(GithubOAuthGuard)
+  @Get('github')
+  githubAuth(): void {
+    // Passport handles the redirect
+  }
+
+  @ApiExcludeEndpoint()
+  @Public()
+  @UseGuards(GithubOAuthGuard)
+  @Get('github/callback')
+  async githubAuthCallback(@Req() req: { user: IOAuthProfile }, @Res() res: express.Response): Promise<void> {
+    return this.handleOAuthCallback(req.user, res, SocialProviderEnum.GITHUB);
   }
 
   @ApiOperation({
@@ -203,5 +212,16 @@ export class AuthController {
   @Get('me')
   getMe(@CurrentUser() user: User): User {
     return user;
+  }
+
+  /**
+   * Shared handler for OAuth callbacks to avoid code duplication between strategies.
+   * Validates the OAuth profile, sets the refresh token cookie, and redirects to frontend with exchange code.
+   */
+  private async handleOAuthCallback(profile: IOAuthProfile, res: express.Response, provider: SocialProviderEnum): Promise<void> {
+    const { refreshToken, accessToken, user } = await this.authService.validateOAuthLogin(profile, provider);
+    this.cookieService.setRefreshToken(res, refreshToken);
+    const exchangeCode = await this.authService.createOAuthExchangeCode({ accessToken, refreshToken, user });
+    res.redirect(`${this.configService.app.frontendHost}/auth/oauth-callback?code=${exchangeCode}`);
   }
 }

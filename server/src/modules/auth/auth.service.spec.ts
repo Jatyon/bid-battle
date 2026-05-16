@@ -2,8 +2,17 @@ import { UnauthorizedException, ConflictException, NotFoundException, BadRequest
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UserPreferences, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum, SocialAccountService, SocialAccount } from '@modules/users';
-import { SocialProviderEnum } from '@modules/users/enums';
+import {
+  User,
+  UserPreferences,
+  UserPreferencesService,
+  UsersService,
+  UsersTokenService,
+  UserTokenEnum,
+  SocialAccountService,
+  SocialAccount,
+  SocialProviderEnum,
+} from '@modules/users';
 import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
@@ -239,6 +248,39 @@ describe('AuthService', () => {
       usersTokenService.findActiveRefreshToken.mockResolvedValue(null);
 
       await expect(authService.refreshToken(validRefreshToken, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('logout', () => {
+    it('should silently return if no refresh token is provided', async () => {
+      await expect(authService.logout(undefined)).resolves.toBeUndefined();
+      expect(jwtService.verifyAsync).not.toHaveBeenCalled();
+    });
+
+    it('should silently return if JWT verification fails', async () => {
+      jwtService.verifyAsync.mockRejectedValue(new Error('Invalid signature'));
+
+      await expect(authService.logout('invalid-token')).resolves.toBeUndefined();
+      expect(usersTokenService.findActiveRefreshToken).not.toHaveBeenCalled();
+    });
+
+    it('should silently return if token is not found in database', async () => {
+      jwtService.verifyAsync.mockResolvedValue(mockPayload);
+      usersTokenService.findActiveRefreshToken.mockResolvedValue(null);
+
+      await expect(authService.logout('valid-but-not-in-db-token')).resolves.toBeUndefined();
+      expect(usersTokenService.markTokenAsUsed).not.toHaveBeenCalled();
+    });
+
+    it('should mark token as used if successfully verified and found in DB', async () => {
+      jwtService.verifyAsync.mockResolvedValue(mockPayload);
+      const activeToken = createUserTokenFixture({ id: 123 });
+      usersTokenService.findActiveRefreshToken.mockResolvedValue(activeToken);
+
+      await expect(authService.logout('valid-token')).resolves.toBeUndefined();
+
+      expect(usersTokenService.findActiveRefreshToken).toHaveBeenCalledWith('valid-token', mockPayload.sub);
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(activeToken.id);
     });
   });
 
@@ -497,8 +539,8 @@ describe('AuthService', () => {
       const mockManager = {
         create: jest.fn().mockImplementation(<T>(entityType: unknown, data: T): T => data),
         save: jest.fn().mockImplementation(<T>(entityType: unknown, data: T): T & { id: number } => {
-          if (entityType === User) return { ...data, id: 99 };
-          return { ...data, id: 100 };
+          if (entityType === User) return { ...data, id: 99 } as unknown as T & { id: number };
+          return { ...data, id: 100 } as unknown as T & { id: number };
         }),
       } as unknown as EntityManager;
 

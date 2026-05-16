@@ -293,4 +293,74 @@ describe('AppConfigService', () => {
       expect(() => service.google).toThrow('Missing required environment variable: GOOGLE_CALLBACK_URL');
     });
   });
+
+  describe('github', () => {
+    it('should return github config when all env vars are set', () => {
+      configService.get.mockImplementation((key: string) => {
+        const values: Record<string, string> = {
+          GITHUB_CLIENT_ID: 'github-client-id',
+          GITHUB_CLIENT_SECRET: 'github-client-secret',
+          GITHUB_CALLBACK_URL: 'http://localhost:3000/auth/github/callback',
+        };
+        return values[key];
+      });
+
+      const config = service.github;
+
+      expect(config.clientId).toBe('github-client-id');
+      expect(config.clientSecret).toBe('github-client-secret');
+      expect(config.callbackUrl).toBe('http://localhost:3000/auth/github/callback');
+    });
+
+    it('should throw when GITHUB_CLIENT_ID is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'GITHUB_CLIENT_ID') return undefined;
+        return 'some-value';
+      });
+
+      expect(() => service.github).toThrow('Missing required environment variable: GITHUB_CLIENT_ID');
+    });
+
+    it('should throw when GITHUB_CLIENT_SECRET is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'GITHUB_CLIENT_ID') return 'github-client-id';
+        if (key === 'GITHUB_CLIENT_SECRET') return undefined;
+        return 'some-value';
+      });
+
+      expect(() => service.github).toThrow('Missing required environment variable: GITHUB_CLIENT_SECRET');
+    });
+
+    it('should throw when GITHUB_CALLBACK_URL is missing', () => {
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'GITHUB_CLIENT_ID') return 'github-client-id';
+        if (key === 'GITHUB_CLIENT_SECRET') return 'github-client-secret';
+        if (key === 'GITHUB_CALLBACK_URL') return undefined;
+        return 'some-value';
+      });
+
+      expect(() => service.github).toThrow('Missing required environment variable: GITHUB_CALLBACK_URL');
+    });
+  });
+
+  describe('cookies', () => {
+    it('should return default cookies config when env var is not set', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => defaultValue);
+
+      const config = service.cookies;
+
+      expect(config.refreshTokenName).toBe('refreshToken');
+    });
+
+    it('should return cookies config with custom refresh token name', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => {
+        if (key === 'REFRESH_TOKEN_COOKIE_NAME') return 'custom-refresh-token';
+        return defaultValue;
+      });
+
+      const config = service.cookies;
+
+      expect(config.refreshTokenName).toBe('custom-refresh-token');
+    });
+  });
 });

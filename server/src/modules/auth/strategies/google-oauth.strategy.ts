@@ -25,7 +25,7 @@ export class GoogleOAuthStrategy extends PassportStrategy(Strategy, AuthStrategy
       firstName: name?.givenName ?? '',
       lastName: name?.familyName ?? '',
       emailVerified: emails?.[0]?.verified ?? false,
-      avatar: photos?.[0]?.value,
+      avatar: photos?.[0]?.value ?? null,
     };
 
     done(null, user);

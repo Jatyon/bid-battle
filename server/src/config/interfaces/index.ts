@@ -8,4 +8,5 @@ export * from './mailer-config.interface';
 export * from './redis-config.interface';
 export * from './socket-config.interface';
 export * from './google-config.interface';
+export * from './github-config.interface';
 export * from './bid-config.interface';

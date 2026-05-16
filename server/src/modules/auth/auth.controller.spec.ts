@@ -10,6 +10,8 @@ import { AuthSession } from './models';
 import { CookieService } from '@shared/cookies';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import * as express from 'express';
+import { IOAuthProfile, IOAuthUser } from './interfaces';
+import { SocialProviderEnum } from '@modules/users';
 
 const mockTokens = {
   accessToken: 'access_token',
@@ -22,6 +24,13 @@ describe('AuthController', () => {
   let cookieService: DeepMocked<CookieService>;
 
   const mockUser = createUserFixture();
+  const mockOAuthUser: IOAuthUser = {
+    id: mockUser.id,
+    email: mockUser.email,
+    firstName: mockUser.firstName,
+    lastName: mockUser.lastName,
+    avatar: mockUser.avatar,
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -35,6 +44,9 @@ describe('AuthController', () => {
             cookies: {
               refreshTokenName: 'refreshToken',
             },
+            app: {
+              frontendHost: 'http://localhost:3000',
+            },
           }),
         },
       ],
@@ -43,6 +55,10 @@ describe('AuthController', () => {
     controller = module.get<AuthController>(AuthController);
     authService = module.get(AuthService);
     cookieService = module.get(CookieService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('register', () => {
@@ -82,7 +98,7 @@ describe('AuthController', () => {
     const loginSession: AuthSession = {
       accessToken: 'access_token',
       refreshToken: 'refresh_token',
-      user: mockUser,
+      user: mockOAuthUser,
     } as AuthSession;
 
     it('sets refresh token in cookie and returns access token on valid credentials', async () => {
@@ -94,7 +110,6 @@ describe('AuthController', () => {
 
       expect(authService.login).toHaveBeenCalledWith(loginDto, i18n);
       expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, loginSession.refreshToken);
-
       expect(result).toEqual({ accessToken: loginSession.accessToken, user: loginSession.user });
     });
 
@@ -109,7 +124,7 @@ describe('AuthController', () => {
   describe('refreshToken', () => {
     const validToken = 'valid_refresh_token';
 
-    it('returns new  accessToken for a valid refresh token', async () => {
+    it('returns new accessToken for a valid refresh token', async () => {
       authService.refreshToken.mockResolvedValue({ accessToken: mockTokens.accessToken });
       const i18n = createMockI18nContext();
 
@@ -131,6 +146,26 @@ describe('AuthController', () => {
       authService.refreshToken.mockRejectedValue(new UnauthorizedException('Token not recognized'));
 
       await expect(controller.refreshToken(validToken, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('logout', () => {
+    it('invalidates refresh token, clears cookie, and returns success message', async () => {
+      const mockCookies = { refreshToken: 'some_token' };
+      const mockRes = createMock<express.Response>();
+      const i18n = createMockI18nContext({
+        'auth.info.logged_out_successfully': 'Logged out successfully',
+      });
+
+      cookieService.getCookie.mockReturnValue('some_token');
+      authService.logout.mockResolvedValue(undefined);
+
+      const result = await controller.logout(mockCookies, mockRes, i18n);
+
+      expect(cookieService.getCookie).toHaveBeenCalledWith({ cookies: mockCookies }, 'refreshToken');
+      expect(authService.logout).toHaveBeenCalledWith('some_token');
+      expect(cookieService.clearRefreshToken).toHaveBeenCalledWith(mockRes);
+      expect(result).toEqual({ message: 'Logged out successfully' });
     });
   });
 
@@ -260,34 +295,109 @@ describe('AuthController', () => {
   describe('getMe', () => {
     it('returns the current user from the request', () => {
       const result = controller.getMe(mockUser);
-
       expect(result).toEqual(mockUser);
     });
   });
 
-  describe('googleAuth', () => {
-    it('does not throw and returns void (Passport handles redirect)', () => {
+  describe('OAuth - Google', () => {
+    const mockProfile: IOAuthProfile = {
+      providerId: 'google-id-123',
+      email: 'google@example.com',
+      emailVerified: true,
+      firstName: 'Jane',
+      lastName: 'Smith',
+      avatar: 'https://example.com/avatar.jpg',
+    };
+
+    it('googleAuth does not throw and returns void (Passport handles redirect)', () => {
       expect(() => controller.googleAuth()).not.toThrow();
+    });
+
+    it('googleAuthCallback validates user, sets cookie, generates exchange code and redirects', async () => {
+      const mockRes = createMock<express.Response>();
+
+      authService.validateOAuthLogin.mockResolvedValue({
+        accessToken: 'google_access',
+        refreshToken: 'google_refresh',
+        user: mockOAuthUser,
+      });
+      authService.createOAuthExchangeCode.mockResolvedValue('exchange-code-123');
+
+      await controller.googleAuthCallback({ user: mockProfile }, mockRes);
+
+      expect(authService.validateOAuthLogin).toHaveBeenCalledWith(mockProfile, SocialProviderEnum.GOOGLE);
+      expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, 'google_refresh');
+      expect(authService.createOAuthExchangeCode).toHaveBeenCalledWith({
+        accessToken: 'google_access',
+        refreshToken: 'google_refresh',
+        user: mockOAuthUser,
+      });
+      expect(mockRes.redirect).toHaveBeenCalledWith('http://localhost:3000/auth/oauth-callback?code=exchange-code-123');
     });
   });
 
-  // describe('googleAuthCallback', () => {
-  //   const googleUser: IOAuthProfile = {
-  //     providerId: 'google-id-123',
-  //     email: 'google@example.com',
-  //     emailVerified: true,
-  //     firstName: 'Jane',
-  //     lastName: 'Smith',
-  //     avatar: 'https://example.com/avatar.jpg',
-  //   };
+  describe('OAuth - GitHub', () => {
+    const mockProfile: IOAuthProfile = {
+      providerId: 'github-id-123',
+      email: 'github@example.com',
+      emailVerified: true,
+      firstName: 'Github',
+      lastName: 'User',
+      avatar: null,
+    };
 
-  //   it('returns auth tokens after successful Google login', async () => {
-  //     authService.loginWithGoogle.mockResolvedValue(mockTokens);
+    it('githubAuth does not throw and returns void (Passport handles redirect)', () => {
+      expect(() => controller.githubAuth()).not.toThrow();
+    });
 
-  //     const result = await controller.googleAuthCallback({ user: googleUser });
+    it('githubAuthCallback validates user, sets cookie, generates exchange code and redirects', async () => {
+      const mockRes = createMock<express.Response>();
 
-  //     expect(authService.loginWithGoogle).toHaveBeenCalledWith(googleUser);
-  //     expect(result).toEqual(mockTokens);
-  //   });
-  // });
+      authService.validateOAuthLogin.mockResolvedValue({
+        accessToken: 'github_access',
+        refreshToken: 'github_refresh',
+        user: mockOAuthUser,
+      });
+      authService.createOAuthExchangeCode.mockResolvedValue('exchange-code-456');
+
+      await controller.githubAuthCallback({ user: mockProfile }, mockRes);
+
+      expect(authService.validateOAuthLogin).toHaveBeenCalledWith(mockProfile, SocialProviderEnum.GITHUB);
+      expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, 'github_refresh');
+      expect(authService.createOAuthExchangeCode).toHaveBeenCalledWith({
+        accessToken: 'github_access',
+        refreshToken: 'github_refresh',
+        user: mockOAuthUser,
+      });
+      expect(mockRes.redirect).toHaveBeenCalledWith('http://localhost:3000/auth/oauth-callback?code=exchange-code-456');
+    });
+  });
+
+  describe('exchangeOAuthCode', () => {
+    it('throws UnauthorizedException if code is not provided', async () => {
+      const mockRes = createMock<express.Response>();
+      const i18n = createMockI18nContext({
+        'auth.errors.oauth_code_not_provided': 'OAuth code not provided',
+      });
+
+      await expect(controller.exchangeOAuthCode('', mockRes, i18n)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('exchanges code for tokens, sets cookie, and returns access token + user', async () => {
+      const mockRes = createMock<express.Response>();
+      const i18n = createMockI18nContext();
+
+      authService.exchangeOAuthCode.mockResolvedValue({
+        accessToken: 'final_access_token',
+        refreshToken: 'final_refresh_token',
+        user: mockOAuthUser,
+      });
+
+      const result = await controller.exchangeOAuthCode('valid-code-123', mockRes, i18n);
+
+      expect(authService.exchangeOAuthCode).toHaveBeenCalledWith('valid-code-123', i18n);
+      expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, 'final_refresh_token');
+      expect(result).toEqual({ accessToken: 'final_access_token', user: mockOAuthUser });
+    });
+  });
 });

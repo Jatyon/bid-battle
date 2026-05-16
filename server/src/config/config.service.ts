@@ -6,6 +6,7 @@ import {
   IConfigBid,
   IConfigCookies,
   IConfigFile,
+  IConfigGithub,
   IConfigGoogle,
   IConfigI18n,
   IConfigJWT,
@@ -137,6 +138,14 @@ export class AppConfigService {
       clientId: this.requireGet<string>('GOOGLE_CLIENT_ID'),
       clientSecret: this.requireGet<string>('GOOGLE_CLIENT_SECRET'),
       callbackUrl: this.requireGet<string>('GOOGLE_CALLBACK_URL'),
+    };
+  }
+
+  get github(): IConfigGithub {
+    return {
+      clientId: this.requireGet<string>('GITHUB_CLIENT_ID'),
+      clientSecret: this.requireGet<string>('GITHUB_CLIENT_SECRET'),
+      callbackUrl: this.requireGet<string>('GITHUB_CALLBACK_URL'),
     };
   }
 

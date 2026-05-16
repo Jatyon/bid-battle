@@ -16,7 +16,7 @@ export class InitSocialAccounts1770549563587 implements MigrationInterface {
           {
             name: 'provider',
             type: 'enum',
-            enum: ['google'],
+            enum: ['google', 'github'],
           },
           {
             name: 'provider_id',
