@@ -2,9 +2,11 @@ import { BadRequestException, ConflictException, UnauthorizedException } from '@
 import { Test, TestingModule } from '@nestjs/testing';
 import { createUserFixture } from '@test/fixtures/users.fixtures';
 import { createMockI18nContext } from '@test/mocks/i18n.mock';
+import { AppConfigService } from '@config/config.service';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthSession } from './models';
 import { CookieService } from '@shared/cookies';
 import { IGoogleUser } from './interfaces';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
@@ -28,6 +30,14 @@ describe('AuthController', () => {
       providers: [
         { provide: AuthService, useValue: createMock<AuthService>() },
         { provide: CookieService, useValue: createMock<CookieService>() },
+        {
+          provide: AppConfigService,
+          useValue: createMock<AppConfigService>({
+            cookies: {
+              refreshTokenName: 'refreshToken',
+            },
+          }),
+        },
       ],
     }).compile();
 
@@ -70,17 +80,23 @@ describe('AuthController', () => {
       password: 'Password123!',
     } as AuthLoginDto;
 
+    const loginSession: AuthSession = {
+      accessToken: 'access_token',
+      refreshToken: 'refresh_token',
+      user: mockUser,
+    } as AuthSession;
+
     it('sets refresh token in cookie and returns access token on valid credentials', async () => {
-      authService.login.mockResolvedValue(mockTokens);
+      authService.login.mockResolvedValue(loginSession);
       const i18n = createMockI18nContext();
       const mockRes = createMock<express.Response>();
 
       const result = await controller.login(loginDto, mockRes, i18n);
 
       expect(authService.login).toHaveBeenCalledWith(loginDto, i18n);
-      expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, mockTokens.refreshToken);
+      expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, loginSession.refreshToken);
 
-      expect(result).toEqual({ accessToken: mockTokens.accessToken });
+      expect(result).toEqual({ accessToken: loginSession.accessToken, user: loginSession.user });
     });
 
     it('propagates UnauthorizedException on invalid credentials', async () => {
@@ -94,14 +110,14 @@ describe('AuthController', () => {
   describe('refreshToken', () => {
     const validToken = 'valid_refresh_token';
 
-    it('returns new auth tokens for a valid refresh token', async () => {
-      authService.refreshToken.mockResolvedValue(mockTokens);
+    it('returns new  accessToken for a valid refresh token', async () => {
+      authService.refreshToken.mockResolvedValue({ accessToken: mockTokens.accessToken });
       const i18n = createMockI18nContext();
 
       const result = await controller.refreshToken(validToken, i18n);
 
       expect(authService.refreshToken).toHaveBeenCalledWith(validToken, i18n);
-      expect(result).toEqual(mockTokens);
+      expect(result).toEqual({ accessToken: mockTokens.accessToken });
     });
 
     it('throws UnauthorizedException when refresh token is missing in cookie', async () => {
