@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from '@modules/users';
+import type { IOAuthUser } from '../interfaces';
 
 export class AuthLoginResponse {
   @ApiProperty({
@@ -10,7 +10,6 @@ export class AuthLoginResponse {
 
   @ApiProperty({
     description: 'Authenticated user data',
-    type: () => User,
   })
-  user: User;
+  user: IOAuthUser;
 }

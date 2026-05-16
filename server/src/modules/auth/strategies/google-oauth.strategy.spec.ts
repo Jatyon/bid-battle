@@ -32,6 +32,7 @@ describe('GoogleOAuthStrategy', () => {
       const profile = {
         id: 'google-id-123',
         emails: [{ value: 'google@example.com', verified: true }],
+        emailVerified: true,
         name: { givenName: 'Jane', familyName: 'Smith' },
         photos: [{ value: 'https://example.com/avatar.jpg' }],
       } as unknown as Profile;
@@ -43,6 +44,7 @@ describe('GoogleOAuthStrategy', () => {
       expect(done).toHaveBeenCalledWith(null, {
         providerId: 'google-id-123',
         email: 'google@example.com',
+        emailVerified: true,
         firstName: 'Jane',
         lastName: 'Smith',
         avatar: 'https://example.com/avatar.jpg',
@@ -53,6 +55,7 @@ describe('GoogleOAuthStrategy', () => {
       const profile = {
         id: 'google-id-456',
         emails: [],
+        emailVerified: false,
         name: {},
         photos: [],
       } as unknown as Profile;
@@ -64,6 +67,7 @@ describe('GoogleOAuthStrategy', () => {
       expect(done).toHaveBeenCalledWith(null, {
         providerId: 'google-id-456',
         email: '',
+        emailVerified: false,
         firstName: '',
         lastName: '',
         avatar: undefined,

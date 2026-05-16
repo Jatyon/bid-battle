@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
+import { Paginator } from '@core/models';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
 import { BidRejectionCode, RedisService } from '@shared/redis';
 import { BidRepository } from './repositories/bid.repository';
@@ -9,7 +10,6 @@ import { BidService } from './bid.service';
 import { Bid } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nService } from 'nestjs-i18n';
-import { Paginator } from '@core/models';
 
 const MOCK_BID_CONFIG = { minIncrementPercent: 1, minIncrementAbsolute: 1 };
 

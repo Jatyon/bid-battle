@@ -1,7 +1,7 @@
-import { User } from '@modules/users';
+import { IOAuthUser } from '../interfaces';
 
 export interface AuthSession {
   accessToken: string;
   refreshToken: string;
-  user: User;
+  user: IOAuthUser;
 }

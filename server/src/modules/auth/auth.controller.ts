@@ -1,16 +1,16 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UnauthorizedException, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, Res, UnauthorizedException, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConflictResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { AppConfigService } from '@config/config.service';
-import { User } from '@modules/users';
+import { SocialProviderEnum, User } from '@modules/users';
 import { Cookie, CookieService } from '@shared/cookies';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AuthLoginResponse, AuthRefreshResponse } from './models';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
-import { AuthLoginResponse, AuthRefreshResponse, AuthTokens } from './models';
-import { IGoogleUser } from './interfaces';
+import { IOAuthProfile } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import * as express from 'express';
 
@@ -164,8 +164,32 @@ export class AuthController {
   @Public()
   @UseGuards(GoogleOAuthGuard)
   @Get('google/callback')
-  googleAuthCallback(@Req() req: { user: IGoogleUser }): Promise<AuthTokens> {
-    return this.authService.loginWithGoogle(req.user);
+  async googleAuthCallback(@Req() req: { user: IOAuthProfile }, @Res() res: express.Response): Promise<void> {
+    const { refreshToken, accessToken, user } = await this.authService.validateOAuthLogin(req.user, SocialProviderEnum.GOOGLE);
+    this.cookieService.setRefreshToken(res, refreshToken);
+    const exchangeCode = await this.authService.createOAuthExchangeCode({
+      accessToken,
+      refreshToken,
+      user,
+    });
+
+    res.redirect(`${this.configService.app.frontendHost}/auth/oauth-callback?code=${exchangeCode}`);
+  }
+
+  @ApiOperation({
+    summary: 'OAuth2 - Exchange code for token',
+    description: 'Exchange the one-time code obtained from the OAuth provider for JWT tokens and user info',
+  })
+  @ApiStandardResponse(AuthLoginResponse, false)
+  @Public()
+  @Get('oauth/exchange')
+  @HttpCode(HttpStatus.OK)
+  async exchangeOAuthCode(@Query('code') code: string, @Res({ passthrough: true }) res: express.Response, @I18n() i18n: I18nContext): Promise<AuthLoginResponse> {
+    if (!code) throw new UnauthorizedException(i18n.t('auth.errors.oauth_code_not_provided'));
+
+    const { accessToken, refreshToken, user } = await this.authService.exchangeOAuthCode(code, i18n);
+    this.cookieService.setRefreshToken(res, refreshToken);
+    return { accessToken, user };
   }
 
   @ApiOperation({

@@ -35,7 +35,7 @@ export class User {
 
   @ApiProperty({ description: 'User avatar URL', example: 'https://example.com/avatar.jpg', nullable: true })
   @Column({ name: 'avatar', type: 'varchar', length: 255, nullable: true })
-  avatar?: string | null;
+  avatar: string | null;
 
   @Column({ name: 'is_email_verified', type: 'boolean', default: false })
   @Exclude()

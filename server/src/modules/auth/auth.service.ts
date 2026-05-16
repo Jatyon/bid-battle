@@ -1,15 +1,27 @@
 import { Injectable, Logger, UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken, UserPreferencesService, SocialAccountService } from '@modules/users';
+import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken, UserPreferencesService, SocialAccountService, UserPreferences, SocialAccount } from '@modules/users';
 import { SocialProviderEnum } from '@modules/users/enums';
 import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { AuthRefreshResponse, AuthSession, AuthTokens } from './models';
-import { IAuthJwt, IAuthJwtPayload, IGoogleUser } from './interfaces';
+import { IAuthJwt, IAuthJwtPayload, IOAuthProfile, IOAuthUser } from './interfaces';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { StringValue } from 'ms';
+import { randomUUID } from 'crypto';
+import { RedisService } from '@shared/redis';
+
+interface OAuthExchangePayload {
+  accessToken: string;
+  refreshToken: string;
+  user: IOAuthUser;
+}
+
+const OAUTH_EXCHANGE_TTL_SECONDS = 120;
+const OAUTH_EXCHANGE_KEY = (code: string) => `oauth:exchange:${code}`;
 
 @Injectable()
 export class AuthService {
@@ -23,6 +35,8 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly jwtService: JwtService,
     private readonly socialAccountService: SocialAccountService,
+    private readonly dataSource: DataSource,
+    private readonly redisService: RedisService,
   ) {}
 
   async validateJwtUser(payload: IAuthJwt, i18n: I18nService): Promise<User> {
@@ -101,8 +115,16 @@ export class AuthService {
       },
     );
 
+    const oAuthUser: IOAuthUser = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
+    };
+
     const tokens = await this.generateAuthTokens(user);
-    return { ...tokens, user };
+    return { ...tokens, user: oAuthUser };
   }
 
   async refreshToken(refreshToken: string, i18n: I18nContext): Promise<AuthRefreshResponse> {
@@ -240,35 +262,100 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async loginWithGoogle(googleUser: IGoogleUser): Promise<AuthTokens> {
-    let socialAccount = await this.socialAccountService.findByProvider(SocialProviderEnum.GOOGLE, googleUser.providerId);
+  /**
+   * CENTRAL IDENTITY ALGORITHM – handles any OAuth provider.
+   *
+   * Step 1 – Lookup:
+   *   Search for a SocialAccount record by (provider, providerId).
+   *   If it exists → retrieve the associated User and generate JWT.
+   *
+   * Step 2 – Account Linking (merging accounts):
+   *   If no SocialAccount is found, check if the email already exists in the database.
+   *   SECURITY: merge ONLY when `profile.emailVerified === true`.
+   *   This prevents account takeover via providers that do not verify emails.
+   *
+   * Step 3 – Registration:
+   *   If the email does not exist → create a new User + SocialAccount.
+   */
+  async validateOAuthLogin(profile: IOAuthProfile, provider: SocialProviderEnum): Promise<AuthSession> {
+    let socialAccount = await this.socialAccountService.findByProvider(provider, profile.providerId);
 
     if (!socialAccount) {
-      let user = await this.usersService.findOneBy({ email: googleUser.email });
+      let user = await this.usersService.findOneBy({ email: profile.email });
 
-      if (!user) {
+      if (user) {
+        if (!profile.emailVerified) {
+          throw new UnauthorizedException(`Cannot link account: email '${profile.email}' is not verified by ${provider}.`);
+        }
+
+        socialAccount = await this.socialAccountService.createForUser(provider, profile.providerId, user.id);
+        socialAccount.user = user;
+      } else {
         const newUser = this.usersService.create({
-          email: googleUser.email,
-          firstName: googleUser.firstName,
-          lastName: googleUser.lastName,
-          avatar: googleUser.avatar ?? null,
-          isEmailVerified: true,
+          email: profile.email,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          avatar: profile.avatar ?? null,
+          isEmailVerified: profile.emailVerified,
           password: undefined,
         });
 
-        user = await this.usersService.save(newUser);
+        socialAccount = await this.dataSource.transaction(async (manager) => {
+          user = await manager.save(User, newUser);
 
-        await this.userPreferencesService.createDefaultPreferences(user.id);
+          const preferences = manager.create(UserPreferences, { userId: user.id });
+          await manager.save(UserPreferences, preferences);
+
+          const newSocialAccount = manager.create(SocialAccount, { provider, providerId: profile.providerId, userId: user.id });
+          const savedSocialAccount = await manager.save(SocialAccount, newSocialAccount);
+
+          savedSocialAccount.user = user;
+
+          return savedSocialAccount;
+        });
       }
-
-      socialAccount = await this.socialAccountService.createForUser(SocialProviderEnum.GOOGLE, googleUser.providerId, user.id);
-
-      socialAccount.user = user;
     }
 
     await this.usersService.updateBy({ id: socialAccount.userId }, { lastLoginAt: new Date() });
 
-    return this.generateAuthTokens(socialAccount.user);
+    const oAuthUser: IOAuthUser = {
+      id: socialAccount.user.id,
+      email: socialAccount.user.email,
+      firstName: socialAccount.user.firstName,
+      lastName: socialAccount.user.lastName,
+      avatar: socialAccount.user.avatar,
+    };
+
+    const tokens = await this.generateAuthTokens(socialAccount.user);
+    return { ...tokens, user: oAuthUser };
+  }
+
+  /**
+   * Creates a one-time OAuth exchange code stored in Redis (TTL: 120s).
+   * The backend passes this code in the URL instead of an explicit access token.
+   *
+   * @returns UUID of the exchange code
+   */
+  async createOAuthExchangeCode(payload: OAuthExchangePayload): Promise<string> {
+    const code = randomUUID();
+    await this.redisService.setCache(OAUTH_EXCHANGE_KEY(code), payload, OAUTH_EXCHANGE_TTL_SECONDS);
+    return code;
+  }
+
+  /**
+   * One-time exchange of an OAuth code for tokens.
+   * After retrieval, the code is immediately deleted from Redis (cannot be reused).
+   *
+   * @throws UnauthorizedException when the code is invalid or has expired
+   */
+  async exchangeOAuthCode(code: string, i18n: I18nContext): Promise<OAuthExchangePayload> {
+    const payload = await this.redisService.getCache<OAuthExchangePayload>(OAUTH_EXCHANGE_KEY(code));
+
+    if (!payload) throw new UnauthorizedException(i18n.t('auth.errors.oauth_code_invalid_or_expired'));
+
+    await this.redisService.deleteCache(OAUTH_EXCHANGE_KEY(code));
+
+    return payload;
   }
 
   private async sendVerificationEmail(user: User, i18n: I18nContext): Promise<void> {

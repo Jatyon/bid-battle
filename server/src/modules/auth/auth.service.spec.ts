@@ -2,18 +2,18 @@ import { UnauthorizedException, ConflictException, NotFoundException, BadRequest
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UserPreferences, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum, SocialAccountService, UserToken } from '@modules/users';
+import { User, UserPreferences, UserPreferencesService, UsersService, UsersTokenService, UserTokenEnum, SocialAccountService, SocialAccount } from '@modules/users';
 import { SocialProviderEnum } from '@modules/users/enums';
-import { SocialAccount } from '@modules/users/entities/social-account.entity';
 import { MailService } from '@shared/mail';
 import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
 import { createJwtPayload } from '@test/fixtures/auth.fixtures';
+import { RedisService } from '@shared/redis/redis.service';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
-import { IAuthJwt, IGoogleUser } from './interfaces';
+import { IAuthJwt, IOAuthProfile, IOAuthUser } from './interfaces';
 import { AuthService } from './auth.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { UpdateResult } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
@@ -29,11 +29,13 @@ describe('AuthService', () => {
   let userPreferencesService: DeepMocked<UserPreferencesService>;
   let mailService: DeepMocked<MailService>;
   let socialAccountService: DeepMocked<SocialAccountService>;
+  let redisService: DeepMocked<RedisService>;
+  let dataSource: DeepMocked<DataSource>;
   let authService: AuthService;
 
   const mockI18nService = createMockI18nService();
   const mockI18nContext = createMockI18nContext();
-  const mockUser = createUserFixture({ isEmailVerified: true });
+  const mockUser = createUserFixture({ id: 1, isEmailVerified: true });
   const mockUserToken = createUserTokenFixture({ token: 'secret-reset-token' });
   const mockUserWithoutPassword = createUserFixture({ password: undefined });
   const mockPayload = createJwtPayload();
@@ -62,6 +64,8 @@ describe('AuthService', () => {
             },
           }),
         },
+        { provide: RedisService, useValue: createMock<RedisService>() },
+        { provide: DataSource, useValue: createMock<DataSource>() },
       ],
     }).compile();
 
@@ -71,6 +75,8 @@ describe('AuthService', () => {
     userPreferencesService = module.get(UserPreferencesService);
     mailService = module.get(MailService);
     socialAccountService = module.get(SocialAccountService);
+    redisService = module.get(RedisService);
+    dataSource = module.get(DataSource);
     authService = module.get<AuthService>(AuthService);
   });
 
@@ -427,90 +433,130 @@ describe('AuthService', () => {
     });
   });
 
-  describe('loginWithGoogle', () => {
-    const googleUser: IGoogleUser = {
-      providerId: 'google-id-123',
-      email: 'google@example.com',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      avatar: 'https://example.com/avatar.jpg',
+  describe('validateOAuthLogin', () => {
+    const provider = SocialProviderEnum.GOOGLE;
+    const profile: IOAuthProfile = {
+      providerId: 'google-12345',
+      email: 'oauth@example.com',
+      firstName: 'OAuth',
+      lastName: 'User',
+      avatar: 'http://example.com/avatar.jpg',
+      emailVerified: true,
     };
 
-    it('should return tokens when social account already exists', async () => {
-      const socialAccount = new SocialAccount();
-      Object.assign(socialAccount, {
-        id: 1,
-        provider: SocialProviderEnum.GOOGLE,
-        providerId: googleUser.providerId,
-        userId: mockUser.id,
-        user: mockUser,
-      });
+    const mockSocialAccount = {
+      id: 1,
+      provider,
+      providerId: profile.providerId,
+      userId: mockUser.id,
+      user: mockUser,
+    } as SocialAccount;
 
-      socialAccountService.findByProvider.mockResolvedValue(socialAccount);
-      usersService.updateBy.mockResolvedValue({} as unknown as UpdateResult);
-      jwtService.signAsync.mockResolvedValue('token' as never);
-      usersTokenService.saveRefreshToken.mockResolvedValue({} as unknown as UserToken);
+    it('Step 1: should login using an already linked social account', async () => {
+      socialAccountService.findByProvider.mockResolvedValue(mockSocialAccount);
+      jwtService.signAsync.mockResolvedValueOnce('access').mockResolvedValueOnce('refresh');
 
-      const result = await authService.loginWithGoogle(googleUser);
+      const result = await authService.validateOAuthLogin(profile, provider);
 
-      expect(socialAccountService.findByProvider).toHaveBeenCalledWith(SocialProviderEnum.GOOGLE, googleUser.providerId);
-      expect(usersService.updateBy).toHaveBeenCalledWith({ id: socialAccount.userId }, { lastLoginAt: expect.any(Date) as unknown });
-      expect(result).toHaveProperty('accessToken');
-      expect(result).toHaveProperty('refreshToken');
+      expect(socialAccountService.findByProvider).toHaveBeenCalledWith(provider, profile.providerId);
+      expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockSocialAccount.userId }, { lastLoginAt: expect.any(Date) as unknown });
+      expect(result.user.email).toBe(mockUser.email);
+      expect(result.accessToken).toBe('access');
     });
 
-    it('should create social account and new user when neither exists', async () => {
-      const newUser = createUserFixture({ id: 2, email: googleUser.email, isEmailVerified: true });
-      const newSocialAccount = new SocialAccount();
-      Object.assign(newSocialAccount, {
-        id: 1,
-        provider: SocialProviderEnum.GOOGLE,
-        providerId: googleUser.providerId,
-        userId: newUser.id,
-        user: newUser,
-      });
+    it('Step 2: should throw UnauthorizedException if trying to link existing user but email is NOT verified by provider', async () => {
+      socialAccountService.findByProvider.mockResolvedValue(null);
+      usersService.findOneBy.mockResolvedValue(mockUser);
 
+      const unverifiedProfile = { ...profile, emailVerified: false };
+
+      await expect(authService.validateOAuthLogin(unverifiedProfile, provider)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('Step 2: should link an existing user to a new social account if email is verified', async () => {
+      socialAccountService.findByProvider.mockResolvedValue(null);
+      usersService.findOneBy.mockResolvedValue(mockUser);
+
+      const newlyLinkedAccount = { ...mockSocialAccount, user: undefined } as unknown as SocialAccount;
+      socialAccountService.createForUser.mockResolvedValue(newlyLinkedAccount);
+      jwtService.signAsync.mockResolvedValueOnce('access').mockResolvedValueOnce('refresh');
+
+      const result = await authService.validateOAuthLogin(profile, provider);
+
+      expect(socialAccountService.createForUser).toHaveBeenCalledWith(provider, profile.providerId, mockUser.id);
+      expect(result.user.email).toBe(mockUser.email);
+    });
+
+    it('Step 3: should create a new user, preferences, and social account via transaction if user does not exist', async () => {
       socialAccountService.findByProvider.mockResolvedValue(null);
       usersService.findOneBy.mockResolvedValue(null);
-      usersService.create.mockReturnValue(newUser);
-      usersService.save.mockResolvedValue(newUser);
-      userPreferencesService.createDefaultPreferences.mockResolvedValue({} as unknown as UserPreferences);
-      socialAccountService.createForUser.mockResolvedValue(newSocialAccount);
-      usersService.updateBy.mockResolvedValue({} as unknown as UpdateResult);
-      jwtService.signAsync.mockResolvedValue('token' as never);
-      usersTokenService.saveRefreshToken.mockResolvedValue({} as unknown as UserToken);
 
-      await authService.loginWithGoogle(googleUser);
+      const newUserEntity = { id: 99, email: profile.email } as User;
+      usersService.create.mockReturnValue(newUserEntity);
 
-      expect(usersService.create).toHaveBeenCalledWith(expect.objectContaining({ email: googleUser.email, isEmailVerified: true }));
-      expect(usersService.save).toHaveBeenCalled();
-      expect(userPreferencesService.createDefaultPreferences).toHaveBeenCalledWith(newUser.id);
-      expect(socialAccountService.createForUser).toHaveBeenCalledWith(SocialProviderEnum.GOOGLE, googleUser.providerId, newUser.id);
+      const mockManager = {
+        create: jest.fn().mockImplementation(<T>(entityType: unknown, data: T): T => data),
+        save: jest.fn().mockImplementation(<T>(entityType: unknown, data: T): T & { id: number } => {
+          if (entityType === User) return { ...data, id: 99 };
+          return { ...data, id: 100 };
+        }),
+      } as unknown as EntityManager;
+
+      (dataSource.transaction as jest.Mock).mockImplementation(async (cb: (em: typeof mockManager) => Promise<unknown>) => cb(mockManager));
+
+      jwtService.signAsync.mockResolvedValueOnce('access').mockResolvedValueOnce('refresh');
+
+      const result = await authService.validateOAuthLogin(profile, provider);
+
+      expect(dataSource.transaction).toHaveBeenCalled();
+
+      expect(mockManager.save).toHaveBeenCalledWith(User, newUserEntity);
+      expect(mockManager.save).toHaveBeenCalledWith(UserPreferences, expect.objectContaining({ userId: 99 }));
+      expect(mockManager.save).toHaveBeenCalledWith(SocialAccount, expect.objectContaining({ provider, providerId: profile.providerId, userId: 99 }));
+
+      expect(result.user.email).toBe(profile.email);
+    });
+  });
+
+  describe('OAuth Code Exchange Features', () => {
+    const mockExchangePayload = {
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      user: {
+        id: 1,
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        avatar: null,
+      } as IOAuthUser,
+    };
+    const validCode = 'valid-code-123';
+
+    describe('createOAuthExchangeCode', () => {
+      it('should generate a code, save payload to redis with TTL and return the code', async () => {
+        const code = await authService.createOAuthExchangeCode(mockExchangePayload);
+
+        expect(code).toBeDefined();
+        expect(typeof code).toBe('string');
+        expect(redisService.setCache).toHaveBeenCalledWith(`oauth:exchange:${code}`, mockExchangePayload, 120);
+      });
     });
 
-    it('should link social account to existing user when email matches', async () => {
-      const existingUser = createUserFixture({ email: googleUser.email });
-      const newSocialAccount = new SocialAccount();
-      Object.assign(newSocialAccount, {
-        id: 1,
-        provider: SocialProviderEnum.GOOGLE,
-        providerId: googleUser.providerId,
-        userId: existingUser.id,
-        user: existingUser,
+    describe('exchangeOAuthCode', () => {
+      it('should throw UnauthorizedException if code is invalid or expired (redis returns null)', async () => {
+        redisService.getCache.mockResolvedValue(null);
+
+        await expect(authService.exchangeOAuthCode('invalid-code', mockI18nContext)).rejects.toThrow(UnauthorizedException);
       });
 
-      socialAccountService.findByProvider.mockResolvedValue(null);
-      usersService.findOneBy.mockResolvedValue(existingUser);
-      socialAccountService.createForUser.mockResolvedValue(newSocialAccount);
-      usersService.updateBy.mockResolvedValue({} as unknown as UpdateResult);
-      jwtService.signAsync.mockResolvedValue('token' as never);
-      usersTokenService.saveRefreshToken.mockResolvedValue({} as unknown as UserToken);
+      it('should return the payload and delete the cache if code is valid', async () => {
+        redisService.getCache.mockResolvedValue(mockExchangePayload);
 
-      await authService.loginWithGoogle(googleUser);
+        const result = await authService.exchangeOAuthCode(validCode, mockI18nContext);
 
-      expect(usersService.save).not.toHaveBeenCalled();
-      expect(userPreferencesService.createDefaultPreferences).not.toHaveBeenCalled();
-      expect(socialAccountService.createForUser).toHaveBeenCalledWith(SocialProviderEnum.GOOGLE, googleUser.providerId, existingUser.id);
+        expect(result).toEqual(mockExchangePayload);
+        expect(redisService.deleteCache).toHaveBeenCalledWith(`oauth:exchange:${validCode}`);
+      });
     });
   });
 });
