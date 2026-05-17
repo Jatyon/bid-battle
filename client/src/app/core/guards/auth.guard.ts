@@ -1,7 +1,8 @@
 import { CanActivateFn, Router } from '@angular/router';
-import { inject } from '@angular/core';
-import { AuthService } from '@core/index';
-import { map } from 'rxjs';
+import { PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { AuthService, TokenService } from '@core/index';
+import { catchError, map, throwError } from 'rxjs';
 
 /**
  * Protects routes that require an authenticated user.
@@ -17,13 +18,22 @@ import { map } from 'rxjs';
  */
 export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
+  const tokenService = inject(TokenService);
+  const platformId = inject(PLATFORM_ID);
   const router = inject(Router);
+
+  if (!isPlatformBrowser(platformId)) return true;
 
   if (authService.isAuthenticated()) return true;
 
   if (!authService.currentUser()) return router.createUrlTree(['/auth/login']);
 
-  return authService
-    .silentRefresh()
-    .pipe(map((success) => (success ? true : router.createUrlTree(['/auth/login']))));
+  return authService.silentRefresh().pipe(
+    map((success) => (success ? true : router.createUrlTree(['/auth/login']))),
+    catchError((refreshError) => {
+      tokenService.rejectRefresh();
+      authService.logout();
+      return throwError(() => refreshError);
+    }),
+  );
 };

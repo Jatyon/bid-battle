@@ -1,4 +1,4 @@
-import { HttpContextToken } from '@angular/common/http';
+import { HttpContext, HttpContextToken } from '@angular/common/http';
 
 /**
  * When set to `true`, the loading interceptor will NOT increment the global
@@ -19,3 +19,9 @@ export const SKIP_ERROR_TOAST = new HttpContextToken<boolean>(() => false);
  * the potential infinite refresh loop.
  */
 export const SKIP_REFRESH_ON_401 = new HttpContextToken<boolean>(() => false);
+
+/**
+ * Context used for token refresh calls to prevent the refresh interceptor
+ * from intercepting the refresh request itself and causing a loop.
+ */
+export const SKIP_REFRESH_CONTEXT = new HttpContext().set(SKIP_REFRESH_ON_401, true);

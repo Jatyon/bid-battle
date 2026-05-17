@@ -1,10 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { LoginForm, RegisterForm } from '@app/features/auth';
+import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
 import { User, AuthTokens } from '@core/models';
 import { StorageService } from './storage.service';
 import { TokenService } from './token.service';
 import { ApiService } from './api.service';
-import { Observable, catchError, map, noop, of } from 'rxjs';
+import { Observable, map, noop, tap } from 'rxjs';
 
 interface AuthState {
   user: User | null;
@@ -63,6 +65,34 @@ export class AuthService {
     this.state.update((s) => ({ ...s, user }));
   }
 
+  login(credentials: LoginForm): Observable<void> {
+    return this.api.post<{ accessToken: string; user: User }>('/auth/login', credentials).pipe(
+      tap((response) => this.setSession(response.data.accessToken, response.data.user)),
+      map(() => undefined),
+    );
+  }
+
+  register(data: RegisterForm): Observable<void> {
+    return this.api.post<{ accessToken: string; user: User }>('/auth/register', data).pipe(
+      tap((response) => this.setSession(response.data.accessToken, response.data.user)),
+      map(() => undefined),
+    );
+  }
+
+  /**
+   * [Krok 5 & 12] Przesyła authorization code (odebrany z okna popup Google)
+   * do backendu. Backend wymienia go na tokeny, weryfikuje id_token i zwraca
+   * własny JWT. ACCESS TOKEN trafia do pamięci; refresh token — w HttpOnly cookie.
+   */
+  loginWithOAuthCode(provider: 'google' | 'github', code: string): Observable<void> {
+    return this.api
+      .post<{ accessToken: string; user: User }>('/auth/oauth/code', { provider, code })
+      .pipe(
+        tap((response) => this.setSession(response.data.accessToken, response.data.user)),
+        map(() => undefined),
+      );
+  }
+
   /**
    * Attempts a silent token refresh using the HttpOnly refresh-token cookie.
    * Returns `true` when a new access token is obtained, `false` otherwise.
@@ -72,14 +102,10 @@ export class AuthService {
    * `accessToken` has been lost.
    */
   silentRefresh(): Observable<boolean> {
-    return this.api.post<AuthTokens>('/auth/refresh', {}).pipe(
+    return this.api.post<AuthTokens>('/auth/refresh', {}, SKIP_REFRESH_CONTEXT).pipe(
       map((response) => {
         this.refreshAccessToken(response.data.accessToken);
         return true;
-      }),
-      catchError(() => {
-        this.logout(false);
-        return of(false);
       }),
     );
   }

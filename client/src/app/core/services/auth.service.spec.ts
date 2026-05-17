@@ -6,6 +6,7 @@ import { StorageService } from './storage.service';
 import { TokenService } from './token.service';
 import { AuthService } from './auth.service';
 import { ApiService } from './api.service';
+import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
 import { firstValueFrom, of, throwError } from 'rxjs';
 
 const mockUser: User = createUserFixture();
@@ -135,6 +136,16 @@ describe('AuthService', () => {
 
       expect(result).toBe(true);
       expect(tokenMock.setAccessToken).toHaveBeenCalledWith('refreshed-token');
+    });
+
+    it('should call /auth/refresh with SKIP_REFRESH_CONTEXT', async () => {
+      apiMock.post.mockReturnValue(
+        of({ data: { accessToken: 'refreshed-token', refreshToken: '' } } as never),
+      );
+
+      await firstValueFrom(service.silentRefresh());
+
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/refresh', {}, SKIP_REFRESH_CONTEXT);
     });
 
     it('should return false and logout on error', async () => {
