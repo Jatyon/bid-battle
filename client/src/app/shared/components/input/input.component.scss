@@ -32,24 +32,20 @@
 
   &__input {
     width: 100%;
-    padding: $input-padding-y-mobile $spacing-sm;
+    padding: $input-padding-y $spacing-md;
     border: 1px solid var(--color-border);
     border-radius: $radius-md;
     background-color: var(--color-surface-2);
     color: var(--color-text);
-    font-size: $font-size-base;
+    font-size: $input-font-size;
     font-family: inherit;
-    line-height: 1;
+    line-height: $input-line-height;
     transition:
       border-color $transition-fast,
       box-shadow $transition-fast,
       background-color $transition-fast;
     outline: none;
     box-sizing: border-box;
-
-    @include bp-sm {
-      padding: $input-padding-y $spacing-md;
-    }
 
     &::placeholder {
       color: var(--color-text-muted);

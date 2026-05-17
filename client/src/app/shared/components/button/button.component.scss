@@ -8,6 +8,7 @@
   border: none;
   border-radius: $radius-md;
   font-weight: $fw-semibold;
+  font-family: inherit;
   cursor: pointer;
   transition:
     background-color $transition-fast,
@@ -31,39 +32,49 @@
     cursor: not-allowed;
   }
 
+  &__content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-xs;
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+  }
+
   &--full {
     width: 100%;
   }
 
   // Sizes – mobile-first
   &--sm {
-    padding: $btn-padding-sm;
+    padding: $btn-padding-sm-bp;
     font-size: $btn-font-size-sm;
     min-height: $btn-min-height-sm;
-
-    @include bp-sm {
-      padding: $btn-padding-sm-bp;
-    }
   }
 
   &--md {
-    padding: $btn-padding-md;
+    padding: $btn-padding-md-bp;
     font-size: $btn-font-size-md;
     min-height: $btn-min-height-md;
-
-    @include bp-sm {
-      padding: $btn-padding-md-bp;
-    }
   }
 
   &--lg {
-    padding: $btn-padding-lg;
+    padding: $btn-padding-lg-bp;
     font-size: $btn-font-size-lg;
     min-height: $btn-min-height-lg;
 
-    @include bp-sm {
-      padding: $btn-padding-lg-bp;
-    }
   }
 
   // Variants

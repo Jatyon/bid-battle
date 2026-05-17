@@ -3,8 +3,10 @@
     <app-spinner size="sm" />
     }
     @else {
-    <span>
-        <ng-content />
+    <span class="btn__content">
+        <ng-content select="[start]"></ng-content>
+        <span class="btn__label"><ng-content /></span>
+        <ng-content select="[end]"></ng-content>
     </span>
     }
 </button>
