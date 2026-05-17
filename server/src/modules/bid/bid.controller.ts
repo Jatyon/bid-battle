@@ -2,7 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ApiStandardResponse, CurrentUser } from '@core/decorators';
 import { Paginator, PaginatorResponse } from '@core/models';
-import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@modules/auth/guards';
 import { User } from '@modules/users';
 import { BidService } from './bid.service';
 import { MyBidResponse } from './dto';

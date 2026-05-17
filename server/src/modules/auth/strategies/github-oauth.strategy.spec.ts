@@ -72,7 +72,7 @@ describe('GithubOAuthStrategy', () => {
         emailVerified: false,
         firstName: '',
         lastName: '',
-        avatar: undefined,
+        avatar: null,
       });
     });
   });

@@ -2,11 +2,11 @@ import { ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WsException } from '@nestjs/websockets';
 import { JwtService } from '@nestjs/jwt';
+import { IAuthJwt, IAuthJwtPayload, IAuthSocket } from '../interfaces';
+import { AuthService } from '../auth.service';
+import { WsJwtGuard } from './ws-jwt.guard';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nService } from 'nestjs-i18n';
-import { WsJwtGuard } from './ws-jwt.guard';
-import { AuthService } from '../auth.service';
-import { IAuthJwt, IAuthJwtPayload, IAuthSocket } from '../interfaces';
 
 describe('WsJwtGuard', () => {
   let guard: WsJwtGuard;

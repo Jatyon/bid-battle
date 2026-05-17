@@ -3,8 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiPayloadT
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse, Paginator, PaginatorResponse } from '@core/models';
-import { OptionalJwtAuthGuard } from '@modules/auth/guards/optional-jwt-auth.guard';
-import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard, JwtAuthGuard } from '@modules/auth/guards';
 import { BidResponse } from '@modules/bid';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';

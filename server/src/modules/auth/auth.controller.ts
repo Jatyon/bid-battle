@@ -6,14 +6,12 @@ import { AppConfigService } from '@config/config.service';
 import { SocialProviderEnum, User } from '@modules/users';
 import { Cookie, CookieService } from '@shared/cookies';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
+import { GithubOAuthGuard, GoogleOAuthGuard, JwtAuthGuard } from './guards';
 import { AuthLoginResponse, AuthRefreshResponse } from './models';
-import { GoogleOAuthGuard } from './guards/google-oauth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { IOAuthProfile } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
 import * as express from 'express';
-import { GithubOAuthGuard } from './guards/github-oauth.guard';
 
 @ApiTags('Authentication')
 @Controller('/auth')
