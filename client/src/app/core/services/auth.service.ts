@@ -80,20 +80,6 @@ export class AuthService {
   }
 
   /**
-   * [Krok 5 & 12] Przesyła authorization code (odebrany z okna popup Google)
-   * do backendu. Backend wymienia go na tokeny, weryfikuje id_token i zwraca
-   * własny JWT. ACCESS TOKEN trafia do pamięci; refresh token — w HttpOnly cookie.
-   */
-  loginWithOAuthCode(provider: 'google' | 'github', code: string): Observable<void> {
-    return this.api
-      .post<{ accessToken: string; user: User }>('/auth/oauth/code', { provider, code })
-      .pipe(
-        tap((response) => this.setSession(response.data.accessToken, response.data.user)),
-        map(() => undefined),
-      );
-  }
-
-  /**
    * Attempts a silent token refresh using the HttpOnly refresh-token cookie.
    * Returns `true` when a new access token is obtained, `false` otherwise.
    *

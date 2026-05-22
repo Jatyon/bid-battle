@@ -1,4 +1,39 @@
 {
+  "ROUTES": {
+    "LOGIN": "Logowanie",
+    "OAUTH_CALLBACK": "Logowanie..."
+  },
+  "AUTH": {
+    "LOGIN": {
+      "TITLE": "Witaj z powrotem",
+      "SUBTITLE": "Zaloguj się na swoje konto BidBattle",
+      "CONTINUE_GOOGLE": "Kontynuuj z Google",
+      "CONTINUE_GITHUB": "Kontynuuj z GitHub",
+      "OR": "lub",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
+      "PASSWORD": "Hasło",
+      "PASSWORD_PLACEHOLDER": "••••••••",
+      "FORGOT_PASSWORD": "Zapomniałeś hasła?",
+      "SUBMIT": "Zaloguj się",
+      "NO_ACCOUNT": "Nie masz konta?",
+      "CREATE_ONE": "Utwórz je",
+      "TOGGLE_PASSWORD": "Pokaż/ukryj hasło",
+      "SUCCESS": "Pomyślnie zalogowano!",
+      "ERROR_GENERIC": "Nieprawidłowy email lub hasło. Spróbuj ponownie."
+    },
+    "VALIDATION": {
+      "EMAIL_REQUIRED": "Email jest wymagany.",
+      "EMAIL_INVALID": "Podaj prawidłowy adres email.",
+      "PASSWORD_REQUIRED": "Hasło jest wymagane.",
+      "PASSWORD_MIN": "Hasło musi mieć co najmniej 8 znaków.",
+      "PASSWORD_TOO_WEAK": "Hasło musi zawierać co najmniej jedną wielką literę, jedną małą literę, jedną cyfrę i jeden znak specjalny.",
+      "PASSWORD_MISMATCH": "Hasła nie są identyczne."
+    },
+    "OAUTH_CALLBACK": {
+      "LOADING": "Trwa logowanie…"
+    }
+  },
   "ERRORS": {
     "UNEXPECTED": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
   },
@@ -7,5 +42,9 @@
   },
   "TOAST": {
     "CLOSE": "Zamknij powiadomienie"
+  },
+  "POPUP": {
+    "CONFIRM": "Potwierdź",
+    "CANCEL": "Anuluj"
   }
 }

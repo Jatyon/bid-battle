@@ -1,0 +1,29 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: contents;
+}
+
+.oauth-callback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-lg;
+  padding: $card-padding-mobile;
+  min-height: 180px;
+
+  @include bp-sm {
+    padding: $card-padding-sm;
+  }
+
+  app-dots-loader {
+    color: var(--color-primary);
+  }
+
+  &__text {
+    margin: 0;
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+  }
+}

@@ -5,3 +5,4 @@ export * from './models';
 export * from './guards';
 export * from './enums';
 export * from './utils';
+export * from './types';

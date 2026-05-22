@@ -1,0 +1,91 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: contents;
+}
+
+.login-card {
+  &__header {
+    text-align: center;
+    margin-bottom: $spacing-lg;
+  }
+
+  &__title {
+    font-size: $font-size-2xl;
+    font-weight: $fw-bold;
+    color: var(--color-text);
+    margin: 0 0 $spacing-xs;
+
+    @include bp-sm {
+      font-size: $font-size-3xl;
+    }
+  }
+
+  &__subtitle {
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  &__oauth-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    margin: $spacing-lg 0;
+    color: var(--color-text-muted);
+    font-size: $font-size-sm;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background-color: var(--color-border);
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  &__forgot {
+    font-size: $font-size-sm;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: $fw-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__footer {
+    text-align: center;
+    margin-top: $spacing-lg;
+    margin-bottom: 0;
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+  }
+
+  &__footer-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: $fw-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+:host-context([data-theme='dark']) .github-icon {
+  filter: invert(1);
+}

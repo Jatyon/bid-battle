@@ -1,4 +1,42 @@
 {
+  "ROUTES": {
+    "LOGIN": "Login",
+    "OAUTH_CALLBACK": "Signing in..."
+  },
+  "AUTH": {
+    "LOGIN": {
+      "TITLE": "Welcome back",
+      "SUBTITLE": "Sign in to your BidBattle account",
+      "CONTINUE_GOOGLE": "Continue with Google",
+      "CONTINUE_GITHUB": "Continue with GitHub",
+      "OR": "or",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "you@example.com",
+      "PASSWORD": "Password",
+      "PASSWORD_PLACEHOLDER": "••••••••",
+      "FORGOT_PASSWORD": "Forgot password?",
+      "SUBMIT": "Sign in",
+      "NO_ACCOUNT": "Don't have an account?",
+      "CREATE_ONE": "Create one",
+      "TOGGLE_PASSWORD": "Toggle password visibility",
+      "SUCCESS": "Successfully logged in!",
+      "ERROR_GENERIC": "Invalid email or password. Please try again."
+    },
+    "VALIDATION": {
+      "EMAIL_REQUIRED": "Email is required.",
+      "EMAIL_INVALID": "Please enter a valid email address.",
+      "PASSWORD_REQUIRED": "Password is required.",
+      "PASSWORD_MIN": "Password must be at least 8 characters.",
+      "PASSWORD_TOO_WEAK": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+      "FIRST_NAME_REQUIRED": "First name is required.",
+      "LAST_NAME_REQUIRED": "Last name is required.",
+      "PASSWORD_REPEAT_REQUIRED": "Password repeat is required.",
+      "PASSWORD_MISMATCH": "Passwords do not match."
+    },
+    "OAUTH_CALLBACK": {
+      "LOADING": "Signing in…"
+    }
+  },
   "ERRORS": {
     "UNEXPECTED": "An unexpected error occurred. Please try again."
   },
@@ -7,5 +45,9 @@
   },
   "TOAST": {
     "CLOSE": "Close notification"
+  },
+  "POPUP": {
+    "CONFIRM": "Confirm",
+    "CANCEL": "Cancel"
   }
 }

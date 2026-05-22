@@ -1,0 +1,54 @@
+<ng-container *transloco="let t">
+    <div class="login-card__header">
+        <h1 class="login-card__title">{{ t('AUTH.LOGIN.TITLE') }}</h1>
+        <p class="login-card__subtitle">{{ t('AUTH.LOGIN.SUBTITLE') }}</p>
+    </div>
+
+    <div class="login-card__oauth-list">
+        <app-button type="button" [variant]="'secondary'" [fullWidth]="true" (clicked)="onOAuthLogin('google')"
+            [loading]="isOAuthLoading() === 'google'">
+            <span start class="btn__icon">
+                <img src="images/google.svg" alt="Google" width="18" height="18" />
+            </span>
+            {{ t('AUTH.LOGIN.CONTINUE_GOOGLE') }}
+        </app-button>
+
+        <app-button type="button" [variant]="'secondary'" [fullWidth]="true" (clicked)="onOAuthLogin('github')"
+            [loading]="isOAuthLoading() === 'github'">
+            <span start class="btn__icon">
+                <img class="github-icon" src="images/github-black.svg" alt="GitHub" width="18" height="18" />
+            </span>
+            {{ t('AUTH.LOGIN.CONTINUE_GITHUB') }}
+        </app-button>
+
+    </div>
+
+    <div class="login-card__divider">
+        <span>{{ t('AUTH.LOGIN.OR') }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-card__form" novalidate>
+        <app-input formControlName="email" type="email" [label]="t('AUTH.LOGIN.EMAIL')"
+            [placeholder]="t('AUTH.LOGIN.EMAIL_PLACEHOLDER')" autocomplete="email" name="email"
+            [error]="emailErrorKey ? t(emailErrorKey) : ''" />
+
+        <app-input formControlName="password" type="password" [label]="t('AUTH.LOGIN.PASSWORD')"
+            [reserveHelperSpace]="true" [placeholder]="t('AUTH.LOGIN.PASSWORD_PLACEHOLDER')"
+            autocomplete="current-password" name="password" [error]="passwordErrorKey ? t(passwordErrorKey) : ''">
+            <a input-suffix class="login-card__forgot" routerLink="/auth/forgot-password">
+                {{ t('AUTH.LOGIN.FORGOT_PASSWORD') }}
+            </a>
+        </app-input>
+
+        <app-button type="submit" [loading]="isLoading()" [fullWidth]="true" size="md" [variant]="'primary'">
+            {{ t('AUTH.LOGIN.SUBMIT') }}
+        </app-button>
+    </form>
+
+    <p class="login-card__footer">
+        {{ t('AUTH.LOGIN.NO_ACCOUNT') }}
+        <a routerLink="/auth/register" class="login-card__footer-link">
+            {{ t('AUTH.LOGIN.CREATE_ONE') }}
+        </a>
+    </p>
+</ng-container>

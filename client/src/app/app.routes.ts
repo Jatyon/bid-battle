@@ -17,6 +17,7 @@ export const routes: Routes = [
     path: 'auth',
     canActivate: [guestGuard],
     loadComponent: () => import('@layouts/auth-layout/auth-layout').then((m) => m.AuthLayout),
+    loadChildren: () => import('@features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
   },
 
   // authGuard runs first: unauthenticated users are redirected to /auth/login
