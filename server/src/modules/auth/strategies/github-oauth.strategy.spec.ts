@@ -1,12 +1,18 @@
+import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppConfigService } from '@config/config.service';
-import { createMock } from '@golevelup/ts-jest';
-import { GithubOAuthStrategy } from './github-oauth.strategy';
+import { createMockI18nService } from '@test/mocks/i18n.mock';
+import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { GithubOAuthStrategy, GithubProfile } from './github-oauth.strategy';
+import { I18nService } from 'nestjs-i18n';
 
 describe('GithubOAuthStrategy', () => {
   let strategy: GithubOAuthStrategy;
+  let i18nService: DeepMocked<I18nService>;
 
   beforeEach(async () => {
+    i18nService = createMockI18nService();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GithubOAuthStrategy,
@@ -19,6 +25,10 @@ describe('GithubOAuthStrategy', () => {
               callbackUrl: 'http://localhost:3000/auth/github/callback',
             },
           }),
+        },
+        {
+          provide: I18nService,
+          useValue: i18nService,
         },
       ],
     }).compile();
@@ -53,10 +63,10 @@ describe('GithubOAuthStrategy', () => {
       });
     });
 
-    it('should handle missing optional profile fields gracefully', () => {
+    it('should handle missing optional profile fields (name, photos) gracefully', () => {
       const profile = {
         id: 67890,
-        emails: [],
+        emails: [{ value: 'valid@example.com', primary: true, verified: true }],
         displayName: '',
         username: '',
         photos: [],
@@ -68,12 +78,28 @@ describe('GithubOAuthStrategy', () => {
 
       expect(done).toHaveBeenCalledWith(null, {
         providerId: '67890',
-        email: '',
-        emailVerified: false,
+        email: 'valid@example.com',
+        emailVerified: true,
         firstName: '',
         lastName: '',
         avatar: null,
       });
+    });
+
+    it('should throw UnauthorizedException if email is missing or not verified', () => {
+      const profile = {
+        id: 99999,
+        emails: [],
+        displayName: 'John Doe',
+      };
+
+      const done = jest.fn();
+
+      expect(() => {
+        strategy.validate('access_token', 'refresh_token', profile as unknown as GithubProfile, done);
+      }).toThrow(UnauthorizedException);
+
+      expect(done).not.toHaveBeenCalled();
     });
   });
 });

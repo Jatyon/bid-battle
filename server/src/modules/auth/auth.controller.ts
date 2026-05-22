@@ -6,8 +6,10 @@ import { AppConfigService } from '@config/config.service';
 import { SocialProviderEnum, User } from '@modules/users';
 import { Cookie, CookieService } from '@shared/cookies';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthResetPasswordDto, AuthChangePasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
-import { GithubOAuthGuard, GoogleOAuthGuard, JwtAuthGuard } from './guards';
 import { AuthLoginResponse, AuthRefreshResponse } from './models';
+import { GoogleOAuthGuard } from './guards/google-oauth.guard';
+import { GithubOAuthGuard } from './guards/github-oauth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { IOAuthProfile } from './interfaces';
 import { I18n, I18nContext } from 'nestjs-i18n';
@@ -163,7 +165,12 @@ export class AuthController {
   @Public()
   @UseGuards(GoogleOAuthGuard)
   @Get('google/callback')
-  async googleAuthCallback(@Req() req: { user: IOAuthProfile }, @Res() res: express.Response): Promise<void> {
+  async googleAuthCallback(@Req() req: { user: IOAuthProfile; authError?: Error }, @Res() res: express.Response): Promise<void> {
+    if (req.authError) {
+      const message = encodeURIComponent(req.authError.message ?? 'OAuth authentication failed');
+      return res.redirect(`${this.configService.app.frontendHost}/auth/oauth-callback?error=${message}`);
+    }
+
     return this.handleOAuthCallback(req.user, res, SocialProviderEnum.GOOGLE);
   }
 
@@ -179,7 +186,11 @@ export class AuthController {
   @Public()
   @UseGuards(GithubOAuthGuard)
   @Get('github/callback')
-  async githubAuthCallback(@Req() req: { user: IOAuthProfile }, @Res() res: express.Response): Promise<void> {
+  async githubAuthCallback(@Req() req: { user: IOAuthProfile; authError?: Error }, @Res() res: express.Response): Promise<void> {
+    if (req.authError) {
+      const message = encodeURIComponent(req.authError.message ?? 'OAuth authentication failed');
+      return res.redirect(`${this.configService.app.frontendHost}/auth/oauth-callback?error=${message}`);
+    }
     return this.handleOAuthCallback(req.user, res, SocialProviderEnum.GITHUB);
   }
 
@@ -191,7 +202,7 @@ export class AuthController {
   @Public()
   @Get('oauth/exchange')
   @HttpCode(HttpStatus.OK)
-  async exchangeOAuthCode(@Query('code') code: string, @Res({ passthrough: true }) res: express.Response, @I18n() i18n: I18nContext): Promise<AuthLoginResponse> {
+  async exchangeOAuthCode(@Query('code') code: string, @Res({ passthrough: true }) res: express.Response, @I18n() i18n: I18nContext): Promise<any> {
     if (!code) throw new UnauthorizedException(i18n.t('auth.errors.oauth_code_not_provided'));
 
     const { accessToken, refreshToken, user } = await this.authService.exchangeOAuthCode(code, i18n);

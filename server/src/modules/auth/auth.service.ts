@@ -1,18 +1,22 @@
 import { Injectable, Logger, UnauthorizedException, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AppConfigService } from '@config/config.service';
-import { User, UsersService, UserTokenEnum, UsersTokenService, UserToken, UserPreferencesService, SocialAccountService, UserPreferences, SocialAccount } from '@modules/users';
+import { User, UserTokenEnum, UserToken, UserPreferences, SocialAccount } from '@modules/users';
+import { UserPreferencesService } from '@modules/users/user-preferences.service';
+import { SocialAccountService } from '@modules/users/social-account.service';
+import { UsersTokenService } from '@modules/users/users-token.service';
+import { UsersService } from '@modules/users/users.service';
 import { SocialProviderEnum } from '@modules/users/enums';
+import { RedisService } from '@shared/redis';
 import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
-import { AuthRefreshResponse, AuthSession, AuthTokens } from './models';
 import { IAuthJwt, IAuthJwtPayload, IOAuthProfile, IOAuthUser } from './interfaces';
+import { AuthRefreshResponse, AuthSession, AuthTokens } from './models';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { DataSource } from 'typeorm';
+import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { StringValue } from 'ms';
-import { randomUUID } from 'crypto';
-import { RedisService } from '@shared/redis';
 
 interface OAuthExchangePayload {
   accessToken: string;
@@ -338,7 +342,8 @@ export class AuthService {
    */
   async createOAuthExchangeCode(payload: OAuthExchangePayload): Promise<string> {
     const code = randomUUID();
-    await this.redisService.setCache(OAUTH_EXCHANGE_KEY(code), payload, OAUTH_EXCHANGE_TTL_SECONDS);
+    const key = OAUTH_EXCHANGE_KEY(code);
+    await this.redisService.setCache(key, payload, OAUTH_EXCHANGE_TTL_SECONDS);
     return code;
   }
 
@@ -349,11 +354,16 @@ export class AuthService {
    * @throws UnauthorizedException when the code is invalid or has expired
    */
   async exchangeOAuthCode(code: string, i18n: I18nContext): Promise<OAuthExchangePayload> {
-    const payload = await this.redisService.getCache<OAuthExchangePayload>(OAUTH_EXCHANGE_KEY(code));
+    const key = OAUTH_EXCHANGE_KEY(code);
 
-    if (!payload) throw new UnauthorizedException(i18n.t('auth.errors.oauth_code_invalid_or_expired'));
+    const payload = await this.redisService.getCache<OAuthExchangePayload>(key);
 
-    await this.redisService.deleteCache(OAUTH_EXCHANGE_KEY(code));
+    if (!payload) {
+      this.logger.warn(`OAuth exchange code not found or expired: key=${key}`);
+      throw new UnauthorizedException(i18n.t('auth.errors.oauth_code_invalid_or_expired'));
+    }
+
+    await this.redisService.deleteCache(key);
 
     return payload;
   }

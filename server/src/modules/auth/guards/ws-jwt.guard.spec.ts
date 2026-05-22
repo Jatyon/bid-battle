@@ -16,7 +16,6 @@ describe('WsJwtGuard', () => {
   const mockPayload: IAuthJwt = { sub: 1, email: 'test@example.com', iat: 123, exp: 456 };
   const mockUserPayload: IAuthJwtPayload = { sub: 1, email: 'test@example.com' };
 
-  /** Helper do tworzenia mocka socketu z określonym nagłówkiem autoryzacyjnym */
   const createMockSocket = (authHeader?: string | null, user?: IAuthJwtPayload): DeepMocked<IAuthSocket> => {
     return createMock<IAuthSocket>({
       handshake: {

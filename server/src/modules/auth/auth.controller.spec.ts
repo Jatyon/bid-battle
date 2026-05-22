@@ -393,7 +393,7 @@ describe('AuthController', () => {
         user: mockOAuthUser,
       });
 
-      const result = await controller.exchangeOAuthCode('valid-code-123', mockRes, i18n);
+      const result = (await controller.exchangeOAuthCode('valid-code-123', mockRes, i18n)) as { accessToken: string; user: typeof mockOAuthUser };
 
       expect(authService.exchangeOAuthCode).toHaveBeenCalledWith('valid-code-123', i18n);
       expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, 'final_refresh_token');
