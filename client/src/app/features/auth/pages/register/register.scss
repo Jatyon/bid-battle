@@ -1,0 +1,63 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: contents;
+}
+
+.register-card {
+  &__header {
+    text-align: center;
+    margin-bottom: $spacing-lg;
+  }
+
+  &__title {
+    font-size: $font-size-2xl;
+    font-weight: $fw-bold;
+    color: var(--color-text);
+    margin: 0 0 $spacing-xs;
+
+    @include bp-sm {
+      font-size: $font-size-3xl;
+    }
+  }
+
+  &__subtitle {
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+
+    @include bp-sm {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  &__footer {
+    text-align: center;
+    margin-top: $spacing-lg;
+    margin-bottom: 0;
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+  }
+
+  &__footer-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: $fw-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

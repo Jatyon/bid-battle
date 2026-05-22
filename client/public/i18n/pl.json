@@ -1,7 +1,8 @@
 {
   "ROUTES": {
     "LOGIN": "Logowanie",
-    "OAUTH_CALLBACK": "Logowanie..."
+    "OAUTH_CALLBACK": "Logowanie...",
+    "REGISTER": "Rejestracja"
   },
   "AUTH": {
     "LOGIN": {
@@ -32,6 +33,28 @@
     },
     "OAUTH_CALLBACK": {
       "LOADING": "Trwa logowanie…"
+    },
+    "REGISTER": {
+      "TITLE": "Dołącz do BidBattle",
+      "SUBTITLE": "Utwórz nowe konto, aby zacząć licytować",
+      "FIRST_NAME": "Imię",
+      "FIRST_NAME_PLACEHOLDER": "Jan",
+      "LAST_NAME": "Nazwisko",
+      "LAST_NAME_PLACEHOLDER": "Kowalski",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
+      "PASSWORD": "Hasło",
+      "PASSWORD_PLACEHOLDER": "••••••••",
+      "PASSWORD_REPEAT": "Powtórz hasło",
+      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
+      "SUBMIT": "Utwórz konto",
+      "SUCCESS": "Rejestracja zakończona pomyślnie.",
+      "ERROR_GENERIC": "Wystąpił błąd podczas rejestracji. Spróbuj ponownie.",
+      "HAVE_ACCOUNT": "Masz już konto?",
+      "SIGN_IN": "Zaloguj się",
+      "SUCCESS_TITLE": "Rejestracja zakończona!",
+      "SUCCESS_MESSAGE": "Na podany adres e-mail wysłaliśmy link aktywacyjny. Sprawdź skrzynkę (oraz folder spam) i kliknij link, aby aktywować konto.",
+      "SUCCESS_CONFIRM": "Rozumiem"
     }
   },
   "ERRORS": {

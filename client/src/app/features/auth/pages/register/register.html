@@ -1,0 +1,41 @@
+<ng-container *transloco="let t">
+    <div class="register-card__header">
+        <h1 class="register-card__title">{{ t('AUTH.REGISTER.TITLE') }}</h1>
+        <p class="register-card__subtitle">{{ t('AUTH.REGISTER.SUBTITLE') }}</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="register-card__form" novalidate>
+        <div class="register-card__row">
+            <app-input formControlName="firstName" type="text" [label]="t('AUTH.REGISTER.FIRST_NAME')"
+                [placeholder]="t('AUTH.REGISTER.FIRST_NAME_PLACEHOLDER')" autocomplete="given-name" name="firstName"
+                [error]="firstNameErrorKey ? t(firstNameErrorKey) : ''" />
+
+            <app-input formControlName="lastName" type="text" [label]="t('AUTH.REGISTER.LAST_NAME')"
+                [placeholder]="t('AUTH.REGISTER.LAST_NAME_PLACEHOLDER')" autocomplete="family-name" name="lastName"
+                [error]="lastNameErrorKey ? t(lastNameErrorKey) : ''" />
+        </div>
+
+        <app-input formControlName="email" type="email" [label]="t('AUTH.REGISTER.EMAIL')"
+            [placeholder]="t('AUTH.REGISTER.EMAIL_PLACEHOLDER')" autocomplete="email" name="email"
+            [error]="emailErrorKey ? t(emailErrorKey) : ''" />
+
+        <app-input formControlName="password" type="password" [label]="t('AUTH.REGISTER.PASSWORD')"
+            [reserveHelperSpace]="true" [placeholder]="t('AUTH.REGISTER.PASSWORD_PLACEHOLDER')"
+            autocomplete="new-password" name="password" [error]="passwordErrorKey ? t(passwordErrorKey) : ''" />
+
+        <app-input formControlName="passwordRepeat" type="password" [label]="t('AUTH.REGISTER.PASSWORD_REPEAT')"
+            [placeholder]="t('AUTH.REGISTER.PASSWORD_REPEAT_PLACEHOLDER')" autocomplete="new-password"
+            name="passwordRepeat" [error]="passwordRepeatErrorKey ? t(passwordRepeatErrorKey) : ''" />
+
+        <app-button type="submit" [loading]="isLoading()" [fullWidth]="true" size="md" [variant]="'primary'">
+            {{ t('AUTH.REGISTER.SUBMIT') }}
+        </app-button>
+    </form>
+
+    <p class="register-card__footer">
+        {{ t('AUTH.REGISTER.HAVE_ACCOUNT') }}
+        <a routerLink="/auth/login" class="register-card__footer-link">
+            {{ t('AUTH.REGISTER.SIGN_IN') }}
+        </a>
+    </p>
+</ng-container>

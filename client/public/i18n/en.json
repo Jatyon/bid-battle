@@ -1,7 +1,8 @@
 {
   "ROUTES": {
     "LOGIN": "Login",
-    "OAUTH_CALLBACK": "Signing in..."
+    "OAUTH_CALLBACK": "Signing in...",
+    "REGISTER": "Register"
   },
   "AUTH": {
     "LOGIN": {
@@ -21,6 +22,28 @@
       "TOGGLE_PASSWORD": "Toggle password visibility",
       "SUCCESS": "Successfully logged in!",
       "ERROR_GENERIC": "Invalid email or password. Please try again."
+    },
+    "REGISTER": {
+      "TITLE": "Join BidBattle",
+      "SUBTITLE": "Create a new account to start bidding",
+      "FIRST_NAME": "First Name",
+      "FIRST_NAME_PLACEHOLDER": "John",
+      "LAST_NAME": "Last Name",
+      "LAST_NAME_PLACEHOLDER": "Doe",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "you@example.com",
+      "PASSWORD": "Password",
+      "PASSWORD_PLACEHOLDER": "••••••••",
+      "PASSWORD_REPEAT": "Repeat Password",
+      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
+      "SUBMIT": "Create Account",
+      "SUCCESS": "Registration completed successfully.",
+      "ERROR_GENERIC": "An error occurred during registration. Please try again.",
+      "HAVE_ACCOUNT": "Already have an account?",
+      "SIGN_IN": "Sign in",
+      "SUCCESS_TITLE": "Registration complete!",
+      "SUCCESS_MESSAGE": "We have sent an activation link to your e-mail address. Check your inbox (and spam folder) and click the link to activate your account.",
+      "SUCCESS_CONFIRM": "Got it"
     },
     "VALIDATION": {
       "EMAIL_REQUIRED": "Email is required.",
