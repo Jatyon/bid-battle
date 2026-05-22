@@ -1,5 +1,6 @@
 import { RouterOutlet } from '@angular/router';
 import { Component } from '@angular/core';
+import { environment } from '@env/environment';
 
 @Component({
   selector: 'app-auth-layout',
@@ -7,4 +8,6 @@ import { Component } from '@angular/core';
   templateUrl: './auth-layout.html',
   styleUrl: './auth-layout.scss',
 })
-export class AuthLayout {}
+export class AuthLayout {
+  appName = environment.appName;
+}

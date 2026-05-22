@@ -1,1 +1,16 @@
-<router-outlet />
+<div class="auth-layout">
+    <div class="auth-layout__brand">
+        <a routerLink="/" class="auth-layout__logo">
+            <span class="auth-layout__logo-icon">
+                <img src="images/logo.svg" alt="BidBattle" />
+            </span>
+            <span class="auth-layout__logo-text">{{ appName }}</span>
+        </a>
+    </div>
+
+    <main class="auth-layout__content">
+        <div class="auth-layout__card">
+            <router-outlet />
+        </div>
+    </main>
+</div>
