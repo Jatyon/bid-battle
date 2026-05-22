@@ -1,3 +1,4 @@
+export * from './dots-loader/dots-loader.component';
 export * from './spinner/spinner.component';
 export * from './button/button.component';
 export * from './toast/toast.component';
