@@ -1,11 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from '@core/index';
-import { ToastComponent } from '@shared/index';
+import { PopupComponent, ToastComponent } from '@shared/index';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastComponent],
+  imports: [RouterOutlet, ToastComponent, PopupComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
