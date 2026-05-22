@@ -1,0 +1,28 @@
+@if (state(); as s) {
+<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events -->
+<div class="popup-backdrop" (click)="onBackdropClick($event)" role="dialog" aria-modal="true"
+    [attr.aria-labelledby]="'popup-title'" [attr.aria-describedby]="'popup-message'">
+    <div class="popup popup--{{ s.type }}">
+
+        <div class="popup__icon-wrapper">
+            <lucide-icon [img]="icon()!" [size]="32" />
+        </div>
+
+        <h2 class="popup__title" id="popup-title">{{ s.title }}</h2>
+        <p class="popup__message" id="popup-message">{{ s.message }}</p>
+
+        <div class="popup__actions" [class.popup__actions--single]="s.mode === 'info'">
+            @if (s.mode === 'confirm') {
+            <app-button variant="secondary" size="md" (clicked)="cancel()">
+                {{ s.cancelText }}
+            </app-button>
+            }
+            <app-button [variant]="s.type === 'error' ? 'danger' : s.type === 'warning' ? 'secondary' : 'primary'"
+                size="md" (clicked)="confirm()">
+                {{ s.confirmText }}
+            </app-button>
+        </div>
+
+    </div>
+</div>
+}

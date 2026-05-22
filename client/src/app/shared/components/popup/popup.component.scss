@@ -1,0 +1,126 @@
+@use 'abstracts/variables' as *;
+
+.popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-md;
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  animation: backdropIn $transition-base forwards;
+}
+
+.popup {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  padding: $spacing-xl $spacing-lg $spacing-lg;
+  border-radius: $radius-lg;
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $spacing-sm;
+  animation: popupIn $transition-base cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: $radius-lg $radius-lg 0 0;
+    background-color: var(--popup-accent);
+  }
+
+  &--info {
+    --popup-accent: var(--color-accent);
+    --popup-icon: var(--color-accent);
+  }
+  &--success {
+    --popup-accent: var(--color-success);
+    --popup-icon: var(--color-success);
+  }
+  &--warning {
+    --popup-accent: var(--color-warning);
+    --popup-icon: var(--color-warning);
+  }
+  &--error {
+    --popup-accent: var(--color-danger);
+    --popup-icon: var(--color-danger);
+  }
+}
+
+.popup__icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--popup-accent) 12%, transparent);
+  color: var(--popup-icon);
+  margin-bottom: $spacing-xs;
+  flex-shrink: 0;
+}
+
+.popup__title {
+  font-size: $font-size-xl;
+  font-weight: $fw-semibold;
+  color: var(--color-text);
+  margin: 0;
+  line-height: $lh-heading;
+}
+
+.popup__message {
+  font-size: $font-size-base;
+  color: var(--color-text-secondary);
+  margin: 0 0 $spacing-sm;
+  line-height: $lh-base;
+}
+
+.popup__actions {
+  display: flex;
+  gap: $spacing-sm;
+  width: 100%;
+  margin-top: $spacing-sm;
+
+  app-button {
+    flex: 1;
+  }
+
+  &--single {
+    justify-content: center;
+
+    app-button {
+      flex: unset;
+      min-width: 140px;
+    }
+  }
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popupIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

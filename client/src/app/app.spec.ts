@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { TranslocoHttpLoader } from '@core/index';
-import { ToastComponent } from '@shared/index';
+import { PopupComponent, ToastComponent } from '@shared/index';
 import { provideTransloco } from '@jsverse/transloco';
 import { App } from './app';
 
@@ -57,5 +57,11 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const toastComponent = fixture.debugElement.query(By.directive(ToastComponent));
     expect(toastComponent).toBeTruthy();
+  });
+
+  it('should render the global PopupComponent', () => {
+    const fixture = TestBed.createComponent(App);
+    const popupComponent = fixture.debugElement.query(By.directive(PopupComponent));
+    expect(popupComponent).toBeTruthy();
   });
 });
