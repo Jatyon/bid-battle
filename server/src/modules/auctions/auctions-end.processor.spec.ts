@@ -229,8 +229,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getLivePrice.mockResolvedValue(750);
       redisService.getHighestBidderId.mockResolvedValue(42);
       mockTransactionWith(auction);
-
-      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
+      usersService.findOneBy.mockImplementation((options) => Promise.resolve(options?.id === 42 ? winner : owner));
       userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
@@ -248,7 +247,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(42);
       mockTransactionWith(auction);
 
-      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
+      usersService.findOneBy.mockImplementation((options) => Promise.resolve(options?.id === 42 ? winner : owner));
       userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.PL }));
 
       await processor.process(createJob(1));
@@ -298,7 +297,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(42);
       mockTransactionWith(auction);
 
-      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 42 ? winner : owner));
+      usersService.findOneBy.mockImplementation((options) => Promise.resolve(options?.id === 42 ? winner : owner));
       userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: false }));
 
       await processor.process(createJob(1));
@@ -330,7 +329,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(99);
       mockTransactionWith(auction);
 
-      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === owner.id ? owner : null));
+      usersService.findOneBy.mockImplementation((options) => Promise.resolve(options?.id === owner.id ? owner : null));
       userPreferencesService.findOrCreateByUserId.mockResolvedValue(createUserPreferencesFixture({ notifyOnAuctionEnd: true, lang: Language.EN }));
 
       await processor.process(createJob(1));
@@ -349,7 +348,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(5);
       mockTransactionWith(auction);
 
-      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 5 ? winner : owner));
+      usersService.findOneBy.mockImplementation((options) => Promise.resolve(options?.id === 5 ? winner : options?.id === owner.id ? owner : null));
       userPreferencesService.findOrCreateByUserId.mockImplementation((userId: number) =>
         Promise.resolve(createUserPreferencesFixture({ notifyOnAuctionEnd: userId === owner.id, lang: Language.EN })),
       );
@@ -370,7 +369,7 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(5);
       mockTransactionWith(auction);
 
-      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => Promise.resolve(id === 5 ? winner : owner));
+      usersService.findOneBy.mockImplementation((options) => Promise.resolve(options?.id === 5 ? winner : options?.id === owner.id ? owner : null));
       userPreferencesService.findOrCreateByUserId.mockImplementation((userId: number) =>
         Promise.resolve(createUserPreferencesFixture({ notifyOnAuctionEnd: userId === winner.id, lang: Language.PL })),
       );
@@ -392,9 +391,11 @@ describe('AuctionEndProcessor', () => {
       redisService.getHighestBidderId.mockResolvedValue(7);
       mockTransactionWith(auction);
 
-      usersService.findOneBy.mockImplementation(({ id }: { id: number }) => {
+      usersService.findOneBy.mockImplementation((options) => {
+        const id = options?.id as number;
+
         callOrder.push(`findOneBy:${id}`);
-        return Promise.resolve(id === 7 ? winner : owner);
+        return Promise.resolve(id === 7 ? winner : id === owner.id ? owner : null);
       });
       userPreferencesService.findOrCreateByUserId.mockImplementation((userId: number) => {
         callOrder.push(`findOrCreateByUserId:${userId}`);

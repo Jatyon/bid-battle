@@ -4,7 +4,7 @@ import { AppConfigService } from '@config/config.service';
 import { BaseGateway } from '@core/gateways/base.gateway';
 import { Language } from '@core/enums';
 import { AuthService, IAuthJwtPayload, type IAuthSocket } from '@modules/auth';
-import { WsJwtGuard } from '@modules/auth/guards';
+import { WsJwtGuard } from '@modules/auth/guards/ws-jwt.guard';
 import { UsersService } from '@modules/users';
 import { RedisService } from '@shared/redis';
 import { AuctionEndDto, AuctionEventDto, AuctionIdDto, AuctionStateDto, NewHighestBidDto, PlaceBidDto } from './dto';

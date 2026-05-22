@@ -3,7 +3,7 @@ import { Controller, Get, Put, Body, UseGuards, HttpCode, Delete, ClassSerialize
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiStandardResponse, CurrentUser } from '@core/decorators';
 import { MessageResponse } from '@core/models';
-import { JwtAuthGuard } from '@modules/auth/guards';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { UserPreferencesService } from './user-preferences.service';
 import { UpdateProfileDto, UpdateUserPreferencesDto } from './dto';
 import { User, UserPreferences } from './entities';
