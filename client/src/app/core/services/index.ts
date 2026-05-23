@@ -1,3 +1,4 @@
+export * from './language.service';
 export * from './notification.service';
 export * from './loading.service';
 export * from './storage.service';

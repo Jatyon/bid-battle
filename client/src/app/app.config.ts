@@ -8,14 +8,18 @@ import {
   ApplicationConfig,
   ErrorHandler,
   isDevMode,
+  inject,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import {
   Language,
+  LanguageService,
   TranslocoHttpLoader,
   AppTitleStrategy,
+  languageInterceptor,
   authInterceptor,
   refreshInterceptor,
   loadingInterceptor,
@@ -33,7 +37,13 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     provideHttpClient(
       withFetch(),
-      withInterceptors([loadingInterceptor, authInterceptor, refreshInterceptor, errorInterceptor]),
+      withInterceptors([
+        languageInterceptor,
+        loadingInterceptor,
+        authInterceptor,
+        refreshInterceptor,
+        errorInterceptor,
+      ]),
     ),
     provideTransloco({
       config: {
@@ -43,6 +53,9 @@ export const appConfig: ApplicationConfig = {
         prodMode: !isDevMode(),
       },
       loader: TranslocoHttpLoader,
+    }),
+    provideAppInitializer(() => {
+      inject(LanguageService).init();
     }),
 
     { provide: TitleStrategy, useClass: AppTitleStrategy },
