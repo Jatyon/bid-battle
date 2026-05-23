@@ -7,10 +7,15 @@ const DEFAULT_DURATION = 4000;
 const MAX_NOTIFICATIONS = 5;
 const EXIT_ANIMATION_DURATION = 240;
 
+/** Client i18n keys, e.g. AUTH.LOGIN.ERROR_GENERIC or ERRORS.UNEXPECTED */
+const I18N_KEY_PATTERN = /^[A-Z][A-Z0-9_]*(?:\.[A-Z][A-Z0-9_]+)+$/;
+
 /**
  * Global notification service.
  * Use it to push success/error/warning/info messages from anywhere in the app.
- * Both plain messages and i18n translation keys are supported.
+ * Both plain messages and i18n translation keys are supported. When translate is true,
+ * only client keys (e.g. AUTH.LOGIN.SUCCESS) are passed to Transloco — plain text and
+ * backend messages are shown as-is.
  *
  * Deduplication: if a notification with the same message + type is already
  * visible, the duplicate is suppressed and the existing notification's
@@ -89,7 +94,7 @@ export class NotificationService {
     translate = true,
     params?: Record<string, unknown>,
   ): void {
-    if (!translate) {
+    if (!translate || !this.isTranslationKey(message)) {
       this.pushNotification(message, type, duration);
       return;
     }
@@ -98,6 +103,11 @@ export class NotificationService {
       .selectTranslate(message, params)
       .pipe(take(1))
       .subscribe((translatedMessage) => this.pushNotification(translatedMessage, type, duration));
+  }
+
+  /** Client i18n keys only — not plain text or backend-translated messages. */
+  private isTranslationKey(message: string): boolean {
+    return I18N_KEY_PATTERN.test(message);
   }
 
   private pushNotification(message: string, type: NotificationType, duration: number): void {
