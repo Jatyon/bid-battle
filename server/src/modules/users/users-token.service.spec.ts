@@ -2,7 +2,6 @@ import { BadRequestException, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
-import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { UsersTokenService } from './users-token.service';
 import { UserToken } from './entities';
 import { UserTokenEnum } from './enums';
@@ -14,7 +13,6 @@ describe('UsersTokenService', () => {
   let service: UsersTokenService;
   let tokenRepository: DeepMocked<Repository<UserToken>>;
 
-  const mockI18nContext = createMockI18nContext();
   const mockUser = createUserFixture();
   const mockDate = new Date('2026-03-01T12:00:00.000Z');
 
@@ -129,7 +127,7 @@ describe('UsersTokenService', () => {
     it('should throw BadRequestException if token is not found or already used', async () => {
       tokenRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.verifyToken(validTokenString, UserTokenEnum.PASSWORD_RESET, mockI18nContext)).rejects.toThrow(BadRequestException);
+      await expect(service.verifyToken(validTokenString, UserTokenEnum.PASSWORD_RESET)).rejects.toThrow(BadRequestException);
 
       expect(tokenRepository.findOne).toHaveBeenCalledWith({
         where: { token: validTokenString, type: UserTokenEnum.PASSWORD_RESET, isUsed: false },
@@ -145,7 +143,7 @@ describe('UsersTokenService', () => {
 
       tokenRepository.findOne.mockResolvedValue(expiredToken);
 
-      await expect(service.verifyToken(validTokenString, UserTokenEnum.PASSWORD_RESET, mockI18nContext)).rejects.toThrow(BadRequestException);
+      await expect(service.verifyToken(validTokenString, UserTokenEnum.PASSWORD_RESET)).rejects.toThrow(BadRequestException);
     });
 
     it('should return token entity if token is valid and not expired', async () => {
@@ -156,7 +154,7 @@ describe('UsersTokenService', () => {
 
       tokenRepository.findOne.mockResolvedValue(validToken);
 
-      const result = await service.verifyToken(validTokenString, UserTokenEnum.PASSWORD_RESET, mockI18nContext);
+      const result = await service.verifyToken(validTokenString, UserTokenEnum.PASSWORD_RESET);
 
       expect(result).toEqual(validToken);
     });

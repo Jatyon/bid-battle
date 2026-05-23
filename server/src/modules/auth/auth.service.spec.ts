@@ -14,7 +14,7 @@ import {
   SocialProviderEnum,
 } from '@modules/users';
 import { MailService } from '@shared/mail';
-import { createMockI18nContext, createMockI18nService } from '@test/mocks/i18n.mock';
+import { createMockI18nContext } from '@test/mocks/i18n.mock';
 import { createUserFixture, createUserTokenFixture } from '@test/fixtures/users.fixtures';
 import { createJwtPayload } from '@test/fixtures/auth.fixtures';
 import { RedisService } from '@shared/redis/redis.service';
@@ -42,7 +42,6 @@ describe('AuthService', () => {
   let dataSource: DeepMocked<DataSource>;
   let authService: AuthService;
 
-  const mockI18nService = createMockI18nService();
   const mockI18nContext = createMockI18nContext();
   const mockUser = createUserFixture({ id: 1, isEmailVerified: true });
   const mockUserToken = createUserTokenFixture({ token: 'secret-reset-token' });
@@ -102,7 +101,7 @@ describe('AuthService', () => {
       const userWithoutPasswordChange = createUserFixture({ passwordChangedAt: null });
       usersService.findOneBy.mockResolvedValue(userWithoutPasswordChange);
 
-      const result = await authService.validateJwtUser(mockPayload, mockI18nService);
+      const result = await authService.validateJwtUser(mockPayload);
 
       expect(usersService.findOneBy).toHaveBeenCalledWith({ id: mockPayload.sub });
       expect(result).toEqual(userWithoutPasswordChange);
@@ -112,7 +111,7 @@ describe('AuthService', () => {
       const mockPayload = { sub: 1 } as IAuthJwt;
       usersService.findOneBy.mockResolvedValue(null);
 
-      await expect(authService.validateJwtUser(mockPayload, mockI18nService)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.validateJwtUser(mockPayload)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if token was issued BEFORE password was changed', async () => {
@@ -120,7 +119,7 @@ describe('AuthService', () => {
       const userWithRecentPasswordChange = createUserFixture({ passwordChangedAt: new Date(currentTime.getTime() - 1800 * 1000) });
       usersService.findOneBy.mockResolvedValue(userWithRecentPasswordChange);
 
-      await expect(authService.validateJwtUser(mockPayloadOld, mockI18nService)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.validateJwtUser(mockPayloadOld)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should return user if token was issued AFTER password was changed', async () => {
@@ -128,7 +127,7 @@ describe('AuthService', () => {
       const userWithOldPasswordChange = createUserFixture({ passwordChangedAt: new Date(currentTime.getTime() - 3600 * 1000) });
       usersService.findOneBy.mockResolvedValue(userWithOldPasswordChange);
 
-      const result = await authService.validateJwtUser(mockPayloadNew, mockI18nService);
+      const result = await authService.validateJwtUser(mockPayloadNew);
 
       expect(result).toEqual(userWithOldPasswordChange);
     });
@@ -187,7 +186,7 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if credentials are invalid', async () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(null);
 
-      await expect(authService.login(loginDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if email is not verified', async () => {
@@ -195,7 +194,7 @@ describe('AuthService', () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(unverifiedUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      await expect(authService.login(loginDto, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should update lastLoginAt and return tokens for valid credentials', async () => {
@@ -203,7 +202,7 @@ describe('AuthService', () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       jwtService.signAsync.mockResolvedValueOnce('access_token').mockResolvedValueOnce('refresh_token');
 
-      const result = await authService.login(loginDto, mockI18nContext);
+      const result = await authService.login(loginDto);
 
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUser.id }, { lastLoginAt: expect.any(Date) as unknown });
       expect(result).toEqual({ accessToken: 'access_token', refreshToken: 'refresh_token', user: expect.any(Object) as unknown });
@@ -216,14 +215,14 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException when JWT verification fails', async () => {
       jwtService.verifyAsync.mockRejectedValue(new Error('Invalid signature'));
 
-      await expect(authService.refreshToken(validRefreshToken, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refreshToken(validRefreshToken)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException when user does not exist', async () => {
       jwtService.verifyAsync.mockResolvedValue(mockPayload);
       usersService.findOneBy.mockResolvedValue(null);
 
-      await expect(authService.refreshToken(validRefreshToken, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refreshToken(validRefreshToken)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should generate NEW access token for valid refresh token', async () => {
@@ -234,7 +233,7 @@ describe('AuthService', () => {
 
       jwtService.signAsync.mockResolvedValueOnce('new_access_token');
 
-      const result = await authService.refreshToken(validRefreshToken, mockI18nContext);
+      const result = await authService.refreshToken(validRefreshToken);
 
       expect(usersTokenService.findActiveRefreshToken).toHaveBeenCalledWith(validRefreshToken, mockUser.id);
       expect(result).toEqual({
@@ -247,7 +246,7 @@ describe('AuthService', () => {
       usersService.findOneBy.mockResolvedValue(mockUser);
       usersTokenService.findActiveRefreshToken.mockResolvedValue(null);
 
-      await expect(authService.refreshToken(validRefreshToken, mockI18nContext)).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refreshToken(validRefreshToken)).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -340,7 +339,7 @@ describe('AuthService', () => {
 
       await authService.resetPassword(dto, mockI18nContext);
 
-      expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.PASSWORD_RESET, mockI18nContext);
+      expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.PASSWORD_RESET);
       expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 'random_salt');
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
@@ -355,7 +354,7 @@ describe('AuthService', () => {
     it('should throw NotFoundException if user is not found', async () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(null);
 
-      await expect(authService.changePassword('test@example.com', dto, mockI18nContext)).rejects.toThrow(NotFoundException);
+      await expect(authService.changePassword('test@example.com', dto)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException if user has password but did not provide currentPassword', async () => {
@@ -363,14 +362,14 @@ describe('AuthService', () => {
 
       const missingCurrentPassDto = { password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' } as AuthChangePasswordDto;
 
-      await expect(authService.changePassword('test@example.com', missingCurrentPassDto, mockI18nContext)).rejects.toThrow(BadRequestException);
+      await expect(authService.changePassword('test@example.com', missingCurrentPassDto)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if currentPassword does not match', async () => {
       usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(authService.changePassword('test@example.com', dto, mockI18nContext)).rejects.toThrow(BadRequestException);
+      await expect(authService.changePassword('test@example.com', dto)).rejects.toThrow(BadRequestException);
     });
 
     it('should successfully update password if currentPassword matches', async () => {
@@ -381,7 +380,7 @@ describe('AuthService', () => {
       (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
 
-      await authService.changePassword('test@example.com', dto, mockI18nContext);
+      await authService.changePassword('test@example.com', dto);
 
       expect(bcrypt.compare).toHaveBeenCalledWith(dto.currentPassword, userWithPass.password);
       expect(usersService.updateBy).toHaveBeenCalledWith({ email: 'test@example.com' }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
@@ -395,7 +394,7 @@ describe('AuthService', () => {
         passwordRepeat: 'NewPassword123!',
       } as AuthChangePasswordDto;
 
-      await expect(authService.changePassword('test@example.com', changeDto, mockI18nContext)).rejects.toThrow(BadRequestException);
+      await expect(authService.changePassword('test@example.com', changeDto)).rejects.toThrow(BadRequestException);
 
       expect(bcrypt.hash).not.toHaveBeenCalled();
       expect(usersService.updateBy).not.toHaveBeenCalled();
@@ -413,9 +412,9 @@ describe('AuthService', () => {
       });
       usersTokenService.verifyToken.mockResolvedValue(verificationToken);
 
-      await authService.verifyEmail(dto, mockI18nContext);
+      await authService.verifyEmail(dto);
 
-      expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.EMAIL_VERIFICATION, mockI18nContext);
+      expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.EMAIL_VERIFICATION);
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: verificationToken.user.id }, { isEmailVerified: true });
       expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(verificationToken.id);
     });
@@ -427,7 +426,7 @@ describe('AuthService', () => {
       });
       usersTokenService.verifyToken.mockResolvedValue(alreadyVerifiedToken);
 
-      await expect(authService.verifyEmail(dto, mockI18nContext)).rejects.toThrow(BadRequestException);
+      await expect(authService.verifyEmail(dto)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -610,13 +609,13 @@ describe('AuthService', () => {
       it('should throw UnauthorizedException if code is invalid or expired (redis returns null)', async () => {
         redisService.getCache.mockResolvedValue(null);
 
-        await expect(authService.exchangeOAuthCode('invalid-code', mockI18nContext)).rejects.toThrow(UnauthorizedException);
+        await expect(authService.exchangeOAuthCode('invalid-code')).rejects.toThrow(UnauthorizedException);
       });
 
       it('should return the payload and delete the cache if code is valid', async () => {
         redisService.getCache.mockResolvedValue(mockExchangePayload);
 
-        const result = await authService.exchangeOAuthCode(validCode, mockI18nContext);
+        const result = await authService.exchangeOAuthCode(validCode);
 
         expect(result).toEqual(mockExchangePayload);
         expect(redisService.deleteCache).toHaveBeenCalledWith(`oauth:exchange:${validCode}`);

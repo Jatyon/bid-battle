@@ -5,7 +5,6 @@ import { User } from './entities/user.entity';
 import { PublicUserProfileResponse, SearchUsersDto, UpdateProfileDto } from './dto';
 import { UserToken } from './entities';
 import { DeepPartial, FindOptionsWhere, UpdateResult } from 'typeorm';
-import { I18nContext } from 'nestjs-i18n';
 
 @Injectable()
 export class UsersService {
@@ -29,10 +28,10 @@ export class UsersService {
     return users.map((user) => new PublicUserProfileResponse(user));
   }
 
-  async getPublicProfile(userId: number, i18n: I18nContext): Promise<PublicUserProfileResponse> {
+  async getPublicProfile(userId: number): Promise<PublicUserProfileResponse> {
     const user = await this.userRepository.findOneBy({ id: userId });
 
-    if (!user) throw new NotFoundException(i18n.t('user.error.user_not_found'));
+    if (!user) throw new NotFoundException('user.error.user_not_found');
 
     return new PublicUserProfileResponse(user);
   }
@@ -49,10 +48,10 @@ export class UsersService {
     return this.userRepository.update(where, data);
   }
 
-  async updateProfile(userId: number, dto: UpdateProfileDto, i18n: I18nContext): Promise<User> {
+  async updateProfile(userId: number, dto: UpdateProfileDto): Promise<User> {
     const user = await this.userRepository.findOneBy({ id: userId });
 
-    if (!user) throw new NotFoundException(i18n.t('user.error.user_not_found'));
+    if (!user) throw new NotFoundException('user.error.user_not_found');
 
     if (dto.firstName) user.firstName = dto.firstName;
     if (dto.lastName) user.lastName = dto.lastName;
@@ -60,18 +59,18 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
-  async updateAvatar(userId: number, file: Express.Multer.File, i18n: I18nContext): Promise<User> {
+  async updateAvatar(userId: number, file: Express.Multer.File): Promise<User> {
     const user = await this.userRepository.findOneBy({ id: userId });
 
-    if (!user) throw new NotFoundException(i18n.t('user.error.user_not_found'));
+    if (!user) throw new NotFoundException('user.error.user_not_found');
 
     const options = this.fileUploadService.getAvatarUploadOptions();
 
     let uploadedFile: IUploadedFile;
     try {
-      uploadedFile = await this.fileUploadService.uploadSingle(file, options, i18n);
+      uploadedFile = await this.fileUploadService.uploadSingle(file, options);
     } catch {
-      throw new BadRequestException(i18n.t('user.error.update_avatar_failed'));
+      throw new BadRequestException('user.error.update_avatar_failed');
     }
 
     const oldAvatarPath = user.avatar ?? null;

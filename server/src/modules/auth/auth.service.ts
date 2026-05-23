@@ -12,7 +12,7 @@ import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { IAuthJwt, IAuthJwtPayload, IOAuthProfile, IOAuthUser } from './interfaces';
 import { AuthRefreshResponse, AuthSession, AuthTokens } from './models';
-import { I18nContext, I18nService } from 'nestjs-i18n';
+import { I18nContext } from 'nestjs-i18n';
 import { DataSource } from 'typeorm';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -43,15 +43,15 @@ export class AuthService {
     private readonly redisService: RedisService,
   ) {}
 
-  async validateJwtUser(payload: IAuthJwt, i18n: I18nService): Promise<User> {
+  async validateJwtUser(payload: IAuthJwt): Promise<User> {
     const user = await this.usersService.findOneBy({ id: payload.sub });
 
-    if (!user) throw new UnauthorizedException(i18n.t('user.error.user_not_found'));
+    if (!user) throw new UnauthorizedException('user.error.user_not_found');
 
     if (user.passwordChangedAt && payload.iat != null) {
       const passwordChangedAtSeconds = Math.floor(user.passwordChangedAt.getTime() / 1000);
 
-      if (payload.iat < passwordChangedAtSeconds) throw new UnauthorizedException(i18n.t('auth.errors.token_invalidated_password_changed'));
+      if (payload.iat < passwordChangedAtSeconds) throw new UnauthorizedException('auth.errors.token_invalidated_password_changed');
     }
 
     return user;
@@ -62,7 +62,7 @@ export class AuthService {
 
     const existingUser = await this.usersService.findOneBy({ email });
 
-    if (existingUser) throw new ConflictException(i18n.t(`auth.errors.user_with_email_#email_exists`, { args: { email } }));
+    if (existingUser) throw new ConflictException({ message: 'auth.errors.user_with_email_#email_exists', args: { email } });
 
     const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
 
@@ -80,12 +80,12 @@ export class AuthService {
     await this.sendVerificationEmail(savedUser, i18n);
   }
 
-  async verifyEmail(verifyEmailDto: VerifyEmailDto, i18n: I18nContext): Promise<void> {
-    const tokenEntity = await this.usersTokenService.verifyToken(verifyEmailDto.token, UserTokenEnum.EMAIL_VERIFICATION, i18n);
+  async verifyEmail(verifyEmailDto: VerifyEmailDto): Promise<void> {
+    const tokenEntity = await this.usersTokenService.verifyToken(verifyEmailDto.token, UserTokenEnum.EMAIL_VERIFICATION);
 
     const user = tokenEntity.user;
 
-    if (user.isEmailVerified) throw new BadRequestException(i18n.t('auth.errors.email_already_verified'));
+    if (user.isEmailVerified) throw new BadRequestException('auth.errors.email_already_verified');
 
     await this.usersService.updateBy({ id: user.id }, { isEmailVerified: true });
 
@@ -105,12 +105,12 @@ export class AuthService {
     await this.sendVerificationEmail(user, i18n);
   }
 
-  async login(authLoginDto: AuthLoginDto, i18n: I18nContext): Promise<AuthSession> {
+  async login(authLoginDto: AuthLoginDto): Promise<AuthSession> {
     const user = await this.validateUser(authLoginDto.email, authLoginDto.password);
 
-    if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
+    if (!user) throw new UnauthorizedException('auth.errors.invalid_credential');
 
-    if (!user.isEmailVerified) throw new UnauthorizedException(i18n.t('auth.errors.email_not_verified'));
+    if (!user.isEmailVerified) throw new UnauthorizedException('auth.errors.email_not_verified');
 
     await this.usersService.updateBy(
       { id: user.id },
@@ -131,7 +131,7 @@ export class AuthService {
     return { ...tokens, user: oAuthUser };
   }
 
-  async refreshToken(refreshToken: string, i18n: I18nContext): Promise<AuthRefreshResponse> {
+  async refreshToken(refreshToken: string): Promise<AuthRefreshResponse> {
     let payload: IAuthJwtPayload;
 
     try {
@@ -139,16 +139,16 @@ export class AuthService {
         secret: this.configService.jwt.refreshSecret,
       });
     } catch {
-      throw new UnauthorizedException(i18n.t(`auth.errors.refresh_token_not_recognized`));
+      throw new UnauthorizedException('auth.errors.refresh_token_not_recognized');
     }
 
     const user = await this.usersService.findOneBy({ email: payload.email, id: payload.sub });
 
-    if (!user) throw new UnauthorizedException(i18n.t('auth.errors.invalid_credential'));
+    if (!user) throw new UnauthorizedException('auth.errors.invalid_credential');
 
     const storedToken = await this.usersTokenService.findActiveRefreshToken(refreshToken, user.id);
 
-    if (!storedToken) throw new UnauthorizedException(i18n.t('auth.errors.refresh_token_not_recognized'));
+    if (!storedToken) throw new UnauthorizedException('auth.errors.refresh_token_not_recognized');
 
     const accessToken = await this.generateAccessToken(user);
     return { accessToken };
@@ -177,7 +177,7 @@ export class AuthService {
     // For security reasons, we do not inform you whether the email exists
     if (!user) return;
 
-    if (!user.password) throw new BadRequestException(i18n.t('auth.errors.oauth_account_cannot_reset_password'));
+    if (!user.password) throw new BadRequestException('auth.errors.oauth_account_cannot_reset_password');
 
     await this.usersTokenService.deleteUserTokensByType(user.id, UserTokenEnum.PASSWORD_RESET);
 
@@ -187,12 +187,12 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDto: AuthResetPasswordDto, i18n: I18nContext): Promise<void> {
-    const tokenEntity: UserToken = await this.usersTokenService.verifyToken(resetPasswordDto.token, UserTokenEnum.PASSWORD_RESET, i18n);
+    const tokenEntity: UserToken = await this.usersTokenService.verifyToken(resetPasswordDto.token, UserTokenEnum.PASSWORD_RESET);
 
     const user: User = tokenEntity.user;
     const userWithPassword = await this.usersService.findOneWithPasswordByEmail(user.email);
 
-    if (!userWithPassword?.password) throw new BadRequestException(i18n.t('auth.errors.oauth_account_cannot_reset_password'));
+    if (!userWithPassword?.password) throw new BadRequestException('auth.errors.oauth_account_cannot_reset_password');
 
     const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
     const hashedPassword: string = await bcrypt.hash(resetPasswordDto.password, salt);
@@ -210,20 +210,20 @@ export class AuthService {
     await this.mailService.sendPasswordChangedEmail(user.email, i18n.lang, user.concatName);
   }
 
-  async changePassword(email: string, changePasswordDto: AuthChangePasswordDto, i18n: I18nContext): Promise<void> {
-    if (changePasswordDto.password !== changePasswordDto.passwordRepeat) throw new BadRequestException(i18n.t('error.validation.passwords_do_not_match'));
+  async changePassword(email: string, changePasswordDto: AuthChangePasswordDto): Promise<void> {
+    if (changePasswordDto.password !== changePasswordDto.passwordRepeat) throw new BadRequestException('error.validation.passwords_do_not_match');
 
     const user = await this.usersService.findOneWithPasswordByEmail(email);
 
-    if (!user) throw new NotFoundException(i18n.t('users.user_not_found'));
+    if (!user) throw new NotFoundException('users.user_not_found');
 
-    if (!user.password) throw new BadRequestException(i18n.t('auth.errors.oauth_account_use_reset_password'));
+    if (!user.password) throw new BadRequestException('auth.errors.oauth_account_use_reset_password');
 
-    if (!changePasswordDto.currentPassword) throw new BadRequestException(i18n.t('error.validation.currentPassword_is_string'));
+    if (!changePasswordDto.currentPassword) throw new BadRequestException('error.validation.currentPassword_is_string');
 
     const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
 
-    if (!isPasswordValid) throw new BadRequestException(i18n.t('auth.errors.the_current_password_incorrect'));
+    if (!isPasswordValid) throw new BadRequestException('auth.errors.the_current_password_incorrect');
 
     const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
     const hashedPassword: string = await bcrypt.hash(changePasswordDto.password, salt);
@@ -356,14 +356,14 @@ export class AuthService {
    *
    * @throws UnauthorizedException when the code is invalid or has expired
    */
-  async exchangeOAuthCode(code: string, i18n: I18nContext): Promise<OAuthExchangePayload> {
+  async exchangeOAuthCode(code: string): Promise<OAuthExchangePayload> {
     const key = OAUTH_EXCHANGE_KEY(code);
 
     const payload = await this.redisService.getCache<OAuthExchangePayload>(key);
 
     if (!payload) {
       this.logger.warn(`OAuth exchange code not found or expired: key=${key}`);
-      throw new UnauthorizedException(i18n.t('auth.errors.oauth_code_invalid_or_expired'));
+      throw new UnauthorizedException('auth.errors.oauth_code_invalid_or_expired');
     }
 
     await this.redisService.deleteCache(key);

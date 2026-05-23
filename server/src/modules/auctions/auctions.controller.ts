@@ -47,12 +47,12 @@ export class AuctionsController {
   @Post('/upload-images')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 10))
-  async uploadAuctionImages(@UploadedFiles() files: Express.Multer.File[], @I18n() i18n: I18nContext): Promise<UploadedFileDto[]> {
+  async uploadAuctionImages(@UploadedFiles() files: Express.Multer.File[]): Promise<UploadedFileDto[]> {
     if (!files || files.length === 0) {
-      throw new BadRequestException(i18n.t('error.validation.file.no_file_provided'));
+      throw new BadRequestException('error.validation.file.no_file_provided');
     }
 
-    const uploadedFiles = await this.fileUploadService.uploadMultiple(files, this.fileUploadService.getAuctionImageUploadOptions(), i18n);
+    const uploadedFiles = await this.fileUploadService.uploadMultiple(files, this.fileUploadService.getAuctionImageUploadOptions());
 
     return uploadedFiles.map((file) => new UploadedFileDto(file));
   }
@@ -163,7 +163,7 @@ export class AuctionsController {
     const newFiles = files || [];
     const existingUrls = uploadDto.existingImageUrls || [];
 
-    await this.auctionsService.updateAuctionImages(auctionId, user.id, newFiles, existingUrls, uploadDto.primaryImageIndex, i18n);
+    await this.auctionsService.updateAuctionImages(auctionId, user.id, newFiles, existingUrls, uploadDto.primaryImageIndex);
 
     return {
       message: i18n.t('auction.info.update_images_success'),

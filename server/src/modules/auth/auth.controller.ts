@@ -48,8 +48,8 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: AuthLoginDto, @Res({ passthrough: true }) res: express.Response, @I18n() i18n: I18nContext): Promise<AuthLoginResponse> {
-    const { refreshToken, ...response } = await this.authService.login(loginDto, i18n);
+  async login(@Body() loginDto: AuthLoginDto, @Res({ passthrough: true }) res: express.Response): Promise<AuthLoginResponse> {
+    const { refreshToken, ...response } = await this.authService.login(loginDto);
     this.cookieService.setRefreshToken(res, refreshToken);
     return response;
   }
@@ -62,9 +62,9 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Cookie('refreshToken') token: string, @I18n() i18n: I18nContext): Promise<AuthRefreshResponse> {
-    if (!token) throw new UnauthorizedException(i18n.t('auth.errors.refresh_token_not_recognized'));
-    return this.authService.refreshToken(token, i18n);
+  async refreshToken(@Cookie('refreshToken') token: string): Promise<AuthRefreshResponse> {
+    if (!token) throw new UnauthorizedException('auth.errors.refresh_token_not_recognized');
+    return this.authService.refreshToken(token);
   }
 
   @ApiOperation({
@@ -120,7 +120,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('change-password')
   async changePassword(@CurrentUser() user: User, @Body() changePasswordDto: AuthChangePasswordDto, @I18n() i18n: I18nContext) {
-    await this.authService.changePassword(user.email, changePasswordDto, i18n);
+    await this.authService.changePassword(user.email, changePasswordDto);
     return { message: i18n.t('auth.info.password_successfully_changed') };
   }
 
@@ -133,7 +133,7 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto, @I18n() i18n: I18nContext): Promise<MessageResponse> {
-    await this.authService.verifyEmail(verifyEmailDto, i18n);
+    await this.authService.verifyEmail(verifyEmailDto);
     return { message: i18n.t('auth.info.email_verified_successfully') };
   }
 
@@ -202,10 +202,10 @@ export class AuthController {
   @Public()
   @Get('oauth/exchange')
   @HttpCode(HttpStatus.OK)
-  async exchangeOAuthCode(@Query('code') code: string, @Res({ passthrough: true }) res: express.Response, @I18n() i18n: I18nContext): Promise<any> {
-    if (!code) throw new UnauthorizedException(i18n.t('auth.errors.oauth_code_not_provided'));
+  async exchangeOAuthCode(@Query('code') code: string, @Res({ passthrough: true }) res: express.Response): Promise<AuthLoginResponse> {
+    if (!code) throw new UnauthorizedException('auth.errors.oauth_code_not_provided');
 
-    const { accessToken, refreshToken, user } = await this.authService.exchangeOAuthCode(code, i18n);
+    const { accessToken, refreshToken, user } = await this.authService.exchangeOAuthCode(code);
     this.cookieService.setRefreshToken(res, refreshToken);
     return { accessToken, user };
   }

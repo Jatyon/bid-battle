@@ -9,6 +9,7 @@ describe('HttpExceptionFilter', () => {
   let filter: HttpExceptionFilter;
   let mockI18nService: DeepMocked<I18nService>;
   let mockConfigService: DeepMocked<AppConfigService>;
+  let loggerWarnSpy: jest.SpyInstance;
 
   const mockJson = jest.fn();
   const mockStatus = jest.fn().mockImplementation(() => ({
@@ -28,7 +29,7 @@ describe('HttpExceptionFilter', () => {
     jest.clearAllMocks();
 
     mockI18nService = {
-      t: jest.fn().mockImplementation((key: string) => Promise.resolve(`translated_${key}`)),
+      t: jest.fn().mockImplementation((key: string, opts?: { lang?: string }) => Promise.resolve(`${opts?.lang ?? 'en'}:${key}`)),
     } as unknown as DeepMocked<I18nService>;
 
     mockConfigService = {
@@ -39,8 +40,7 @@ describe('HttpExceptionFilter', () => {
 
     filter = new HttpExceptionFilter(mockI18nService, mockConfigService);
 
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    loggerWarnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
   });
 
@@ -54,19 +54,38 @@ describe('HttpExceptionFilter', () => {
 
   describe('HttpException handling', () => {
     it('should handle standard HttpException correctly', async () => {
-      const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      const exception = new HttpException('auth.errors.invalid_credential', HttpStatus.UNAUTHORIZED);
 
       await filter.catch(exception, mockArgumentsHost);
 
-      expect(mockStatus).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+      expect(mockStatus).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: HttpStatus.FORBIDDEN,
+          statusCode: HttpStatus.UNAUTHORIZED,
+          message: 'en:auth.errors.invalid_credential',
           path: '/test-path',
           method: 'POST',
           timestamp: expect.any(String) as unknown,
         }),
       );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('"message":"en:auth.errors.invalid_credential"'));
+    });
+
+    it('should log in fallback language while responding in request language', async () => {
+      jest.spyOn(I18nContext, 'current').mockReturnValue({ lang: 'pl' } as unknown as I18nContext<unknown>);
+
+      const exception = new HttpException('auth.errors.invalid_credential', HttpStatus.UNAUTHORIZED);
+
+      await filter.catch(exception, mockArgumentsHost);
+
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'pl:auth.errors.invalid_credential',
+        }),
+      );
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('"message":"en:auth.errors.invalid_credential"'));
     });
 
     it('should handle HttpException with object response, array of messages, and args', async () => {
@@ -84,8 +103,8 @@ describe('HttpExceptionFilter', () => {
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: ['translated_validation_error_1', 'translated_validation_error_2'],
-          error: 'translated_error.Bad Request',
+          message: ['en:validation_error_1', 'en:validation_error_2'],
+          error: 'en:error.Bad Request',
         }),
       );
     });
@@ -103,8 +122,8 @@ describe('HttpExceptionFilter', () => {
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.NOT_FOUND,
-          message: 'translated_single_error_message',
-          error: 'translated_error.Not Found',
+          message: 'en:single_error_message',
+          error: 'en:error.Not Found',
         }),
       );
     });
@@ -122,7 +141,7 @@ describe('HttpExceptionFilter', () => {
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.CONFLICT,
-          message: 'translated_error.database_unique_constraint',
+          message: 'en:error.database_unique_constraint',
         }),
       );
     });
@@ -137,7 +156,7 @@ describe('HttpExceptionFilter', () => {
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'translated_error.database_query_failed',
+          message: 'en:error.database_query_failed',
         }),
       );
     });
@@ -152,8 +171,8 @@ describe('HttpExceptionFilter', () => {
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: 'translated_error.database_foreign_key',
-          error: 'translated_error.Bad Request',
+          message: 'en:error.database_foreign_key',
+          error: 'en:error.Bad Request',
         }),
       );
     });
@@ -169,7 +188,7 @@ describe('HttpExceptionFilter', () => {
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'translated_error.Generic Error',
+          message: 'en:error.Generic Error',
         }),
       );
     });
@@ -187,7 +206,7 @@ describe('HttpExceptionFilter', () => {
         expect.objectContaining({
           statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
           message: 'error.Generic Error',
-          error: 'translated_error.Internal Server Error',
+          error: 'en:error.Internal Server Error',
         }),
       );
     });

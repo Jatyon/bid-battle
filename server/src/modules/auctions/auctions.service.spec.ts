@@ -21,7 +21,6 @@ import { AuctionsService } from './auctions.service';
 import { AuctionImage, Auction } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { DataSource, Repository } from 'typeorm';
-import { I18nContext } from 'nestjs-i18n';
 
 describe('AuctionsService', () => {
   let service: AuctionsService;
@@ -805,8 +804,6 @@ describe('AuctionsService', () => {
   });
 
   describe('updateAuctionImages', () => {
-    const mockI18n = { t: jest.fn().mockReturnValue('Translated error') } as unknown as I18nContext;
-
     const mockUploadOptions = {
       maxSizeMB: 5,
       allowedTypes: ['image/jpeg', 'image/png'],
@@ -828,25 +825,25 @@ describe('AuctionsService', () => {
     it('should throw NotFoundException when auction does not exist', async () => {
       auctionsRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(service.updateAuctionImages(1, 1, [], ['/uploads/any.jpg'], 0, mockI18n)).rejects.toThrow(NotFoundException);
+      await expect(service.updateAuctionImages(1, 1, [], ['/uploads/any.jpg'], 0)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when requesting user is not the owner', async () => {
       auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture({ ownerId: 1 }));
 
-      await expect(service.updateAuctionImages(1, 2, createMockFilesFixture(1), [], 0, mockI18n)).rejects.toThrow(ForbiddenException);
+      await expect(service.updateAuctionImages(1, 2, createMockFilesFixture(1), [], 0)).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw BadRequestException when auction status is not ACTIVE', async () => {
       auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture({ status: AuctionStatus.CANCELED }));
 
-      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when neither files nor existing URLs are provided', async () => {
       auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture());
 
-      await expect(service.updateAuctionImages(1, 1, [], [], undefined, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, [], [], undefined)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when provided existing URL does not belong to the auction', async () => {
@@ -854,14 +851,14 @@ describe('AuctionsService', () => {
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
       auctionImageRepository.find.mockResolvedValue([createAuctionImageFixture({ auction: mockAuction, imageUrl: '/uploads/valid.jpg' })]);
 
-      await expect(service.updateAuctionImages(1, 1, [], ['/uploads/not-mine.jpg'], undefined, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, [], ['/uploads/not-mine.jpg'], undefined)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when total image count exceeds 10', async () => {
       auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture());
       auctionImageRepository.find.mockResolvedValue([]);
 
-      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(11), [], undefined, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(11), [], undefined)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when primaryImageIndex is out of bounds', async () => {
@@ -870,7 +867,7 @@ describe('AuctionsService', () => {
       fileUploadService.uploadMultiple.mockResolvedValue([mockUploadedFile]);
       fileUploadService.getAuctionImageUploadOptions.mockReturnValue(mockUploadOptions);
 
-      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 5, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 5)).rejects.toThrow(BadRequestException);
     });
 
     it('should upload new files, run transaction, and invalidate cache on success', async () => {
@@ -887,9 +884,9 @@ describe('AuctionsService', () => {
         return cb(mockManager);
       });
 
-      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), ['/uploads/existing.jpg'], 0, mockI18n);
+      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), ['/uploads/existing.jpg'], 0);
 
-      expect(fileUploadService.uploadMultiple).toHaveBeenCalledWith(expect.any(Array), mockUploadOptions, mockI18n);
+      expect(fileUploadService.uploadMultiple).toHaveBeenCalledWith(expect.any(Array), mockUploadOptions);
       expect(auctionsRepository.manager.transaction).toHaveBeenCalled();
       expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
     });
@@ -908,7 +905,7 @@ describe('AuctionsService', () => {
         return cb(mockManager);
       });
 
-      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0, mockI18n);
+      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0);
 
       expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(['old.jpg']);
     });
@@ -925,7 +922,7 @@ describe('AuctionsService', () => {
         return cb(mockManager);
       });
 
-      await service.updateAuctionImages(1, 1, [], ['/uploads/keep.jpg'], 0, mockI18n);
+      await service.updateAuctionImages(1, 1, [], ['/uploads/keep.jpg'], 0);
 
       expect(fileUploadService.uploadMultiple).not.toHaveBeenCalled();
     });
@@ -937,7 +934,7 @@ describe('AuctionsService', () => {
       fileUploadService.getAuctionImageUploadOptions.mockReturnValue(mockUploadOptions);
       auctionsRepository.manager.transaction.mockRejectedValue(new Error('DB Error'));
 
-      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0)).rejects.toThrow(BadRequestException);
 
       expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(['new.jpg']);
     });
@@ -950,7 +947,7 @@ describe('AuctionsService', () => {
       auctionsRepository.manager.transaction.mockRejectedValue(new Error('DB Error'));
       fileUploadService.deleteFiles.mockRejectedValue(new Error('Disk error'));
 
-      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0)).rejects.toThrow(BadRequestException);
     });
 
     it('should update isPrimary flags and auction mainImageUrl when primaryImageIndex changes among existing images', async () => {
@@ -966,7 +963,7 @@ describe('AuctionsService', () => {
         return cb(mockManager);
       });
 
-      await service.updateAuctionImages(1, 1, [], ['/uploads/img1.jpg', '/uploads/img2.jpg'], 1, mockI18n);
+      await service.updateAuctionImages(1, 1, [], ['/uploads/img1.jpg', '/uploads/img2.jpg'], 1);
 
       expect(auctionsRepository.manager.transaction).toHaveBeenCalled();
       expect(mockManager.save).toHaveBeenCalled();
@@ -981,7 +978,7 @@ describe('AuctionsService', () => {
 
       auctionsRepository.manager.transaction.mockRejectedValue(new Error('DB Error'));
 
-      await expect(service.updateAuctionImages(1, 1, [], ['/uploads/keep.jpg'], 0, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.updateAuctionImages(1, 1, [], ['/uploads/keep.jpg'], 0)).rejects.toThrow(BadRequestException);
 
       expect(fileUploadService.uploadMultiple).not.toHaveBeenCalled();
       expect(fileUploadService.deleteFiles).not.toHaveBeenCalled();
@@ -1000,7 +997,7 @@ describe('AuctionsService', () => {
         return cb(mockManager);
       });
 
-      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0, mockI18n);
+      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0);
 
       expect(fileUploadService.deleteFiles).not.toHaveBeenCalled();
     });
@@ -1023,7 +1020,7 @@ describe('AuctionsService', () => {
       const diskError = new Error('Permission denied on disk');
       fileUploadService.deleteFiles.mockRejectedValue(diskError);
 
-      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0, mockI18n);
+      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0);
 
       expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(expect.arrayContaining(['old.jpg']));
       expect(Logger.prototype.error).toHaveBeenCalledWith(`Failed to delete old auction images from disk for auction 1`, diskError);

@@ -4,7 +4,6 @@ import { IConfigFile } from '@config/interfaces';
 import { IUploadedFile, IUploadOptions, IStorageStrategy } from './interfaces';
 import { LocalStorageStrategy } from './strategies';
 import { join, extname, resolve, basename, sep } from 'path';
-import { I18nContext } from 'nestjs-i18n';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -35,13 +34,12 @@ export class FileUploadService {
    *
    * @param file - Multer file object to upload.
    * @param options - Upload constraints: `maxSizeMB`, `allowedTypes`, `subDir`.
-   * @param i18n - i18n context used for translating error messages.
    * @returns Metadata about the uploaded file (`filename`, `path`, `url`, `size`, `mimetype`).
    * @throws {BadRequestException} When validation fails (missing file, size exceeded, wrong type).
    * @throws {InternalServerErrorException} When the storage backend fails to write the file.
    */
-  async uploadSingle(file: Express.Multer.File, options: IUploadOptions, i18n: I18nContext): Promise<IUploadedFile> {
-    await this.validateFile(file, options, i18n);
+  async uploadSingle(file: Express.Multer.File, options: IUploadOptions): Promise<IUploadedFile> {
+    await this.validateFile(file, options);
 
     const uploadPath: string = this.generateUploadPath(options.subDir);
     const filename: string = this.generateFilename(file.originalname);
@@ -72,7 +70,7 @@ export class FileUploadService {
       const stack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(`Failed to upload file: ${message}`, stack);
-      throw new InternalServerErrorException(i18n.t('error.validation.file.upload_failed'));
+      throw new InternalServerErrorException('error.validation.file.upload_failed');
     }
   }
 
@@ -81,13 +79,12 @@ export class FileUploadService {
    *
    * @param files - Array of Multer file objects to upload.
    * @param options - Upload constraints applied to every file.
-   * @param i18n - i18n context used for translating error messages.
    * @returns Array of upload result metadata, in the same order as the input files.
    * @throws {BadRequestException} When any file fails validation.
    * @throws {InternalServerErrorException} When the storage backend fails for any file.
    */
-  async uploadMultiple(files: Express.Multer.File[], options: IUploadOptions, i18n: I18nContext): Promise<IUploadedFile[]> {
-    return Promise.all(files.map((file) => this.uploadSingle(file, options, i18n)));
+  async uploadMultiple(files: Express.Multer.File[], options: IUploadOptions): Promise<IUploadedFile[]> {
+    return Promise.all(files.map((file) => this.uploadSingle(file, options)));
   }
 
   /**
@@ -140,25 +137,24 @@ export class FileUploadService {
    *
    * @param file - Multer file object to validate.
    * @param options - Constraints to validate against.
-   * @param i18n - i18n context for translating error messages.
    * @throws {BadRequestException} When any of the three checks fails.
    */
-  private async validateFile(file: Express.Multer.File, options: IUploadOptions, i18n: I18nContext): Promise<void> {
-    if (!file) throw new BadRequestException(i18n.t('error.validation.file.no_file_provided'));
+  private async validateFile(file: Express.Multer.File, options: IUploadOptions): Promise<void> {
+    if (!file) throw new BadRequestException('error.validation.file.no_file_provided');
 
     const maxSizeBytes: number = options.maxSizeMB * 1024 * 1024;
 
-    if (file.size > maxSizeBytes) throw new BadRequestException(i18n.t('error.validation.file.file_too_large_#maxSize', { args: { maxSize: options.maxSizeMB } }));
+    if (file.size > maxSizeBytes) throw new BadRequestException({ message: 'error.validation.file.file_too_large_#maxSize', args: { maxSize: options.maxSizeMB } });
 
     if (!options.allowedTypes.includes(file.mimetype))
-      throw new BadRequestException(i18n.t('error.validation.file.invalid_file_type_#allowedTypes', { args: { allowedTypes: options.allowedTypes.join(', ') } }));
+      throw new BadRequestException({ message: 'error.validation.file.invalid_file_type_#allowedTypes', args: { allowedTypes: options.allowedTypes.join(', ') } });
 
     const { fileTypeFromBuffer } = await import('file-type');
     const detected = await fileTypeFromBuffer(file.buffer);
 
     if (!detected || !options.allowedTypes.includes(detected.mime)) {
       this.logger.warn(`Magic bytes mismatch: declared=${file.mimetype}, detected=${detected?.mime ?? 'unknown'}, filename=${file.originalname}`);
-      throw new BadRequestException(i18n.t('error.validation.file.invalid_file_type_#allowedTypes', { args: { allowedTypes: options.allowedTypes.join(', ') } }));
+      throw new BadRequestException({ message: 'error.validation.file.invalid_file_type_#allowedTypes', args: { allowedTypes: options.allowedTypes.join(', ') } });
     }
   }
 

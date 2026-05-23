@@ -3,9 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { User, UserToken } from './entities';
 import { UserTokenEnum } from './enums';
-import { LessThan, Repository } from 'typeorm';
 import { addMilliseconds, addMinutes, isPast } from 'date-fns';
-import { I18nContext } from 'nestjs-i18n';
+import { LessThan, Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import ms from 'ms';
 
@@ -51,7 +50,7 @@ export class UsersTokenService {
     return await this.tokenRepository.save(newToken);
   }
 
-  async verifyToken(token: string, type: UserTokenEnum, i18n: I18nContext): Promise<UserToken> {
+  async verifyToken(token: string, type: UserTokenEnum): Promise<UserToken> {
     const tokenEntity = await this.tokenRepository.findOne({
       where: {
         token,
@@ -61,9 +60,9 @@ export class UsersTokenService {
       relations: ['user'],
     });
 
-    if (!tokenEntity) throw new BadRequestException(i18n.t('auth.errors.token_not_exist_or_used'));
+    if (!tokenEntity) throw new BadRequestException('auth.errors.token_not_exist_or_used');
 
-    if (isPast(tokenEntity.expiresAt)) throw new BadRequestException(i18n.t('auth.errors.token_expired'));
+    if (isPast(tokenEntity.expiresAt)) throw new BadRequestException('auth.errors.token_expired');
 
     return tokenEntity;
   }

@@ -48,8 +48,8 @@ export class UsersController {
   })
   @ApiStandardResponse(User, false)
   @Patch('/profile')
-  async updateProfile(@CurrentUser() user: User, @Body() updateDto: UpdateProfileDto, @I18n() i18n: I18nContext): Promise<User> {
-    return this.usersService.updateProfile(user.id, updateDto, i18n);
+  async updateProfile(@CurrentUser() user: User, @Body() updateDto: UpdateProfileDto): Promise<User> {
+    return this.usersService.updateProfile(user.id, updateDto);
   }
 
   @ApiOperation({
@@ -74,8 +74,8 @@ export class UsersController {
   @Post('/avatar')
   @HttpCode(200)
   @UseInterceptors(FileInterceptor('file'))
-  async uploadAvatar(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File, @I18n() i18n: I18nContext): Promise<User> {
-    return this.usersService.updateAvatar(user.id, file, i18n);
+  async uploadAvatar(@CurrentUser() user: User, @UploadedFile() file: Express.Multer.File): Promise<User> {
+    return this.usersService.updateAvatar(user.id, file);
   }
 
   @ApiOperation({

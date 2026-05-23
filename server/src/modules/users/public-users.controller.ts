@@ -3,7 +3,6 @@ import { ApiTags, ApiOperation, ApiNotFoundResponse } from '@nestjs/swagger';
 import { ApiStandardResponse, Public } from '@core/decorators';
 import { PublicUserProfileResponse, SearchUsersDto } from './dto';
 import { UsersService } from './users.service';
-import { I18n, I18nContext } from 'nestjs-i18n';
 
 @ApiTags('Users')
 @Controller('/users')
@@ -29,7 +28,7 @@ export class PublicUsersController {
   @ApiNotFoundResponse({ description: 'User not found' })
   @Public()
   @Get('/:id')
-  async getPublicProfile(@Param('id', ParseIntPipe) id: number, @I18n() i18n: I18nContext): Promise<PublicUserProfileResponse> {
-    return this.usersService.getPublicProfile(id, i18n);
+  async getPublicProfile(@Param('id', ParseIntPipe) id: number): Promise<PublicUserProfileResponse> {
+    return this.usersService.getPublicProfile(id);
   }
 }

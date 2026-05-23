@@ -1,19 +1,14 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppConfigService } from '@config/config.service';
-import { createMockI18nService } from '@test/mocks/i18n.mock';
-import { createMock, DeepMocked } from '@golevelup/ts-jest';
+import { createMock } from '@golevelup/ts-jest';
 import { GoogleOAuthStrategy } from './google-oauth.strategy';
 import { Profile } from 'passport-google-oauth20';
-import { I18nService } from 'nestjs-i18n';
 
 describe('GoogleOAuthStrategy', () => {
   let strategy: GoogleOAuthStrategy;
-  let i18nService: DeepMocked<I18nService>;
 
   beforeEach(async () => {
-    i18nService = createMockI18nService();
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GoogleOAuthStrategy,
@@ -26,10 +21,6 @@ describe('GoogleOAuthStrategy', () => {
               callbackUrl: 'http://localhost:3000/auth/google/callback',
             },
           }),
-        },
-        {
-          provide: I18nService,
-          useValue: i18nService,
         },
       ],
     }).compile();

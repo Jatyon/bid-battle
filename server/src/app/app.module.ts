@@ -19,6 +19,7 @@ import { FileUploadModule } from '@shared/file-upload';
 import { CookiesModule } from '@shared/cookies';
 import { RedisModule } from '@shared/redis';
 import { MailModule } from '@shared/mail';
+import { LoggingInterceptor } from '@core/interceptors';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
 import { join } from 'path';
 
@@ -92,6 +93,7 @@ import { join } from 'path';
     HealthModule,
   ],
   providers: [
+    LoggingInterceptor,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

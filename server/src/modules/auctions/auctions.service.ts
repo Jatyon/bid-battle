@@ -13,7 +13,6 @@ import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
 import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
 import { DataSource, In, Repository } from 'typeorm';
-import { I18nContext } from 'nestjs-i18n';
 
 @Injectable()
 export class AuctionsService {
@@ -419,16 +418,8 @@ export class AuctionsService {
    * @param files - New files to upload (can be empty)
    * @param existingImageUrls - URLs of existing images to keep
    * @param primaryImageIndex - Index of primary image in the final set (kept + new)
-   * @param i18n - I18n context for error messages
    */
-  async updateAuctionImages(
-    auctionId: number,
-    userId: number,
-    files: Express.Multer.File[],
-    existingImageUrls: string[],
-    primaryImageIndex: number | undefined,
-    i18n: I18nContext,
-  ): Promise<void> {
+  async updateAuctionImages(auctionId: number, userId: number, files: Express.Multer.File[], existingImageUrls: string[], primaryImageIndex: number | undefined): Promise<void> {
     const auction = await this.auctionsRepository.findOneBy({ id: auctionId });
 
     if (!auction) throw new NotFoundException('error.auction.not_found');
@@ -458,9 +449,9 @@ export class AuctionsService {
     const MAX_IMAGES = 10;
     const totalCount = toKeep.length + files.length;
 
-    if (totalCount > MAX_IMAGES) throw new BadRequestException(i18n.t('error.auction.too_many_images_#max', { args: { max: MAX_IMAGES } }));
+    if (totalCount > MAX_IMAGES) throw new BadRequestException({ message: 'error.auction.too_many_images_#max', args: { max: MAX_IMAGES } });
 
-    const uploadedFiles = hasNewFiles ? await this.fileUploadService.uploadMultiple(files, this.fileUploadService.getAuctionImageUploadOptions(), i18n) : [];
+    const uploadedFiles = hasNewFiles ? await this.fileUploadService.uploadMultiple(files, this.fileUploadService.getAuctionImageUploadOptions()) : [];
 
     const allUrls = [...toKeep.map((img) => img.imageUrl), ...uploadedFiles.map((f) => f.url)];
     const primaryIndex = primaryImageIndex ?? 0;

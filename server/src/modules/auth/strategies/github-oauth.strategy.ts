@@ -4,7 +4,6 @@ import { AppConfigService } from '@config/config.service';
 import { AuthStrategy } from '../enums/auth-strategy.enum';
 import { IOAuthProfile } from '../interfaces';
 import { Strategy } from 'passport-github2';
-import { I18nService } from 'nestjs-i18n';
 
 type DoneCallback = (error: Error | null, user?: IOAuthProfile | false) => void;
 
@@ -18,10 +17,7 @@ export interface GithubProfile {
 
 @Injectable()
 export class GithubOAuthStrategy extends PassportStrategy(Strategy, AuthStrategy.GITHUB) {
-  constructor(
-    readonly configService: AppConfigService,
-    private readonly i18n: I18nService,
-  ) {
+  constructor(readonly configService: AppConfigService) {
     super({
       clientID: configService.github.clientId,
       clientSecret: configService.github.clientSecret,
@@ -36,7 +32,7 @@ export class GithubOAuthStrategy extends PassportStrategy(Strategy, AuthStrategy
 
     const primaryEmail = emails?.find((e) => e.primary && e.verified) ?? emails?.[0];
 
-    if (!primaryEmail || !primaryEmail.verified) throw new UnauthorizedException(this.i18n.t('auth.errors.github_email_not_verified'));
+    if (!primaryEmail || !primaryEmail.verified) throw new UnauthorizedException('auth.errors.github_email_not_verified');
 
     const rawName = displayName || username || '';
     const nameParts = rawName.trim().split(/\s+/);

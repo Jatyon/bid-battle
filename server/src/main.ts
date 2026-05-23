@@ -76,7 +76,7 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter(app.get(I18nService), configService));
 
-  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor(), new TimeoutInterceptor(configService.app.timeoutMs));
+  app.useGlobalInterceptors(app.get(LoggingInterceptor), new TransformInterceptor(), new TimeoutInterceptor(configService.app.timeoutMs));
 
   const host = configService.app.host;
   const port = configService.app.port;

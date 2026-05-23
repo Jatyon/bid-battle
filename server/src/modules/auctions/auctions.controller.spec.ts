@@ -255,18 +255,18 @@ describe('AuctionsController', () => {
       fileUploadService.getAuctionImageUploadOptions.mockReturnValue(options);
       fileUploadService.uploadMultiple.mockResolvedValue(uploadedFiles);
 
-      const result = await controller.uploadAuctionImages(mockFiles, mockI18n);
+      const result = await controller.uploadAuctionImages(mockFiles);
 
-      expect(fileUploadService.uploadMultiple).toHaveBeenCalledWith(mockFiles, options, mockI18n);
+      expect(fileUploadService.uploadMultiple).toHaveBeenCalledWith(mockFiles, options);
       expect(result).toEqual([new UploadedFileDto(uploadedFiles[0])]);
     });
 
     it('should throw BadRequestException when no files are provided', async () => {
-      await expect(controller.uploadAuctionImages(undefined as unknown as Express.Multer.File[], mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(controller.uploadAuctionImages(undefined as unknown as Express.Multer.File[])).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when images array is empty', async () => {
-      await expect(controller.uploadAuctionImages([], mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(controller.uploadAuctionImages([])).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -307,7 +307,7 @@ describe('AuctionsController', () => {
 
       const result = await controller.updateAuctionImages(1, [], updateDto, mockUser, mockI18n);
 
-      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, [], updateDto.existingImageUrls, updateDto.primaryImageIndex, mockI18n);
+      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, [], updateDto.existingImageUrls, updateDto.primaryImageIndex);
       expect(result).toHaveProperty('message');
     });
 
@@ -322,7 +322,7 @@ describe('AuctionsController', () => {
 
       await controller.updateAuctionImages(1, newFiles, updateDto, mockUser, mockI18n);
 
-      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, newFiles, updateDto.existingImageUrls, updateDto.primaryImageIndex, mockI18n);
+      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, newFiles, updateDto.existingImageUrls, updateDto.primaryImageIndex);
     });
 
     it('should propagate NotFoundException when auction does not exist', async () => {
@@ -341,7 +341,7 @@ describe('AuctionsController', () => {
 
       await controller.updateAuctionImages(1, undefined as unknown as Express.Multer.File[], updateDto, mockUser, mockI18n);
 
-      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, [], updateDto.existingImageUrls, updateDto.primaryImageIndex, mockI18n);
+      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, [], updateDto.existingImageUrls, updateDto.primaryImageIndex);
     });
 
     it('should normalize undefined existingImageUrls to empty array before calling service', async () => {
@@ -352,7 +352,7 @@ describe('AuctionsController', () => {
 
       await controller.updateAuctionImages(1, newFiles, updateDto, mockUser, mockI18n);
 
-      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, newFiles, [], updateDto.primaryImageIndex, mockI18n);
+      expect(service.updateAuctionImages).toHaveBeenCalledWith(1, mockUser.id, newFiles, [], updateDto.primaryImageIndex);
     });
   });
 });

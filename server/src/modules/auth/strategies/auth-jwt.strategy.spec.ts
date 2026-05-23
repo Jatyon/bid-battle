@@ -2,13 +2,11 @@ import { AppConfigService } from '@config/config.service';
 import { IAuthJwt } from '../interfaces/auth-jwt.interface';
 import { AuthJwtStrategy } from './auth-jwt.strategy';
 import { AuthService } from '../auth.service';
-import { I18nService } from 'nestjs-i18n';
 
 describe('AuthJwtStrategy', () => {
   let strategy: AuthJwtStrategy;
   let mockAuthService: jest.Mocked<Partial<AuthService>>;
   let mockConfigService: Partial<AppConfigService>;
-  let mockI18nService: Partial<I18nService>;
 
   beforeEach(() => {
     mockConfigService = {
@@ -21,9 +19,7 @@ describe('AuthJwtStrategy', () => {
       validateJwtUser: jest.fn(),
     };
 
-    mockI18nService = {};
-
-    strategy = new AuthJwtStrategy(mockConfigService as AppConfigService, mockAuthService as AuthService, mockI18nService as I18nService);
+    strategy = new AuthJwtStrategy(mockConfigService as AppConfigService, mockAuthService as AuthService);
   });
 
   afterEach(() => {
@@ -47,7 +43,7 @@ describe('AuthJwtStrategy', () => {
 
       const result = (await strategy.validate(mockPayload)) as unknown;
 
-      expect(mockAuthService.validateJwtUser).toHaveBeenCalledWith(mockPayload, mockI18nService);
+      expect(mockAuthService.validateJwtUser).toHaveBeenCalledWith(mockPayload);
 
       expect(result).toEqual(mockUser);
     });

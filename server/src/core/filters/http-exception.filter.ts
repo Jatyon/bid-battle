@@ -78,14 +78,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = 'error.Generic Error';
     }
 
-    let translatedMessage: string | string[];
+    const logLang = this.configService.i18n.fallbackLanguage;
 
-    if (Array.isArray(message)) {
-      translatedMessage = await Promise.all(message.map((msg) => this.translate(msg, lang, translationArgs)));
-    } else {
-      translatedMessage = await this.translate(message, lang, translationArgs);
-    }
-
+    const translatedMessage = await this.translateMessage(message, lang, translationArgs);
     const translatedError = await this.translate(errorKey, lang);
 
     const errorResponse = {
@@ -97,16 +92,30 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message: translatedMessage,
     };
 
-    const logMessage = `Path: ${request.url} | Method: ${request.method} | Response: ${JSON.stringify(errorResponse)}`;
+    const logErrorResponse = {
+      statusCode: status,
+      error: await this.translate(errorKey, logLang),
+      message: await this.translateMessage(message, logLang, translationArgs),
+    };
+
+    const logMessage = `Path: ${request.url} | Method: ${request.method} | Response: ${JSON.stringify(logErrorResponse)}`;
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) this.logger.error(logMessage, errorStack);
     else this.logger.warn(logMessage);
 
     response.status(status).json(errorResponse);
   }
 
+  private async translateMessage(message: string | string[], lang: string, args?: Record<string, any>): Promise<string | string[]> {
+    if (Array.isArray(message)) {
+      return Promise.all(message.map((msg) => this.translate(msg, lang, args)));
+    }
+
+    return this.translate(message, lang, args);
+  }
+
   private async translate(key: string, lang: string, args?: Record<string, any>): Promise<string> {
     try {
-      return await this.i18n.t(key, { lang, args });
+      return await Promise.resolve(this.i18n.t(key, { lang, args }));
     } catch {
       return key;
     }

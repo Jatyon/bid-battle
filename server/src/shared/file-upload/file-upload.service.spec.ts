@@ -5,7 +5,6 @@ import { IConfigFile } from '@config/interfaces';
 import { IStorageStrategy, IUploadOptions } from './interfaces';
 import { FileUploadService } from './file-upload.service';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { I18nContext } from 'nestjs-i18n';
 import { Readable } from 'stream';
 
 jest.mock('path', () => {
@@ -51,13 +50,9 @@ const uploadOptions: IUploadOptions = {
 describe('FileUploadService', () => {
   let service: FileUploadService;
   let mockStrategy: DeepMocked<IStorageStrategy>;
-  let mockI18n: DeepMocked<I18nContext>;
 
   beforeEach(async () => {
     mockStrategy = createMock<IStorageStrategy>();
-    mockI18n = createMock<I18nContext>({
-      t: jest.fn().mockImplementation((key: string) => key),
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -97,7 +92,7 @@ describe('FileUploadService', () => {
       const file = createFile();
       mockStrategy.upload.mockResolvedValue({ url: '/uploads/2026/03/auctions/abc.jpg', path: '/uploads/2026/03/auctions/abc.jpg' });
 
-      const result = await service.uploadSingle(file, uploadOptions, mockI18n);
+      const result = await service.uploadSingle(file, uploadOptions);
 
       expect(mockStrategy.upload).toHaveBeenCalledWith(file, expect.any(String));
       expect(result).toEqual(
@@ -116,7 +111,7 @@ describe('FileUploadService', () => {
       const file = createFile();
       mockStrategy.upload.mockResolvedValue({ url: '/uploads/result.jpg', path: '/uploads/result.jpg' });
 
-      await service.uploadSingle(file, uploadOptions, mockI18n);
+      await service.uploadSingle(file, uploadOptions);
 
       const callArgs = mockStrategy.upload.mock.calls[0] as [Express.Multer.File, string];
       const uploadPath = callArgs[1];
@@ -130,7 +125,7 @@ describe('FileUploadService', () => {
       const file = createFile({ originalname: 'my-photo.png' });
       mockStrategy.upload.mockResolvedValue({ url: '/uploads/result.png', path: '/uploads/result.png' });
 
-      await service.uploadSingle(file, uploadOptions, mockI18n);
+      await service.uploadSingle(file, uploadOptions);
 
       const callArgs = mockStrategy.upload.mock.calls[0] as [Express.Multer.File, string];
       const uploadPath = callArgs[1];
@@ -141,7 +136,7 @@ describe('FileUploadService', () => {
     it('should throw BadRequestException when file is missing', async () => {
       jest.spyOn(service as any, 'validateFile').mockRestore();
 
-      await expect(service.uploadSingle(null as unknown as Express.Multer.File, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.uploadSingle(null as unknown as Express.Multer.File, uploadOptions)).rejects.toThrow(BadRequestException);
 
       expect(mockStrategy.upload).not.toHaveBeenCalled();
     });
@@ -150,7 +145,7 @@ describe('FileUploadService', () => {
       jest.spyOn(service as any, 'validateFile').mockRestore();
       const oversizedFile = createFile({ size: 6 * 1024 * 1024 });
 
-      await expect(service.uploadSingle(oversizedFile, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.uploadSingle(oversizedFile, uploadOptions)).rejects.toThrow(BadRequestException);
 
       expect(mockStrategy.upload).not.toHaveBeenCalled();
     });
@@ -159,7 +154,7 @@ describe('FileUploadService', () => {
       jest.spyOn(service as any, 'validateFile').mockRestore();
       const wrongTypeFile = createFile({ mimetype: 'application/pdf' });
 
-      await expect(service.uploadSingle(wrongTypeFile, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.uploadSingle(wrongTypeFile, uploadOptions)).rejects.toThrow(BadRequestException);
 
       expect(mockStrategy.upload).not.toHaveBeenCalled();
     });
@@ -168,7 +163,7 @@ describe('FileUploadService', () => {
       const file = createFile();
       mockStrategy.upload.mockRejectedValue(new Error('Disk full'));
 
-      await expect(service.uploadSingle(file, uploadOptions, mockI18n)).rejects.toThrow(InternalServerErrorException);
+      await expect(service.uploadSingle(file, uploadOptions)).rejects.toThrow(InternalServerErrorException);
 
       expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Failed to upload file'), expect.anything());
     });
@@ -179,14 +174,14 @@ describe('FileUploadService', () => {
       const files = [createFile({ originalname: 'a.jpg' }), createFile({ originalname: 'b.png' })];
       mockStrategy.upload.mockResolvedValueOnce({ url: '/uploads/a.jpg', path: '/uploads/a.jpg' }).mockResolvedValueOnce({ url: '/uploads/b.png', path: '/uploads/b.png' });
 
-      const results = await service.uploadMultiple(files, uploadOptions, mockI18n);
+      const results = await service.uploadMultiple(files, uploadOptions);
 
       expect(results).toHaveLength(2);
       expect(mockStrategy.upload).toHaveBeenCalledTimes(2);
     });
 
     it('should return empty array when files array is empty', async () => {
-      const results = await service.uploadMultiple([], uploadOptions, mockI18n);
+      const results = await service.uploadMultiple([], uploadOptions);
 
       expect(results).toEqual([]);
       expect(mockStrategy.upload).not.toHaveBeenCalled();
@@ -198,7 +193,7 @@ describe('FileUploadService', () => {
 
       jest.spyOn(service as any, 'validateFile').mockRestore();
 
-      await expect(service.uploadMultiple(files, uploadOptions, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(service.uploadMultiple(files, uploadOptions)).rejects.toThrow(BadRequestException);
     });
   });
 

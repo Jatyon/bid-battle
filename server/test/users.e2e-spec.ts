@@ -84,7 +84,7 @@ describe('Users (e2e)', () => {
       }),
     );
     app.useGlobalFilters(new HttpExceptionFilter(app.get(I18nService), configService));
-    app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor(), new TimeoutInterceptor(configService.app.timeoutMs));
+    app.useGlobalInterceptors(app.get(LoggingInterceptor), new TransformInterceptor(), new TimeoutInterceptor(configService.app.timeoutMs));
 
     await app.init();
 

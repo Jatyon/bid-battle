@@ -87,18 +87,14 @@ describe('UsersController', () => {
       lastName: 'Smith',
     };
 
-    const mockI18n = {
-      t: jest.fn().mockReturnValue('User not found.'),
-    } as unknown as I18nContext;
-
     it('should call usersService.updateProfile with correct arguments and return the updated user', async () => {
       const updatedUser = { ...mockUser, ...updateDto } as User;
 
       usersService.updateProfile.mockResolvedValue(updatedUser);
 
-      const result = await controller.updateProfile(mockUser, updateDto, mockI18n);
+      const result = await controller.updateProfile(mockUser, updateDto);
 
-      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto, mockI18n);
+      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto);
       expect(result).toEqual(updatedUser);
     });
 
@@ -106,9 +102,9 @@ describe('UsersController', () => {
       const error = new Error('Failed to update profile');
       usersService.updateProfile.mockRejectedValue(error);
 
-      await expect(controller.updateProfile(mockUser, updateDto, mockI18n)).rejects.toThrow(error);
+      await expect(controller.updateProfile(mockUser, updateDto)).rejects.toThrow(error);
 
-      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto, mockI18n);
+      expect(usersService.updateProfile).toHaveBeenCalledWith(mockUser.id, updateDto);
     });
   });
 
@@ -120,17 +116,13 @@ describe('UsersController', () => {
       buffer: Buffer.from('fake-image-data'),
     } as Express.Multer.File;
 
-    const mockI18n = {
-      t: jest.fn().mockReturnValue('Avatar uploaded'),
-    } as unknown as I18nContext;
-
     it('should call usersService.updateAvatar and return the updated user', async () => {
       const updatedUser = { ...mockUser, avatar: '2026/03/avatars/random.jpg' } as User;
       usersService.updateAvatar.mockResolvedValue(updatedUser);
 
-      const result = await controller.uploadAvatar(mockUser, mockFile, mockI18n);
+      const result = await controller.uploadAvatar(mockUser, mockFile);
 
-      expect(usersService.updateAvatar).toHaveBeenCalledWith(mockUser.id, mockFile, mockI18n);
+      expect(usersService.updateAvatar).toHaveBeenCalledWith(mockUser.id, mockFile);
       expect(result).toEqual(updatedUser);
     });
 
@@ -138,8 +130,8 @@ describe('UsersController', () => {
       const error = new Error('Upload failed');
       usersService.updateAvatar.mockRejectedValue(error);
 
-      await expect(controller.uploadAvatar(mockUser, mockFile, mockI18n)).rejects.toThrow(error);
-      expect(usersService.updateAvatar).toHaveBeenCalledWith(mockUser.id, mockFile, mockI18n);
+      await expect(controller.uploadAvatar(mockUser, mockFile)).rejects.toThrow(error);
+      expect(usersService.updateAvatar).toHaveBeenCalledWith(mockUser.id, mockFile);
     });
   });
 

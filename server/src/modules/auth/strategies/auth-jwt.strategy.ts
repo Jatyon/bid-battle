@@ -6,14 +6,12 @@ import { IAuthJwt } from '../interfaces/auth-jwt.interface';
 import { AuthStrategy } from '../enums/auth-strategy.enum';
 import { AuthService } from '../auth.service';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class AuthJwtStrategy extends PassportStrategy(Strategy, AuthStrategy.JWT) {
   constructor(
     readonly configService: AppConfigService,
     private readonly authService: AuthService,
-    private readonly i18n: I18nService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -23,6 +21,6 @@ export class AuthJwtStrategy extends PassportStrategy(Strategy, AuthStrategy.JWT
   }
 
   async validate(payload: IAuthJwt): Promise<User> {
-    return await this.authService.validateJwtUser(payload, this.i18n);
+    return await this.authService.validateJwtUser(payload);
   }
 }

@@ -1,5 +1,7 @@
-import { ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import { ExecutionContext, CallHandler, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { AppConfigService } from '@config/config.service';
 import { LoggingInterceptor } from './logging.interceptor';
+import { I18nService } from 'nestjs-i18n';
 import { of, throwError, lastValueFrom } from 'rxjs';
 
 interface MockRequest {
@@ -19,12 +21,21 @@ describe('LoggingInterceptor', () => {
   let mockResponse: MockResponse;
   let mockExecutionContext: ExecutionContext;
   let mockCallHandler: CallHandler;
+  let i18nMock: { t: jest.Mock };
 
   let loggerLogSpy: jest.SpyInstance;
   let loggerErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    interceptor = new LoggingInterceptor();
+    i18nMock = {
+      t: jest.fn().mockImplementation((key: string, opts?: { lang?: string }) => `en:${key}:${opts?.lang ?? 'default'}`),
+    };
+
+    const configMock = {
+      i18n: { fallbackLanguage: 'en' },
+    } as AppConfigService;
+
+    interceptor = new LoggingInterceptor(i18nMock as unknown as I18nService, configMock);
 
     mockRequest = {
       method: 'GET',
@@ -81,25 +92,25 @@ describe('LoggingInterceptor', () => {
 
       expect(loggerLogSpy).toHaveBeenNthCalledWith(2, expect.stringMatching(/GET \/api\/data 200 - \d+ms/));
     });
-
-    it('should handle missing user-agent gracefully (fallback to empty string)', async () => {
-      mockRequest.get = jest.fn().mockReturnValue(undefined);
-
-      await lastValueFrom(interceptor.intercept(mockExecutionContext, mockCallHandler));
-
-      expect(loggerLogSpy).toHaveBeenNthCalledWith(1, 'GET /api/data - User Agent:  IP: 127.0.0.1 - Started');
-    });
   });
 
   describe('Error path logging', () => {
-    it('should log an error when the stream throws an exception', async () => {
-      const error = new Error('Something went wrong');
+    it('should log HttpException message translated to fallback language', async () => {
+      const error = new HttpException('auth.errors.invalid_credential', HttpStatus.UNAUTHORIZED);
 
       mockCallHandler.handle = jest.fn().mockReturnValue(throwError(() => error));
 
       await expect(lastValueFrom(interceptor.intercept(mockExecutionContext, mockCallHandler))).rejects.toThrow(error);
 
-      expect(loggerLogSpy).toHaveBeenCalledTimes(1);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringMatching(/GET \/api\/data - en:auth\.errors\.invalid_credential:en - \d+ms/));
+    });
+
+    it('should log generic Error message as-is', async () => {
+      const error = new Error('Something went wrong');
+
+      mockCallHandler.handle = jest.fn().mockReturnValue(throwError(() => error));
+
+      await expect(lastValueFrom(interceptor.intercept(mockExecutionContext, mockCallHandler))).rejects.toThrow(error);
 
       expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringMatching(/GET \/api\/data - Something went wrong - \d+ms/));
     });

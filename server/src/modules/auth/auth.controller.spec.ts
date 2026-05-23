@@ -103,12 +103,11 @@ describe('AuthController', () => {
 
     it('sets refresh token in cookie and returns access token on valid credentials', async () => {
       authService.login.mockResolvedValue(loginSession);
-      const i18n = createMockI18nContext();
       const mockRes = createMock<express.Response>();
 
-      const result = await controller.login(loginDto, mockRes, i18n);
+      const result = await controller.login(loginDto, mockRes);
 
-      expect(authService.login).toHaveBeenCalledWith(loginDto, i18n);
+      expect(authService.login).toHaveBeenCalledWith(loginDto);
       expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, loginSession.refreshToken);
       expect(result).toEqual({ accessToken: loginSession.accessToken, user: loginSession.user });
     });
@@ -117,7 +116,7 @@ describe('AuthController', () => {
       authService.login.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
       const mockRes = createMock<express.Response>();
 
-      await expect(controller.login(loginDto, mockRes, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(loginDto, mockRes)).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -126,26 +125,21 @@ describe('AuthController', () => {
 
     it('returns new accessToken for a valid refresh token', async () => {
       authService.refreshToken.mockResolvedValue({ accessToken: mockTokens.accessToken });
-      const i18n = createMockI18nContext();
 
-      const result = await controller.refreshToken(validToken, i18n);
+      const result = await controller.refreshToken(validToken);
 
-      expect(authService.refreshToken).toHaveBeenCalledWith(validToken, i18n);
+      expect(authService.refreshToken).toHaveBeenCalledWith(validToken);
       expect(result).toEqual({ accessToken: mockTokens.accessToken });
     });
 
     it('throws UnauthorizedException when refresh token is missing in cookie', async () => {
-      const i18n = createMockI18nContext({
-        'auth.errors.refresh_token_not_recognized': 'Refresh token not recognized',
-      });
-
-      await expect(controller.refreshToken('', i18n)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.refreshToken('')).rejects.toThrow(UnauthorizedException);
     });
 
     it('propagates UnauthorizedException when refresh token is invalid', async () => {
       authService.refreshToken.mockRejectedValue(new UnauthorizedException('Token not recognized'));
 
-      await expect(controller.refreshToken(validToken, createMockI18nContext())).rejects.toThrow(UnauthorizedException);
+      await expect(controller.refreshToken(validToken)).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -228,7 +222,7 @@ describe('AuthController', () => {
 
       const result = await controller.changePassword(mockUser, changePasswordDto, i18n);
 
-      expect(authService.changePassword).toHaveBeenCalledWith(mockUser.email, changePasswordDto, i18n);
+      expect(authService.changePassword).toHaveBeenCalledWith(mockUser.email, changePasswordDto);
       expect(result).toEqual({ message: 'Password has been changed successfully' });
     });
 
@@ -376,11 +370,8 @@ describe('AuthController', () => {
   describe('exchangeOAuthCode', () => {
     it('throws UnauthorizedException if code is not provided', async () => {
       const mockRes = createMock<express.Response>();
-      const i18n = createMockI18nContext({
-        'auth.errors.oauth_code_not_provided': 'OAuth code not provided',
-      });
 
-      await expect(controller.exchangeOAuthCode('', mockRes, i18n)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.exchangeOAuthCode('', mockRes)).rejects.toThrow(UnauthorizedException);
     });
 
     it('exchanges code for tokens, sets cookie, and returns access token + user', async () => {
@@ -393,7 +384,7 @@ describe('AuthController', () => {
         user: mockOAuthUser,
       });
 
-      const result = (await controller.exchangeOAuthCode('valid-code-123', mockRes, i18n)) as { accessToken: string; user: typeof mockOAuthUser };
+      const result = (await controller.exchangeOAuthCode('valid-code-123', mockRes)) as { accessToken: string; user: typeof mockOAuthUser };
 
       expect(authService.exchangeOAuthCode).toHaveBeenCalledWith('valid-code-123', i18n);
       expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, 'final_refresh_token');

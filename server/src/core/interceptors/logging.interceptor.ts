@@ -1,13 +1,26 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger, HttpException } from '@nestjs/common';
+import { AppConfigService } from '@config/config.service';
+import { translateForLog } from '@core/utils/i18n-log.util';
 import { Request, Response } from 'express';
+import { I18nService } from 'nestjs-i18n';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+
+interface ExceptionResponseBody {
+  message?: string | string[];
+  args?: Record<string, unknown>;
+}
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  constructor(
+    private readonly i18n: I18nService,
+    private readonly configService: AppConfigService,
+  ) {}
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
 
     const { method, url, ip } = request;
@@ -28,11 +41,29 @@ export class LoggingInterceptor implements NestInterceptor {
 
           this.logger.log(`${method} ${url} ${statusCode} - ${delay}ms`);
         },
-        error: (error: Error) => {
+        error: (error: unknown) => {
           const delay = Date.now() - now;
-          this.logger.error(`${method} ${url} - ${error.message} - ${delay}ms`);
+          const logText = this.resolveErrorLogMessage(error);
+          this.logger.error(`${method} ${url} - ${logText} - ${delay}ms`);
         },
       }),
     );
+  }
+
+  private resolveErrorLogMessage(error: unknown): string {
+    if (!(error instanceof HttpException)) return error instanceof Error ? error.message : 'Unknown error';
+
+    const response = error.getResponse();
+
+    if (typeof response === 'string') return translateForLog(this.i18n, this.configService, response);
+
+    if (typeof response === 'object' && response !== null) {
+      const body = response as ExceptionResponseBody;
+      const raw = Array.isArray(body.message) ? body.message[0] : body.message;
+
+      if (raw) return translateForLog(this.i18n, this.configService, raw, body.args);
+    }
+
+    return `HTTP ${error.getStatus()}`;
   }
 }

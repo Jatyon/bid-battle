@@ -4,13 +4,10 @@ import { PublicUserProfileResponse, SearchUsersDto } from './dto';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
-import { I18nContext } from 'nestjs-i18n';
 
 describe('PublicUsersController', () => {
   let controller: PublicUsersController;
   let usersService: DeepMocked<UsersService>;
-
-  const mockI18n = createMock<I18nContext>();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -62,9 +59,9 @@ describe('PublicUsersController', () => {
 
       usersService.getPublicProfile.mockResolvedValue(expectedResponse);
 
-      const result = await controller.getPublicProfile(1, mockI18n);
+      const result = await controller.getPublicProfile(1);
 
-      expect(usersService.getPublicProfile).toHaveBeenCalledWith(1, mockI18n);
+      expect(usersService.getPublicProfile).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResponse);
     });
 
@@ -72,8 +69,8 @@ describe('PublicUsersController', () => {
       const error = new Error('Not found');
       usersService.getPublicProfile.mockRejectedValue(error);
 
-      await expect(controller.getPublicProfile(999, mockI18n)).rejects.toThrow(error);
-      expect(usersService.getPublicProfile).toHaveBeenCalledWith(999, mockI18n);
+      await expect(controller.getPublicProfile(999)).rejects.toThrow(error);
+      expect(usersService.getPublicProfile).toHaveBeenCalledWith(999);
     });
   });
 });

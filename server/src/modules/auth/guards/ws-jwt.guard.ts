@@ -47,7 +47,7 @@ export class WsJwtGuard implements CanActivate {
     if (!token) throw new WsException(await this.i18n.translate('auth.errors.no_token', { lang }));
 
     const payload: IAuthJwt = this.verifyToken(token);
-    const user = await this.authService.validateJwtUser(payload, this.i18n);
+    const user = await this.authService.validateJwtUser(payload);
 
     if (!user) throw new WsException(await this.i18n.translate('error.Unauthorized', { lang }));
 
@@ -68,7 +68,7 @@ export class WsJwtGuard implements CanActivate {
       if (!token) return null;
 
       const payload: IAuthJwt = this.verifyToken(token);
-      const user = await this.authService.validateJwtUser(payload, this.i18n);
+      const user = await this.authService.validateJwtUser(payload);
 
       if (!user) return null;
 
@@ -106,7 +106,7 @@ export class WsJwtGuard implements CanActivate {
       throw new WsException(await this.i18n.translate('auth.errors.invalid_token', { lang }));
     }
 
-    const user = await this.authService.validateJwtUser(payload, this.i18n);
+    const user = await this.authService.validateJwtUser(payload);
 
     if (!user) {
       client.data.user = undefined;
@@ -128,7 +128,7 @@ export class WsJwtGuard implements CanActivate {
     try {
       return this.jwtService.verify<IAuthJwt>(token);
     } catch {
-      throw new WsException(this.i18n.t('auth.errors.invalid_token'));
+      throw new WsException('auth.errors.invalid_token');
     }
   }
 
