@@ -7,6 +7,23 @@ export const AUTH_ROUTES: Routes = [
     loadComponent: () => import('@features/auth/pages/login/login').then((m) => m.LoginPage),
   },
   {
+    path: 'register',
+    title: 'ROUTES.REGISTER',
+    loadComponent: () => import('@features/auth/pages/register/register').then((m) => m.RegisterPage),
+  },
+  {
+    path: 'forgot-password',
+    title: 'ROUTES.FORGOT_PASSWORD',
+    loadComponent: () =>
+      import('@features/auth/pages/forgot-password/forgot-password').then((m) => m.ForgotPasswordPage),
+  },
+  {
+    path: 'reset-password',
+    title: 'ROUTES.RESET_PASSWORD',
+    loadComponent: () =>
+      import('@features/auth/pages/reset-password/reset-password').then((m) => m.ResetPasswordPage),
+  },
+  {
     path: 'oauth-callback',
     title: 'ROUTES.OAUTH_CALLBACK',
     loadComponent: () =>

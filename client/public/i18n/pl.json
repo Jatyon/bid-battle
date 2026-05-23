@@ -2,7 +2,9 @@
   "ROUTES": {
     "LOGIN": "Logowanie",
     "OAUTH_CALLBACK": "Logowanie...",
-    "REGISTER": "Rejestracja"
+    "REGISTER": "Rejestracja",
+    "FORGOT_PASSWORD": "Przypomnienie hasła",
+    "RESET_PASSWORD": "Reset hasła"
   },
   "AUTH": {
     "LOGIN": {
@@ -23,13 +25,45 @@
       "SUCCESS": "Pomyślnie zalogowano!",
       "ERROR_GENERIC": "Nieprawidłowy email lub hasło. Spróbuj ponownie."
     },
+    "FORGOT_PASSWORD": {
+      "TITLE": "Zapomniałeś hasła?",
+      "SUBTITLE": "Podaj adres e-mail powiązany z kontem. Wyślemy link do ustawienia nowego hasła.",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
+      "SUBMIT": "Wyślij link resetujący",
+      "BACK_TO_LOGIN": "Wróć do logowania",
+      "SUCCESS_TITLE": "Sprawdź skrzynkę e-mail",
+      "SUCCESS_MESSAGE": "Jeśli konto z tym adresem istnieje, wysłaliśmy link do resetu hasła. Sprawdź skrzynkę (oraz folder spam).",
+      "SUCCESS_CONFIRM": "Rozumiem",
+      "ERROR_GENERIC": "Nie udało się wysłać linku resetującego. Spróbuj ponownie."
+    },
+    "RESET_PASSWORD": {
+      "TITLE": "Ustaw nowe hasło",
+      "SUBTITLE": "Wprowadź nowe hasło dla swojego konta.",
+      "SUBTITLE_NO_TOKEN": "Link resetujący jest nieprawidłowy lub wygasł. Poproś o nowy link.",
+      "PASSWORD": "Nowe hasło",
+      "PASSWORD_PLACEHOLDER": "••••••••",
+      "PASSWORD_REPEAT": "Powtórz hasło",
+      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
+      "SUBMIT": "Zmień hasło",
+      "REQUEST_NEW_LINK": "Wyślij nowy link",
+      "BACK_TO_LOGIN": "Wróć do logowania",
+      "SUCCESS_TITLE": "Hasło zmienione",
+      "SUCCESS_MESSAGE": "Twoje hasło zostało zaktualizowane. Możesz się teraz zalogować.",
+      "SUCCESS_CONFIRM": "Przejdź do logowania",
+      "ERROR_GENERIC": "Nie udało się zmienić hasła. Spróbuj ponownie lub poproś o nowy link.",
+      "ERROR_NO_TOKEN": "Brak tokenu resetu hasła. Użyj linku z wiadomości e-mail."
+    },
     "VALIDATION": {
       "EMAIL_REQUIRED": "Email jest wymagany.",
       "EMAIL_INVALID": "Podaj prawidłowy adres email.",
       "PASSWORD_REQUIRED": "Hasło jest wymagane.",
       "PASSWORD_MIN": "Hasło musi mieć co najmniej 8 znaków.",
       "PASSWORD_TOO_WEAK": "Hasło musi zawierać co najmniej jedną wielką literę, jedną małą literę, jedną cyfrę i jeden znak specjalny.",
-      "PASSWORD_MISMATCH": "Hasła nie są identyczne."
+      "PASSWORD_MISMATCH": "Hasła nie są identyczne.",
+      "PASSWORD_REPEAT_REQUIRED": "Powtórzenie hasła jest wymagane.",
+      "FIRST_NAME_REQUIRED": "Imię jest wymagane.",
+      "LAST_NAME_REQUIRED": "Nazwisko jest wymagane."
     },
     "OAUTH_CALLBACK": {
       "LOADING": "Trwa logowanie…"

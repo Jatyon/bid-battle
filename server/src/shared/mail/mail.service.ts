@@ -47,7 +47,7 @@ export class MailService {
     const subject = this.i18n.t('mail.subjects.forgot-password', { lang });
     const footerTranslations = this.getFooterTranslations(lang);
 
-    const forgotUrl = `${this.appUrl}/auth/forgot-password?token=${token}`;
+    const forgotUrl = `${this.appUrl}/auth/reset-password?token=${token}`;
 
     const context: MailContext<IMailForgotPassword> = {
       appName: this.appName,

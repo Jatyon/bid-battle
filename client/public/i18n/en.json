@@ -2,7 +2,9 @@
   "ROUTES": {
     "LOGIN": "Login",
     "OAUTH_CALLBACK": "Signing in...",
-    "REGISTER": "Register"
+    "REGISTER": "Register",
+    "FORGOT_PASSWORD": "Forgot password",
+    "RESET_PASSWORD": "Reset password"
   },
   "AUTH": {
     "LOGIN": {
@@ -58,6 +60,35 @@
     },
     "OAUTH_CALLBACK": {
       "LOADING": "Signing in…"
+    },
+    "FORGOT_PASSWORD": {
+      "TITLE": "Forgot your password?",
+      "SUBTITLE": "Enter the email associated with your account and we will send you a reset link.",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "you@example.com",
+      "SUBMIT": "Send reset link",
+      "BACK_TO_LOGIN": "Back to sign in",
+      "SUCCESS_TITLE": "Check your email",
+      "SUCCESS_MESSAGE": "If an account exists for this email, we have sent a password reset link. Check your inbox (and spam folder).",
+      "SUCCESS_CONFIRM": "Got it",
+      "ERROR_GENERIC": "Could not send the reset link. Please try again."
+    },
+    "RESET_PASSWORD": {
+      "TITLE": "Set a new password",
+      "SUBTITLE": "Enter a new password for your account.",
+      "SUBTITLE_NO_TOKEN": "The reset link is invalid or has expired. Request a new link.",
+      "PASSWORD": "New password",
+      "PASSWORD_PLACEHOLDER": "••••••••",
+      "PASSWORD_REPEAT": "Repeat password",
+      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
+      "SUBMIT": "Change password",
+      "REQUEST_NEW_LINK": "Request a new link",
+      "BACK_TO_LOGIN": "Back to sign in",
+      "SUCCESS_TITLE": "Password changed",
+      "SUCCESS_MESSAGE": "Your password has been updated. You can now sign in.",
+      "SUCCESS_CONFIRM": "Go to sign in",
+      "ERROR_GENERIC": "Could not reset your password. Please try again or request a new link.",
+      "ERROR_NO_TOKEN": "Missing password reset token. Use the link from your email."
     }
   },
   "ERRORS": {

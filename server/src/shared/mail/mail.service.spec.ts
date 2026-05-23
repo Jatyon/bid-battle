@@ -106,7 +106,7 @@ describe('MailService', () => {
           appUrl: mockConfig.app.frontendHost,
           footer: { rights: 'All rights reserved' },
           userName,
-          forgotUrl: `${mockConfig.app.frontendHost}/auth/forgot-password?token=${token}`,
+          forgotUrl: `${mockConfig.app.frontendHost}/auth/reset-password?token=${token}`,
           expiresInMin,
         },
       });

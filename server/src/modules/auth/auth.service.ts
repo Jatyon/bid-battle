@@ -172,12 +172,12 @@ export class AuthService {
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto, i18n: I18nContext): Promise<void> {
-    const user = await this.usersService.findOneBy({
-      email: forgotPasswordDto.email,
-    });
+    const user = await this.usersService.findOneWithPasswordByEmail(forgotPasswordDto.email);
 
     // For security reasons, we do not inform you whether the email exists
     if (!user) return;
+
+    if (!user.password) throw new BadRequestException(i18n.t('auth.errors.oauth_account_cannot_reset_password'));
 
     await this.usersTokenService.deleteUserTokensByType(user.id, UserTokenEnum.PASSWORD_RESET);
 
@@ -190,6 +190,9 @@ export class AuthService {
     const tokenEntity: UserToken = await this.usersTokenService.verifyToken(resetPasswordDto.token, UserTokenEnum.PASSWORD_RESET, i18n);
 
     const user: User = tokenEntity.user;
+    const userWithPassword = await this.usersService.findOneWithPasswordByEmail(user.email);
+
+    if (!userWithPassword?.password) throw new BadRequestException(i18n.t('auth.errors.oauth_account_cannot_reset_password'));
 
     const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
     const hashedPassword: string = await bcrypt.hash(resetPasswordDto.password, salt);

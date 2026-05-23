@@ -288,7 +288,7 @@ describe('AuthService', () => {
     const dto: ForgotPasswordDto = { email: 'test@example.com' };
 
     it('should silently return if user is not found to prevent email enumeration', async () => {
-      usersService.findOneBy.mockResolvedValue(null);
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(null);
 
       await authService.forgotPassword(dto, mockI18nContext);
 
@@ -296,23 +296,45 @@ describe('AuthService', () => {
       expect(mailService.sendForgotPasswordEmail).not.toHaveBeenCalled();
     });
 
-    it('should generate token and send email if user exists', async () => {
-      usersService.findOneBy.mockResolvedValue(mockUser);
+    it('should throw BadRequestException for OAuth-only accounts', async () => {
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUserWithoutPassword);
+
+      await expect(authService.forgotPassword(dto, mockI18nContext)).rejects.toThrow(BadRequestException);
+
+      expect(usersTokenService.deleteUserTokensByType).not.toHaveBeenCalled();
+      expect(mailService.sendForgotPasswordEmail).not.toHaveBeenCalled();
+    });
+
+    it('should generate token and send email if user exists with password', async () => {
+      const userWithPass = { ...mockUser, password: 'existing_hashed_password' } as User;
+
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(userWithPass);
       usersTokenService.generateToken.mockResolvedValue(mockUserToken);
 
       await authService.forgotPassword(dto, mockI18nContext);
 
-      expect(usersTokenService.deleteUserTokensByType).toHaveBeenCalledWith(mockUser.id, UserTokenEnum.PASSWORD_RESET);
-      expect(usersTokenService.generateToken).toHaveBeenCalledWith(mockUser, UserTokenEnum.PASSWORD_RESET, 15);
-      expect(mailService.sendForgotPasswordEmail).toHaveBeenCalledWith(mockUser.email, mockI18nContext.lang, mockUser.concatName, 15, 'secret-reset-token');
+      expect(usersTokenService.deleteUserTokensByType).toHaveBeenCalledWith(userWithPass.id, UserTokenEnum.PASSWORD_RESET);
+      expect(usersTokenService.generateToken).toHaveBeenCalledWith(userWithPass, UserTokenEnum.PASSWORD_RESET, 15);
+      expect(mailService.sendForgotPasswordEmail).toHaveBeenCalledWith(userWithPass.email, mockI18nContext.lang, userWithPass.concatName, 15, 'secret-reset-token');
     });
   });
 
   describe('resetPassword', () => {
     const dto: AuthResetPasswordDto = { token: 'valid-token', password: 'NewPassword123!', passwordRepeat: 'NewPassword123!' };
 
+    it('should throw BadRequestException for OAuth-only accounts', async () => {
+      usersTokenService.verifyToken.mockResolvedValue(mockUserToken);
+      usersService.findOneWithPasswordByEmail.mockResolvedValue(mockUserWithoutPassword);
+
+      await expect(authService.resetPassword(dto, mockI18nContext)).rejects.toThrow(BadRequestException);
+
+      expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(usersService.updateBy).not.toHaveBeenCalled();
+    });
+
     it('should hash new password, update user, mark token as used and send email', async () => {
       usersTokenService.verifyToken.mockResolvedValue(mockUserToken);
+      usersService.findOneWithPasswordByEmail.mockResolvedValue({ ...mockUser, password: 'existing_hashed_password' } as User);
       (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
 
