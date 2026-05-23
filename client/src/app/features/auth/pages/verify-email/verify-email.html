@@ -1,0 +1,59 @@
+<ng-container *transloco="let t">
+    @switch (status()) {
+        @case ('loading') {
+            <div class="verify-card verify-card--centered">
+                <app-dots-loader />
+                <p class="verify-card__text">{{ t('AUTH.VERIFY_EMAIL.LOADING') }}</p>
+            </div>
+        }
+        @case ('success') {
+            <div class="verify-card">
+                <div class="verify-card__header">
+                    <h1 class="verify-card__title">{{ t('AUTH.VERIFY_EMAIL.SUCCESS_TITLE') }}</h1>
+                    <p class="verify-card__subtitle">{{ t('AUTH.VERIFY_EMAIL.SUCCESS_MESSAGE') }}</p>
+                </div>
+                <app-button type="button" [fullWidth]="true" size="md" [variant]="'primary'" (clicked)="goToLogin()">
+                    {{ t('AUTH.VERIFY_EMAIL.GO_TO_LOGIN') }}
+                </app-button>
+            </div>
+        }
+        @case ('no-token') {
+            <div class="verify-card">
+                <div class="verify-card__header">
+                    <h1 class="verify-card__title">{{ t('AUTH.VERIFY_EMAIL.ERROR_TITLE') }}</h1>
+                    <p class="verify-card__subtitle">{{ t('AUTH.VERIFY_EMAIL.ERROR_NO_TOKEN') }}</p>
+                </div>
+                <app-button type="button" [fullWidth]="true" size="md" [variant]="'primary'" (clicked)="goToLogin()">
+                    {{ t('AUTH.VERIFY_EMAIL.GO_TO_LOGIN') }}
+                </app-button>
+            </div>
+        }
+        @case ('error') {
+            <div class="verify-card">
+                <div class="verify-card__header">
+                    <h1 class="verify-card__title">{{ t('AUTH.VERIFY_EMAIL.ERROR_TITLE') }}</h1>
+                    <p class="verify-card__subtitle verify-card__subtitle--error">{{ errorMessage() }}</p>
+                </div>
+
+                <p class="verify-card__resend-hint">{{ t('AUTH.VERIFY_EMAIL.RESEND_HINT') }}</p>
+
+                <form [formGroup]="resendForm" (ngSubmit)="onResendSubmit()" class="verify-card__form" novalidate>
+                    <app-input formControlName="email" type="email" [label]="t('AUTH.VERIFY_EMAIL.EMAIL')"
+                        [placeholder]="t('AUTH.VERIFY_EMAIL.EMAIL_PLACEHOLDER')" autocomplete="email" name="email"
+                        [error]="emailErrorKey ? t(emailErrorKey) : ''" />
+
+                    <app-button type="submit" [loading]="isResendLoading()" [fullWidth]="true" size="md"
+                        [variant]="'primary'">
+                        {{ t('AUTH.VERIFY_EMAIL.RESEND_SUBMIT') }}
+                    </app-button>
+                </form>
+
+                <p class="verify-card__footer">
+                    <a routerLink="/auth/login" class="verify-card__footer-link">
+                        {{ t('AUTH.VERIFY_EMAIL.GO_TO_LOGIN') }}
+                    </a>
+                </p>
+            </div>
+        }
+    }
+</ng-container>

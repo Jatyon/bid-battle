@@ -4,7 +4,8 @@
     "OAUTH_CALLBACK": "Signing in...",
     "REGISTER": "Register",
     "FORGOT_PASSWORD": "Forgot password",
-    "RESET_PASSWORD": "Reset password"
+    "RESET_PASSWORD": "Reset password",
+    "VERIFY_EMAIL": "Account activation"
   },
   "AUTH": {
     "LOGIN": {
@@ -57,6 +58,23 @@
       "LAST_NAME_REQUIRED": "Last name is required.",
       "PASSWORD_REPEAT_REQUIRED": "Password repeat is required.",
       "PASSWORD_MISMATCH": "Passwords do not match."
+    },
+    "VERIFY_EMAIL": {
+      "LOADING": "Activating your account…",
+      "SUCCESS_TITLE": "Account activated",
+      "SUCCESS_MESSAGE": "Your email address has been confirmed. You can now sign in.",
+      "GO_TO_LOGIN": "Go to sign in",
+      "ERROR_TITLE": "Could not activate account",
+      "ERROR_NO_TOKEN": "Missing activation token. Use the link from your email.",
+      "ERROR_GENERIC": "The activation link is invalid or has expired.",
+      "RESEND_HINT": "You can request a new activation link:",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "you@example.com",
+      "RESEND_SUBMIT": "Resend activation link",
+      "RESEND_SUCCESS_TITLE": "Check your email",
+      "RESEND_SUCCESS_MESSAGE": "If an account exists for this email and is not yet active, we have sent a new activation link.",
+      "RESEND_SUCCESS_CONFIRM": "Got it",
+      "RESEND_ERROR_GENERIC": "Could not send the activation link. Please try again."
     },
     "OAUTH_CALLBACK": {
       "LOADING": "Signing in…"

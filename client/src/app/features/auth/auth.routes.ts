@@ -24,6 +24,12 @@ export const AUTH_ROUTES: Routes = [
       import('@features/auth/pages/reset-password/reset-password').then((m) => m.ResetPasswordPage),
   },
   {
+    path: 'verify-email',
+    title: 'ROUTES.VERIFY_EMAIL',
+    loadComponent: () =>
+      import('@features/auth/pages/verify-email/verify-email').then((m) => m.VerifyEmailPage),
+  },
+  {
     path: 'oauth-callback',
     title: 'ROUTES.OAUTH_CALLBACK',
     loadComponent: () =>

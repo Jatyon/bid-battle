@@ -1,0 +1,87 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: contents;
+}
+
+.verify-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  &--centered {
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: $card-padding-mobile;
+
+    @include bp-sm {
+      padding: $card-padding-sm;
+    }
+
+    app-dots-loader {
+      color: var(--color-primary);
+    }
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__title {
+    font-size: $font-size-2xl;
+    font-weight: $fw-bold;
+    color: var(--color-text);
+    margin: 0 0 $spacing-sm;
+
+    @include bp-sm {
+      font-size: $font-size-3xl;
+    }
+  }
+
+  &__subtitle {
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+    margin: 0;
+
+    &--error {
+      color: var(--color-danger, #c62828);
+    }
+  }
+
+  &__text {
+    margin: 0;
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+  }
+
+  &__resend-hint {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  &__footer {
+    text-align: center;
+    margin: $spacing-sm 0 0;
+    font-size: $font-size-base;
+  }
+
+  &__footer-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: $fw-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

@@ -4,7 +4,8 @@
     "OAUTH_CALLBACK": "Logowanie...",
     "REGISTER": "Rejestracja",
     "FORGOT_PASSWORD": "Przypomnienie hasła",
-    "RESET_PASSWORD": "Reset hasła"
+    "RESET_PASSWORD": "Reset hasła",
+    "VERIFY_EMAIL": "Aktywacja konta"
   },
   "AUTH": {
     "LOGIN": {
@@ -64,6 +65,23 @@
       "PASSWORD_REPEAT_REQUIRED": "Powtórzenie hasła jest wymagane.",
       "FIRST_NAME_REQUIRED": "Imię jest wymagane.",
       "LAST_NAME_REQUIRED": "Nazwisko jest wymagane."
+    },
+    "VERIFY_EMAIL": {
+      "LOADING": "Trwa aktywacja konta…",
+      "SUCCESS_TITLE": "Konto aktywowane",
+      "SUCCESS_MESSAGE": "Twój adres e-mail został potwierdzony. Możesz się teraz zalogować.",
+      "GO_TO_LOGIN": "Przejdź do logowania",
+      "ERROR_TITLE": "Nie udało się aktywować konta",
+      "ERROR_NO_TOKEN": "Brak tokenu aktywacyjnego. Użyj linku z wiadomości e-mail.",
+      "ERROR_GENERIC": "Link aktywacyjny jest nieprawidłowy lub wygasł.",
+      "RESEND_HINT": "Możesz poprosić o nowy link aktywacyjny:",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
+      "RESEND_SUBMIT": "Wyślij ponownie link aktywacyjny",
+      "RESEND_SUCCESS_TITLE": "Sprawdź skrzynkę e-mail",
+      "RESEND_SUCCESS_MESSAGE": "Jeśli konto z tym adresem istnieje i nie jest aktywne, wysłaliśmy nowy link aktywacyjny.",
+      "RESEND_SUCCESS_CONFIRM": "Rozumiem",
+      "RESEND_ERROR_GENERIC": "Nie udało się wysłać linku aktywacyjnego. Spróbuj ponownie."
     },
     "OAUTH_CALLBACK": {
       "LOADING": "Trwa logowanie…"

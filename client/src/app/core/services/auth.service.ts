@@ -1,6 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { ForgotPasswordForm, LoginForm, RegisterForm, ResetPasswordForm } from '@app/features/auth';
+import {
+  ForgotPasswordForm,
+  LoginForm,
+  RegisterForm,
+  ResendVerificationForm,
+  ResetPasswordForm,
+} from '@app/features/auth';
 import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
 import { User, AuthTokens } from '@core/models';
 import { StorageService } from './storage.service';
@@ -82,6 +88,14 @@ export class AuthService {
 
   resetPassword(data: ResetPasswordForm): Observable<void> {
     return this.api.post<{ message: string }>('/auth/reset-password', data).pipe(map(() => undefined));
+  }
+
+  verifyEmail(token: string): Observable<void> {
+    return this.api.post<{ message: string }>('/auth/verify-email', { token }).pipe(map(() => undefined));
+  }
+
+  resendVerificationEmail(data: ResendVerificationForm): Observable<void> {
+    return this.api.post<{ message: string }>('/auth/resend-verification', data).pipe(map(() => undefined));
   }
 
   /**

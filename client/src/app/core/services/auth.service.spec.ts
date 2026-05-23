@@ -126,6 +126,134 @@ describe('AuthService', () => {
     });
   });
 
+  describe('login()', () => {
+    const credentials = { email: 'test@example.com', password: 'Password1!' };
+
+    it('should call POST /auth/login and set session on success', async () => {
+      apiMock.post.mockReturnValue(
+        of({ data: { accessToken: 'login-token', user: mockUser } } as never),
+      );
+
+      await firstValueFrom(service.login(credentials));
+
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/login', credentials);
+      expect(tokenMock.setAccessToken).toHaveBeenCalledWith('login-token');
+      expect(storageMock.setJson).toHaveBeenCalledWith('auth-user', mockUser);
+      expect(service.currentUser()).toEqual(mockUser);
+    });
+
+    it('should propagate API errors', async () => {
+      apiMock.post.mockReturnValue(throwError(() => new Error('Invalid credentials')));
+
+      await expect(firstValueFrom(service.login(credentials))).rejects.toThrow('Invalid credentials');
+      expect(tokenMock.setAccessToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('register()', () => {
+    const registerData = {
+      firstName: 'Jan',
+      lastName: 'Kowalski',
+      email: 'jan@example.com',
+      password: 'Password1!',
+      passwordRepeat: 'Password1!',
+    };
+
+    it('should call POST /auth/register and complete without setting session', async () => {
+      apiMock.post.mockReturnValue(of({ data: { message: 'Registration completed' } } as never));
+
+      await firstValueFrom(service.register(registerData));
+
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/register', registerData);
+      expect(tokenMock.setAccessToken).not.toHaveBeenCalled();
+      expect(storageMock.setJson).not.toHaveBeenCalled();
+    });
+
+    it('should propagate API errors', async () => {
+      apiMock.post.mockReturnValue(throwError(() => new Error('Email already exists')));
+
+      await expect(firstValueFrom(service.register(registerData))).rejects.toThrow('Email already exists');
+    });
+  });
+
+  describe('forgotPassword()', () => {
+    const forgotData = { email: 'test@example.com' };
+
+    it('should call POST /auth/forgot-password', async () => {
+      apiMock.post.mockReturnValue(of({ data: { message: 'Reset link sent' } } as never));
+
+      await firstValueFrom(service.forgotPassword(forgotData));
+
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/forgot-password', forgotData);
+    });
+
+    it('should propagate API errors', async () => {
+      apiMock.post.mockReturnValue(throwError(() => new Error('OAuth account')));
+
+      await expect(firstValueFrom(service.forgotPassword(forgotData))).rejects.toThrow('OAuth account');
+    });
+  });
+
+  describe('resetPassword()', () => {
+    const resetData = {
+      token: 'reset-token',
+      password: 'NewPassword1!',
+      passwordRepeat: 'NewPassword1!',
+    };
+
+    it('should call POST /auth/reset-password', async () => {
+      apiMock.post.mockReturnValue(of({ data: { message: 'Password changed' } } as never));
+
+      await firstValueFrom(service.resetPassword(resetData));
+
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/reset-password', resetData);
+    });
+
+    it('should propagate API errors', async () => {
+      apiMock.post.mockReturnValue(throwError(() => new Error('Invalid token')));
+
+      await expect(firstValueFrom(service.resetPassword(resetData))).rejects.toThrow('Invalid token');
+    });
+  });
+
+  describe('verifyEmail()', () => {
+    const token = 'verify-token-abc';
+
+    it('should call POST /auth/verify-email with token', async () => {
+      apiMock.post.mockReturnValue(of({ data: { message: 'Email verified' } } as never));
+
+      await firstValueFrom(service.verifyEmail(token));
+
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/verify-email', { token });
+    });
+
+    it('should propagate API errors', async () => {
+      apiMock.post.mockReturnValue(throwError(() => new Error('Token expired')));
+
+      await expect(firstValueFrom(service.verifyEmail(token))).rejects.toThrow('Token expired');
+    });
+  });
+
+  describe('resendVerificationEmail()', () => {
+    const resendData = { email: 'test@example.com' };
+
+    it('should call POST /auth/resend-verification', async () => {
+      apiMock.post.mockReturnValue(of({ data: { message: 'Verification email resent' } } as never));
+
+      await firstValueFrom(service.resendVerificationEmail(resendData));
+
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/resend-verification', resendData);
+    });
+
+    it('should propagate API errors', async () => {
+      apiMock.post.mockReturnValue(throwError(() => new Error('Network error')));
+
+      await expect(firstValueFrom(service.resendVerificationEmail(resendData))).rejects.toThrow(
+        'Network error',
+      );
+    });
+  });
+
   describe('silentRefresh()', () => {
     it('should return true and update token on success', async () => {
       apiMock.post.mockReturnValue(
@@ -148,12 +276,11 @@ describe('AuthService', () => {
       expect(apiMock.post).toHaveBeenCalledWith('/auth/refresh', {}, SKIP_REFRESH_CONTEXT);
     });
 
-    it('should return false and logout on error', async () => {
+    it('should propagate API errors', async () => {
       apiMock.post.mockReturnValue(throwError(() => new Error('Network error')));
 
-      const result = await firstValueFrom(service.silentRefresh()).catch(() => false);
-
-      expect(result).toBe(false);
+      await expect(firstValueFrom(service.silentRefresh())).rejects.toThrow('Network error');
+      expect(tokenMock.setAccessToken).not.toHaveBeenCalled();
     });
   });
 
@@ -191,6 +318,16 @@ describe('AuthService', () => {
       service.logout(false);
 
       expect(navigateSpy).not.toHaveBeenCalled();
+    });
+
+    it('should clear local session even when logout API fails', () => {
+      apiMock.post.mockReturnValue(throwError(() => new Error('Network error')));
+
+      service.setSession('token', mockUser);
+      service.logout(false);
+
+      expect(service.currentUser()).toBeNull();
+      expect(tokenMock.clearAccessToken).toHaveBeenCalled();
     });
   });
 });
