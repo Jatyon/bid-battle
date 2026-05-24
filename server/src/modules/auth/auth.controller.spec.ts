@@ -246,7 +246,7 @@ describe('AuthController', () => {
 
       const result = await controller.verifyEmail(verifyEmailDto, i18n);
 
-      expect(authService.verifyEmail).toHaveBeenCalledWith(verifyEmailDto, i18n);
+      expect(authService.verifyEmail).toHaveBeenCalledWith(verifyEmailDto);
       expect(result).toEqual({ message: 'Email verified successfully' });
     });
 
@@ -376,7 +376,6 @@ describe('AuthController', () => {
 
     it('exchanges code for tokens, sets cookie, and returns access token + user', async () => {
       const mockRes = createMock<express.Response>();
-      const i18n = createMockI18nContext();
 
       authService.exchangeOAuthCode.mockResolvedValue({
         accessToken: 'final_access_token',
@@ -386,7 +385,7 @@ describe('AuthController', () => {
 
       const result = (await controller.exchangeOAuthCode('valid-code-123', mockRes)) as { accessToken: string; user: typeof mockOAuthUser };
 
-      expect(authService.exchangeOAuthCode).toHaveBeenCalledWith('valid-code-123', i18n);
+      expect(authService.exchangeOAuthCode).toHaveBeenCalledWith('valid-code-123');
       expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, 'final_refresh_token');
       expect(result).toEqual({ accessToken: 'final_access_token', user: mockOAuthUser });
     });
