@@ -38,7 +38,8 @@
             "outputMode": "server",
             "ssr": {
               "entry": "src/server.ts"
-            }
+            },
+            "allowedCommonJsDependencies": ["debug", "xmlhttprequest-ssl"]
           },
           "configurations": {
             "production": {
