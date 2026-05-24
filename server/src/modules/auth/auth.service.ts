@@ -89,7 +89,7 @@ export class AuthService {
 
     await this.usersService.updateBy({ id: user.id }, { isEmailVerified: true });
 
-    await this.usersTokenService.markTokenAsUsed(tokenEntity.id);
+    await this.usersTokenService.markTokenAsUsed(tokenEntity);
   }
 
   async resendVerificationEmail(dto: ResendVerificationEmailDto, i18n: I18nContext): Promise<void> {
@@ -150,6 +150,8 @@ export class AuthService {
 
     if (!storedToken) throw new UnauthorizedException('auth.errors.refresh_token_not_recognized');
 
+    await this.usersTokenService.markTokenAsUsed(storedToken);
+
     const accessToken = await this.generateAccessToken(user);
     return { accessToken };
   }
@@ -168,7 +170,7 @@ export class AuthService {
     }
 
     const storedToken = await this.usersTokenService.findActiveRefreshToken(refreshToken, payload.sub);
-    if (storedToken) await this.usersTokenService.markTokenAsUsed(storedToken.id);
+    if (storedToken) await this.usersTokenService.markTokenAsUsed(storedToken);
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto, i18n: I18nContext): Promise<void> {
@@ -205,7 +207,7 @@ export class AuthService {
       },
     );
 
-    await this.usersTokenService.markTokenAsUsed(tokenEntity.id);
+    await this.usersTokenService.markTokenAsUsed(tokenEntity);
 
     await this.mailService.sendPasswordChangedEmail(user.email, i18n.lang, user.concatName);
   }

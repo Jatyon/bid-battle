@@ -279,7 +279,7 @@ describe('AuthService', () => {
       await expect(authService.logout('valid-token')).resolves.toBeUndefined();
 
       expect(usersTokenService.findActiveRefreshToken).toHaveBeenCalledWith('valid-token', mockPayload.sub);
-      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(activeToken.id);
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(activeToken);
     });
   });
 
@@ -343,7 +343,7 @@ describe('AuthService', () => {
       expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 'random_salt');
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
-      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(mockUserToken.id);
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(mockUserToken);
       expect(mailService.sendPasswordChangedEmail).toHaveBeenCalledWith(mockUserToken.user.email, mockI18nContext.lang, mockUserToken.user.concatName);
     });
   });
@@ -416,7 +416,7 @@ describe('AuthService', () => {
 
       expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.EMAIL_VERIFICATION);
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: verificationToken.user.id }, { isEmailVerified: true });
-      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(verificationToken.id);
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(verificationToken);
     });
 
     it('should throw BadRequestException if email is already verified', async () => {

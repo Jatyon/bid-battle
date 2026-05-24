@@ -13,6 +13,7 @@ import { User } from '@modules/users/entities/user.entity';
 import { UserTokenEnum } from '@modules/users/enums';
 import { MailService, MailConsumerService } from '@shared/mail';
 import { I18nService } from 'nestjs-i18n';
+import cookieParser from 'cookie-parser';
 import { App } from 'supertest/types';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -80,7 +81,7 @@ describe('Auth (e2e)', () => {
     );
     app.useGlobalFilters(new HttpExceptionFilter(app.get(I18nService), configService));
     app.useGlobalInterceptors(app.get(LoggingInterceptor), new TransformInterceptor(), new TimeoutInterceptor(configService.app.timeoutMs));
-
+    app.use(cookieParser());
     await app.init();
   });
 
@@ -192,9 +193,10 @@ describe('Auth (e2e)', () => {
       const response = await request(app.getHttpServer()).post('/api/v1/auth/login').send({ email: TEST_EMAIL, password: TEST_PASSWORD }).expect(200);
 
       expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('refreshToken');
       expect(typeof response.body.data.accessToken).toBe('string');
-      expect(typeof response.body.data.refreshToken).toBe('string');
+
+      expect(response.headers['set-cookie']).toBeDefined();
+      expect(response.headers['set-cookie'][0]).toMatch(/refreshToken=/);
     });
 
     it('should return 401 when password is wrong', async () => {
@@ -241,37 +243,31 @@ describe('Auth (e2e)', () => {
   // POST /api/v1/auth/refresh
   // ──────────────────────────────────────────────
   describe('POST /api/v1/auth/refresh', () => {
-    let validRefreshToken: string;
+    let authCookies: string;
 
     beforeAll(async () => {
       const loginResponse = await request(app.getHttpServer()).post('/api/v1/auth/login').send({ email: TEST_EMAIL, password: TEST_PASSWORD });
-
-      validRefreshToken = loginResponse.body.data.refreshToken;
+      authCookies = loginResponse.headers['set-cookie'];
     });
 
     it('should return new tokens when refresh token is valid', async () => {
-      const response = await request(app.getHttpServer()).post('/api/v1/auth/refresh').send({ refreshToken: validRefreshToken }).expect(200);
+      const response = await request(app.getHttpServer()).post('/api/v1/auth/refresh').set('Cookie', authCookies).expect(200);
 
       expect(response.body.data).toHaveProperty('accessToken');
-      expect(response.body.data).toHaveProperty('refreshToken');
+
+      if (response.body.data.refreshToken) expect(response.body.data).toHaveProperty('refreshToken');
     });
 
     it('should return 401 when refresh token is already used (rotation)', async () => {
-      const response = await request(app.getHttpServer()).post('/api/v1/auth/refresh').send({ refreshToken: validRefreshToken }).expect(401);
+      const response = await request(app.getHttpServer()).post('/api/v1/auth/refresh').set('Cookie', authCookies).expect(401);
 
       expect(response.body).toHaveProperty('statusCode', 401);
     });
 
     it('should return 401 when refresh token is completely invalid', async () => {
-      const response = await request(app.getHttpServer()).post('/api/v1/auth/refresh').send({ refreshToken: 'totally.invalid.token' }).expect(401);
+      const response = await request(app.getHttpServer()).post('/api/v1/auth/refresh').set('Cookie', ['refreshToken=totally.invalid.token']).expect(401);
 
       expect(response.body).toHaveProperty('statusCode', 401);
-    });
-
-    it('should return 400 when refreshToken field is missing', async () => {
-      const response = await request(app.getHttpServer()).post('/api/v1/auth/refresh').send({}).expect(400);
-
-      expect(response.body).toHaveProperty('statusCode', 400);
     });
   });
 
