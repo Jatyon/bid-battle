@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { NotificationType, Notification } from '@core/index';
 import { TranslocoService } from '@jsverse/transloco';
 import { take } from 'rxjs';
@@ -32,7 +32,7 @@ export class NotificationService {
   private readonly _timers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly _removalTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-  readonly notifications = computed(() => this._notifications());
+  readonly notifications = this._notifications.asReadonly();
 
   success(
     message: string,
