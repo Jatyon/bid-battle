@@ -12,7 +12,7 @@ import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
 import { AuthService, NotificationService } from '@core/index';
 import type { RegisterForm } from '@features/auth/models';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { finalize } from 'rxjs/internal/operators/finalize';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-register',

@@ -3,8 +3,7 @@ import { AppConfigService } from '@config/config.service';
 import { translateForLog } from '@core/utils/i18n-log.util';
 import { Request, Response } from 'express';
 import { I18nService } from 'nestjs-i18n';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, tap } from 'rxjs';
 
 interface ExceptionResponseBody {
   message?: string | string[];

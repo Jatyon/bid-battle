@@ -7,7 +7,7 @@ import { ButtonComponent, DotsLoaderComponent, InputComponent, PopupService } fr
 import { AuthService, NotificationService } from '@core/index';
 import type { ResendVerificationForm } from '@features/auth/models';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { finalize } from 'rxjs/internal/operators/finalize';
+import { finalize } from 'rxjs';
 
 type VerifyEmailStatus = 'loading' | 'success' | 'error' | 'no-token';
 

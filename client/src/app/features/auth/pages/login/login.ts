@@ -7,7 +7,7 @@ import { NotificationService, OAuthProvider, OAuthService } from '@core/index';
 import { AuthService } from '@core/services/auth.service';
 import type { LoginForm } from '@features/auth/models';
 import { TranslocoModule } from '@jsverse/transloco';
-import { finalize } from 'rxjs/internal/operators/finalize';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-login',
