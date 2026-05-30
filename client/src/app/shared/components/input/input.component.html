@@ -1,4 +1,4 @@
-<div class="input-field" [class.input-field--error]="error()" [class.input-field--focused]="isFocused()">
+<div class="input-field" [class.input-field--error]="errorMessage()" [class.input-field--focused]="isFocused()">
     @if (label()) {
     <div class="input-field__label-row">
         <label class="input-field__label" [for]="id()">
@@ -14,8 +14,9 @@
     <div class="input-field__wrapper">
         <input class="input-field__input" [class.input-field__input--has-toggle]="isPasswordType()" [id]="id()"
             [type]="effectiveType()" [placeholder]="placeholder()" [disabled]="disabled()" [readOnly]="readonly()"
-            [value]="value()" [name]="name()" [attr.autocomplete]="autocomplete() || null" (input)="onInput($event)"
-            (focus)="isFocused.set(true)" (blur)="onBlur()" />
+            [value]="value()" [name]="name()" [attr.autocomplete]="autocomplete() || null"
+            [attr.aria-label]="ariaLabel() || null" [attr.aria-describedby]="ariaDescribedByValue() || null"
+            (input)="onInput($event)" (focus)="onFocus()" (blur)="onBlur()" />
 
         @if (isPasswordType()) {
         <button type="button" class="input-field__toggle" (click)="togglePasswordVisibility()"
@@ -26,10 +27,10 @@
     </div>
 
     <div class="input-field__helper" [class.input-field__helper--reserved]="reserveHelperSpace()">
-        @if (error()) {
-        <span class="input-field__error" role="alert">{{ error() }}</span>
+        @if (errorMessage()) {
+        <span class="input-field__error" [id]="errorId()" role="alert">{{ errorMessage() }}</span>
         } @else if (hint()) {
-        <span class="input-field__hint">{{ hint() }}</span>
+        <span class="input-field__hint" [id]="hintId()">{{ hint() }}</span>
         }
     </div>
 </div>
