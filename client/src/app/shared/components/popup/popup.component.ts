@@ -2,7 +2,6 @@ import { Component, inject, computed, HostListener, ChangeDetectionStrategy } fr
 import { ButtonComponent } from '../button/button.component';
 import { PopupService } from './popup.service';
 import { PopupType } from './popup.types';
-import { TranslocoModule } from '@jsverse/transloco';
 import {
   LucideAngularModule,
   LucideIconData,
@@ -14,8 +13,7 @@ import {
 
 @Component({
   selector: 'app-popup',
-  standalone: true,
-  imports: [LucideAngularModule, TranslocoModule, ButtonComponent],
+  imports: [LucideAngularModule, ButtonComponent],
   templateUrl: './popup.component.html',
   styleUrl: './popup.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

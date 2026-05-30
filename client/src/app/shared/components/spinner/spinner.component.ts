@@ -1,4 +1,4 @@
-import { Component, input, inject, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, inject, computed } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 
 export type SpinnerSize = 'sm' | 'md' | 'lg';
@@ -7,6 +7,7 @@ export type SpinnerSize = 'sm' | 'md' | 'lg';
   selector: 'app-spinner',
   templateUrl: './spinner.component.html',
   styleUrl: './spinner.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpinnerComponent {
   readonly size = input<SpinnerSize>('md');

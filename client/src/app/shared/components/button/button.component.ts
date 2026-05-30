@@ -1,4 +1,4 @@
-import { Component, input, output, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, computed } from '@angular/core';
 import { SpinnerComponent } from '../spinner/spinner.component';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -9,6 +9,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
   templateUrl: './button.component.html',
   styleUrl: './button.component.scss',
   imports: [SpinnerComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ButtonComponent {
   readonly variant = input<ButtonVariant>('primary');

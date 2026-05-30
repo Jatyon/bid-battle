@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Notification, NotificationType, NotificationService } from '@core/index';
 import { TranslocoService } from '@jsverse/transloco';
 import {
@@ -16,6 +16,7 @@ import {
   templateUrl: './toast.component.html',
   styleUrl: './toast.component.scss',
   imports: [LucideAngularModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToastComponent {
   private readonly notificationService = inject(NotificationService);
