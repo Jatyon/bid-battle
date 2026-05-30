@@ -1,27 +1,33 @@
-import { Component, inject, PLATFORM_ID, afterNextRender } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  PLATFORM_ID,
+  afterNextRender,
+} from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { AuthService } from '@core/services/auth.service';
+import { isPlatformBrowser } from '@angular/common';
 import { NotificationService, OAuthService } from '@app/core';
 import { DotsLoaderComponent } from '@app/shared';
-import { TranslocoModule } from '@jsverse/transloco';
+import { AuthService } from '@core/services/auth.service';
+import { TranslocoDirective } from '@jsverse/transloco';
 
 /**
- * Strona pośrednicząca po GitHub OAuth callback (pełny redirect flow).
+ * Intermediary page for the OAuth callback (full redirect flow).
  *
- * Przepływ bezpieczny – access token NIE jest przekazywany w URL:
- *  1. Backend → redirect 302 → /auth/oauth-callback?code=UUID (jednorazowy kod w Redis, TTL 120s)
- *  2. Ta strona odczytuje `code` z query params
- *  3. Wywołuje GET /api/v1/auth/oauth/exchange?code=UUID
- *  4. Backend usuwa kod z Redis (jednorazowość) i zwraca accessToken + user
- *  5. AuthService.setSession() → Router.navigate(['/'])
+ * Secure flow – the access token is NOT passed in the URL:
+ * 1. Backend → 302 redirect → /auth/oauth-callback?code=UUID (one-time code in Redis, TTL 120s)
+ * 2. This page reads the `code` from the query parameters
+ * 3. Calls GET /api/v1/auth/oauth/exchange?code=UUID
+ * 4. Backend removes the code from Redis (single-use) and returns the accessToken + user
+ * 5. AuthService.setSession() → Router.navigate(['/'])
  */
 @Component({
   selector: 'app-oauth-callback',
-  standalone: true,
-  imports: [DotsLoaderComponent, TranslocoModule],
+  imports: [DotsLoaderComponent, TranslocoDirective],
   templateUrl: './oauth-callback.html',
   styleUrl: './oauth-callback.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OAuthCallbackPage {
   private readonly platformId = inject(PLATFORM_ID);
@@ -57,6 +63,7 @@ export class OAuthCallbackPage {
       this.router.navigate(['/auth/login']);
       return;
     }
+    
     this.oauthService.exchangeCode(code).subscribe({
       next: ({ accessToken, user }) => {
         this.authService.setSession(accessToken, user);

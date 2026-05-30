@@ -1,30 +1,36 @@
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import {
-  ReactiveFormsModule,
-  FormBuilder,
-  Validators,
-  ValidationErrors,
-  AbstractControl,
-} from '@angular/forms';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, Router } from '@angular/router';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService, NotificationService } from '@core/index';
+import { AuthService } from '@core/index';
 import type { RegisterForm } from '@features/auth/models';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import {
+  passwordRepeatMatchValidator,
+  resolveHttpError,
+  strongPasswordValidators,
+} from '@features/auth/utils';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-register',
-  standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, TranslocoModule, InputComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, TranslocoDirective, InputComponent, ButtonComponent],
   templateUrl: './register.html',
   styleUrl: './register.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RegisterPage {
+export class RegisterPage implements OnInit {
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly authService = inject(AuthService);
-  private readonly notifications = inject(NotificationService);
   private readonly popup = inject(PopupService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -32,97 +38,20 @@ export class RegisterPage {
 
   readonly isLoading = signal(false);
 
-  readonly form = this.fb.group(
-    {
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
-      email: ['', [Validators.required, Validators.email]],
-      password: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(8),
-          Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/),
-        ],
-      ],
-      passwordRepeat: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(8),
-          Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/),
-        ],
-      ],
-    },
-    { validators: this.passwordMatchValidator },
-  );
+  readonly form = this.fb.group({
+    firstName: ['', [Validators.required]],
+    lastName: ['', [Validators.required]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', strongPasswordValidators],
+    passwordRepeat: ['', [Validators.required, passwordRepeatMatchValidator]],
+  });
 
-  get firstNameControl() {
-    return this.form.controls.firstName;
-  }
-
-  get lastNameControl() {
-    return this.form.controls.lastName;
-  }
-
-  get emailControl() {
-    return this.form.controls.email;
-  }
-
-  get passwordControl() {
-    return this.form.controls.password;
-  }
-
-  get passwordRepeatControl() {
-    return this.form.controls.passwordRepeat;
-  }
-
-  get firstNameErrorKey(): string {
-    const c = this.firstNameControl;
-    if (!c.invalid || !c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.FIRST_NAME_REQUIRED';
-    return '';
-  }
-
-  get lastNameErrorKey(): string {
-    const c = this.lastNameControl;
-    if (!c.invalid || !c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.LAST_NAME_REQUIRED';
-    return '';
-  }
-
-  get emailErrorKey(): string {
-    const c = this.emailControl;
-    if (!c.invalid || !c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.EMAIL_REQUIRED';
-    if (c.errors?.['email']) return 'AUTH.VALIDATION.EMAIL_INVALID';
-    return '';
-  }
-
-  get passwordErrorKey(): string {
-    const c = this.passwordControl;
-    if (!c.invalid || !c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.PASSWORD_REQUIRED';
-    if (c.errors?.['minlength']) return 'AUTH.VALIDATION.PASSWORD_MIN';
-    if (c.errors?.['pattern']) return 'AUTH.VALIDATION.PASSWORD_TOO_WEAK';
-    return '';
-  }
-
-  get passwordRepeatErrorKey(): string {
-    const c = this.passwordRepeatControl;
-    if (!c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED';
-    if (c.errors?.['minlength']) return 'AUTH.VALIDATION.PASSWORD_MIN';
-    if (c.errors?.['pattern']) return 'AUTH.VALIDATION.PASSWORD_TOO_WEAK';
-    if (this.form.errors?.['passwordMismatch']) return 'AUTH.VALIDATION.PASSWORD_MISMATCH';
-    return '';
-  }
-
-  private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
-    const password = control.get('password')?.value;
-    const passwordRepeat = control.get('passwordRepeat')?.value;
-
-    return password === passwordRepeat ? null : { passwordMismatch: true };
+  ngOnInit(): void {
+    this.form.controls.password.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() =>
+        this.form.controls.passwordRepeat.updateValueAndValidity({ onlySelf: true }),
+      );
   }
 
   onSubmit(): void {
@@ -132,17 +61,10 @@ export class RegisterPage {
     }
 
     if (this.isLoading()) return;
-
     this.isLoading.set(true);
 
-    const formValue = this.form.getRawValue();
-    const data: RegisterForm = {
-      firstName: formValue.firstName,
-      lastName: formValue.lastName,
-      email: formValue.email,
-      password: formValue.password,
-      passwordRepeat: formValue.passwordRepeat,
-    };
+    const { firstName, lastName, email, password, passwordRepeat } = this.form.getRawValue();
+    const data: RegisterForm = { firstName, lastName, email, password, passwordRepeat };
 
     this.authService
       .register(data)
@@ -151,13 +73,9 @@ export class RegisterPage {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: () => {
-          this.openInfoPopup();
-        },
-        error: (err) => {
-          const message = err?.error?.message || 'AUTH.REGISTER.ERROR_GENERIC';
-          this.notifications.error(message);
-          this.focusFirstInvalidField();
+        next: () => this.openInfoPopup(),
+        error: (err: HttpErrorResponse) => {
+          this.form.controls.email.setErrors({ serverError: resolveHttpError(err) });
         },
       });
   }
@@ -172,16 +90,5 @@ export class RegisterPage {
         confirmText: this.transloco.translate('AUTH.REGISTER.SUCCESS_CONFIRM'),
       })
       .then(() => this.router.navigate(['/auth/login']));
-  }
-
-  private focusFirstInvalidField(): void {
-    const firstInvalidControl = Object.keys(this.form.controls).find(
-      (key) => this.form.get(key)?.invalid,
-    );
-
-    if (firstInvalidControl) {
-      const element = document.getElementById(`input-${firstInvalidControl}`);
-      element?.focus();
-    }
   }
 }

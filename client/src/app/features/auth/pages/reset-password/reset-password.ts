@@ -1,27 +1,34 @@
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import {
-  ReactiveFormsModule,
-  FormBuilder,
-  Validators,
-  ValidationErrors,
-  AbstractControl,
-} from '@angular/forms';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
 import { AuthService, NotificationService } from '@core/index';
 import type { ResetPasswordForm } from '@features/auth/models';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import {
+  passwordRepeatMatchValidator,
+  resolveHttpError,
+  strongPasswordValidators,
+} from '@features/auth/utils';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-reset-password',
-  standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, TranslocoModule, InputComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, TranslocoDirective, InputComponent, ButtonComponent],
   templateUrl: './reset-password.html',
   styleUrl: './reset-password.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ResetPasswordPage {
+export class ResetPasswordPage implements OnInit {
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(NotificationService);
@@ -34,60 +41,17 @@ export class ResetPasswordPage {
   readonly isLoading = signal(false);
   readonly token = signal<string | null>(this.route.snapshot.queryParamMap.get('token'));
 
-  readonly form = this.fb.group(
-    {
-      password: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(8),
-          Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/),
-        ],
-      ],
-      passwordRepeat: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(8),
-          Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/),
-        ],
-      ],
-    },
-    { validators: this.passwordMatchValidator },
-  );
+  readonly form = this.fb.group({
+    password: ['', strongPasswordValidators],
+    passwordRepeat: ['', [Validators.required, passwordRepeatMatchValidator]],
+  });
 
-  get passwordControl() {
-    return this.form.controls.password;
-  }
-
-  get passwordRepeatControl() {
-    return this.form.controls.passwordRepeat;
-  }
-
-  get passwordErrorKey(): string {
-    const c = this.passwordControl;
-    if (!c.invalid || !c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.PASSWORD_REQUIRED';
-    if (c.errors?.['minlength']) return 'AUTH.VALIDATION.PASSWORD_MIN';
-    if (c.errors?.['pattern']) return 'AUTH.VALIDATION.PASSWORD_TOO_WEAK';
-    return '';
-  }
-
-  get passwordRepeatErrorKey(): string {
-    const c = this.passwordRepeatControl;
-    if (!c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED';
-    if (c.errors?.['minlength']) return 'AUTH.VALIDATION.PASSWORD_MIN';
-    if (c.errors?.['pattern']) return 'AUTH.VALIDATION.PASSWORD_TOO_WEAK';
-    if (this.form.errors?.['passwordMismatch']) return 'AUTH.VALIDATION.PASSWORD_MISMATCH';
-    return '';
-  }
-
-  private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
-    const password = control.get('password')?.value;
-    const passwordRepeat = control.get('passwordRepeat')?.value;
-
-    return password === passwordRepeat ? null : { passwordMismatch: true };
+  ngOnInit(): void {
+    this.form.controls.password.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() =>
+        this.form.controls.passwordRepeat.updateValueAndValidity({ onlySelf: true }),
+      );
   }
 
   onSubmit(): void {
@@ -103,15 +67,10 @@ export class ResetPasswordPage {
     }
 
     if (this.isLoading()) return;
-
     this.isLoading.set(true);
 
-    const formValue = this.form.getRawValue();
-    const data: ResetPasswordForm = {
-      token: resetToken,
-      password: formValue.password,
-      passwordRepeat: formValue.passwordRepeat,
-    };
+    const { password, passwordRepeat } = this.form.getRawValue();
+    const data: ResetPasswordForm = { token: resetToken, password, passwordRepeat };
 
     this.authService
       .resetPassword(data)
@@ -120,13 +79,9 @@ export class ResetPasswordPage {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: () => {
-          this.openSuccessPopup();
-        },
-        error: (err) => {
-          const message = err?.error?.message || 'AUTH.RESET_PASSWORD.ERROR_GENERIC';
-          this.notifications.error(message);
-          this.focusFirstInvalidField();
+        next: () => this.openSuccessPopup(),
+        error: (err: HttpErrorResponse) => {
+          this.form.controls.password.setErrors({ serverError: resolveHttpError(err) });
         },
       });
   }
@@ -145,13 +100,5 @@ export class ResetPasswordPage {
         confirmText: this.transloco.translate('AUTH.RESET_PASSWORD.SUCCESS_CONFIRM'),
       })
       .then(() => this.router.navigate(['/auth/login']));
-  }
-
-  private focusFirstInvalidField(): void {
-    const firstInvalidControl = Object.keys(this.form.controls).find(
-      (key) => this.form.get(key)?.invalid,
-    );
-
-    if (firstInvalidControl) document.getElementById(`input-${firstInvalidControl}`)?.focus();
   }
 }

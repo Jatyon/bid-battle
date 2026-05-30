@@ -29,12 +29,18 @@
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-card__form" novalidate>
         <app-input formControlName="email" type="email" [label]="t('AUTH.LOGIN.EMAIL')"
-            [placeholder]="t('AUTH.LOGIN.EMAIL_PLACEHOLDER')" autocomplete="email" name="email"
-            [error]="emailErrorKey ? t(emailErrorKey) : ''" />
+            [placeholder]="t('AUTH.LOGIN.EMAIL_PLACEHOLDER')" autocomplete="email" name="email" [errorMessages]="{
+                required: t('AUTH.VALIDATION.EMAIL_REQUIRED'),
+                email: t('AUTH.VALIDATION.EMAIL_INVALID')
+            }" />
 
         <app-input formControlName="password" type="password" [label]="t('AUTH.LOGIN.PASSWORD')"
             [reserveHelperSpace]="true" [placeholder]="t('AUTH.LOGIN.PASSWORD_PLACEHOLDER')"
-            autocomplete="current-password" name="password" [error]="passwordErrorKey ? t(passwordErrorKey) : ''">
+            autocomplete="current-password" name="password" [errorMessages]="{
+                required: t('AUTH.VALIDATION.PASSWORD_REQUIRED'),
+                minlength: t('AUTH.VALIDATION.PASSWORD_MIN'),
+                pattern: t('AUTH.VALIDATION.PASSWORD_TOO_WEAK')
+            }">
             <a input-suffix class="login-card__forgot" routerLink="/auth/forgot-password">
                 {{ t('AUTH.LOGIN.FORGOT_PASSWORD') }}
             </a>

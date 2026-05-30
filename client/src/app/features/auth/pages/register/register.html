@@ -8,24 +8,33 @@
         <div class="register-card__row">
             <app-input formControlName="firstName" type="text" [label]="t('AUTH.REGISTER.FIRST_NAME')"
                 [placeholder]="t('AUTH.REGISTER.FIRST_NAME_PLACEHOLDER')" autocomplete="given-name" name="firstName"
-                [error]="firstNameErrorKey ? t(firstNameErrorKey) : ''" />
+                [errorMessages]="{ required: t('AUTH.VALIDATION.FIRST_NAME_REQUIRED') }" />
 
             <app-input formControlName="lastName" type="text" [label]="t('AUTH.REGISTER.LAST_NAME')"
                 [placeholder]="t('AUTH.REGISTER.LAST_NAME_PLACEHOLDER')" autocomplete="family-name" name="lastName"
-                [error]="lastNameErrorKey ? t(lastNameErrorKey) : ''" />
+                [errorMessages]="{ required: t('AUTH.VALIDATION.LAST_NAME_REQUIRED') }" />
         </div>
 
         <app-input formControlName="email" type="email" [label]="t('AUTH.REGISTER.EMAIL')"
-            [placeholder]="t('AUTH.REGISTER.EMAIL_PLACEHOLDER')" autocomplete="email" name="email"
-            [error]="emailErrorKey ? t(emailErrorKey) : ''" />
+            [placeholder]="t('AUTH.REGISTER.EMAIL_PLACEHOLDER')" autocomplete="email" name="email" [errorMessages]="{
+                required: t('AUTH.VALIDATION.EMAIL_REQUIRED'),
+                email:    t('AUTH.VALIDATION.EMAIL_INVALID')
+            }" />
 
         <app-input formControlName="password" type="password" [label]="t('AUTH.REGISTER.PASSWORD')"
             [reserveHelperSpace]="true" [placeholder]="t('AUTH.REGISTER.PASSWORD_PLACEHOLDER')"
-            autocomplete="new-password" name="password" [error]="passwordErrorKey ? t(passwordErrorKey) : ''" />
+            autocomplete="new-password" name="password" [errorMessages]="{
+                required:  t('AUTH.VALIDATION.PASSWORD_REQUIRED'),
+                minlength: t('AUTH.VALIDATION.PASSWORD_MIN'),
+                pattern:   t('AUTH.VALIDATION.PASSWORD_TOO_WEAK')
+            }" />
 
         <app-input formControlName="passwordRepeat" type="password" [label]="t('AUTH.REGISTER.PASSWORD_REPEAT')"
             [placeholder]="t('AUTH.REGISTER.PASSWORD_REPEAT_PLACEHOLDER')" autocomplete="new-password"
-            name="passwordRepeat" [error]="passwordRepeatErrorKey ? t(passwordRepeatErrorKey) : ''" />
+            name="passwordRepeat" [errorMessages]="{
+                required:          t('AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED'),
+                passwordMismatch:  t('AUTH.VALIDATION.PASSWORD_MISMATCH')
+            }" />
 
         <app-button type="submit" [loading]="isLoading()" [fullWidth]="true" size="md" [variant]="'primary'">
             {{ t('AUTH.REGISTER.SUBMIT') }}

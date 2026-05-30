@@ -1,35 +1,44 @@
-import { Component, DestroyRef, PLATFORM_ID, inject, signal, afterNextRender } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  DestroyRef,
+  PLATFORM_ID,
+  inject,
+  signal,
+  afterNextRender,
+} from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { isPlatformBrowser } from '@angular/common';
 import { ButtonComponent, DotsLoaderComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService, NotificationService } from '@core/index';
+import { AuthService } from '@core/index';
 import type { ResendVerificationForm } from '@features/auth/models';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { resolveHttpError } from '@features/auth/utils';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 
 type VerifyEmailStatus = 'loading' | 'success' | 'error' | 'no-token';
 
 @Component({
   selector: 'app-verify-email',
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     RouterLink,
-    TranslocoModule,
+    TranslocoDirective,
     InputComponent,
     ButtonComponent,
     DotsLoaderComponent,
   ],
   templateUrl: './verify-email.html',
   styleUrl: './verify-email.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VerifyEmailPage {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly authService = inject(AuthService);
-  private readonly notifications = inject(NotificationService);
   private readonly popup = inject(PopupService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -52,18 +61,6 @@ export class VerifyEmailPage {
     });
   }
 
-  get emailControl() {
-    return this.resendForm.controls.email;
-  }
-
-  get emailErrorKey(): string {
-    const c = this.emailControl;
-    if (!c.invalid || !c.touched) return '';
-    if (c.errors?.['required']) return 'AUTH.VALIDATION.EMAIL_REQUIRED';
-    if (c.errors?.['email']) return 'AUTH.VALIDATION.EMAIL_INVALID';
-    return '';
-  }
-
   goToLogin(): void {
     void this.router.navigate(['/auth/login']);
   }
@@ -75,7 +72,6 @@ export class VerifyEmailPage {
     }
 
     if (this.isResendLoading()) return;
-
     this.isResendLoading.set(true);
 
     const data: ResendVerificationForm = this.resendForm.getRawValue();
@@ -96,9 +92,8 @@ export class VerifyEmailPage {
             confirmText: this.transloco.translate('AUTH.VERIFY_EMAIL.RESEND_SUCCESS_CONFIRM'),
           });
         },
-        error: (err) => {
-          const message = err?.error?.message || 'AUTH.VERIFY_EMAIL.RESEND_ERROR_GENERIC';
-          this.notifications.error(message);
+        error: (err: HttpErrorResponse) => {
+          this.resendForm.controls.email.setErrors({ serverError: resolveHttpError(err) });
         },
       });
   }
@@ -121,9 +116,8 @@ export class VerifyEmailPage {
         next: () => {
           this.status.set('success');
         },
-        error: (err) => {
-          const message =
-            err?.error?.message || this.transloco.translate('AUTH.VERIFY_EMAIL.ERROR_GENERIC');
+        error: (err: HttpErrorResponse) => {
+          const message = resolveHttpError(err) || this.transloco.translate('AUTH.VERIFY_EMAIL.ERROR_GENERIC');
           this.errorMessage.set(message);
           this.status.set('error');
         },
