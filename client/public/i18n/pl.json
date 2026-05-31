@@ -7,6 +7,24 @@
     "RESET_PASSWORD": "Reset hasła",
     "VERIFY_EMAIL": "Aktywacja konta"
   },
+  "COMMON": {
+    "FORMS": {
+      "FIRST_NAME": "Imię",
+      "FIRST_NAME_PLACEHOLDER": "Jan",
+      "LAST_NAME": "Nazwisko",
+      "LAST_NAME_PLACEHOLDER": "Kowalski",
+      "EMAIL": "Email",
+      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
+      "PASSWORD": "Hasło",
+      "PASSWORD_PLACEHOLDER": "••••••••",
+      "PASSWORD_REPEAT": "Powtórz hasło"
+    },
+    "ACTIONS": {
+      "BACK_TO_LOGIN": "Wróć do logowania",
+      "GO_TO_LOGIN": "Przejdź do logowania",
+      "UNDERSTOOD": "Rozumiem"
+    }
+  },
   "AUTH": {
     "LOGIN": {
       "TITLE": "Witaj z powrotem",
@@ -14,10 +32,6 @@
       "CONTINUE_GOOGLE": "Kontynuuj z Google",
       "CONTINUE_GITHUB": "Kontynuuj z GitHub",
       "OR": "lub",
-      "EMAIL": "Email",
-      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
-      "PASSWORD": "Hasło",
-      "PASSWORD_PLACEHOLDER": "••••••••",
       "FORGOT_PASSWORD": "Zapomniałeś hasła?",
       "SUBMIT": "Zaloguj się",
       "NO_ACCOUNT": "Nie masz konta?",
@@ -29,29 +43,20 @@
     "FORGOT_PASSWORD": {
       "TITLE": "Zapomniałeś hasła?",
       "SUBTITLE": "Podaj adres e-mail powiązany z kontem. Wyślemy link do ustawienia nowego hasła.",
-      "EMAIL": "Email",
-      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
       "SUBMIT": "Wyślij link resetujący",
-      "BACK_TO_LOGIN": "Wróć do logowania",
       "SUCCESS_TITLE": "Sprawdź skrzynkę e-mail",
       "SUCCESS_MESSAGE": "Jeśli konto z tym adresem istnieje, wysłaliśmy link do resetu hasła. Sprawdź skrzynkę (oraz folder spam).",
-      "SUCCESS_CONFIRM": "Rozumiem",
       "ERROR_GENERIC": "Nie udało się wysłać linku resetującego. Spróbuj ponownie."
     },
     "RESET_PASSWORD": {
       "TITLE": "Ustaw nowe hasło",
       "SUBTITLE": "Wprowadź nowe hasło dla swojego konta.",
       "SUBTITLE_NO_TOKEN": "Link resetujący jest nieprawidłowy lub wygasł. Poproś o nowy link.",
-      "PASSWORD": "Nowe hasło",
-      "PASSWORD_PLACEHOLDER": "••••••••",
-      "PASSWORD_REPEAT": "Powtórz hasło",
-      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
+      "PASSWORD_NEW": "Nowe hasło",
       "SUBMIT": "Zmień hasło",
       "REQUEST_NEW_LINK": "Wyślij nowy link",
-      "BACK_TO_LOGIN": "Wróć do logowania",
       "SUCCESS_TITLE": "Hasło zmienione",
       "SUCCESS_MESSAGE": "Twoje hasło zostało zaktualizowane. Możesz się teraz zalogować.",
-      "SUCCESS_CONFIRM": "Przejdź do logowania",
       "ERROR_GENERIC": "Nie udało się zmienić hasła. Spróbuj ponownie lub poproś o nowy link.",
       "ERROR_NO_TOKEN": "Brak tokenu resetu hasła. Użyj linku z wiadomości e-mail."
     },
@@ -70,17 +75,13 @@
       "LOADING": "Trwa aktywacja konta…",
       "SUCCESS_TITLE": "Konto aktywowane",
       "SUCCESS_MESSAGE": "Twój adres e-mail został potwierdzony. Możesz się teraz zalogować.",
-      "GO_TO_LOGIN": "Przejdź do logowania",
       "ERROR_TITLE": "Nie udało się aktywować konta",
       "ERROR_NO_TOKEN": "Brak tokenu aktywacyjnego. Użyj linku z wiadomości e-mail.",
       "ERROR_GENERIC": "Link aktywacyjny jest nieprawidłowy lub wygasł.",
       "RESEND_HINT": "Możesz poprosić o nowy link aktywacyjny:",
-      "EMAIL": "Email",
-      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
       "RESEND_SUBMIT": "Wyślij ponownie link aktywacyjny",
       "RESEND_SUCCESS_TITLE": "Sprawdź skrzynkę e-mail",
       "RESEND_SUCCESS_MESSAGE": "Jeśli konto z tym adresem istnieje i nie jest aktywne, wysłaliśmy nowy link aktywacyjny.",
-      "RESEND_SUCCESS_CONFIRM": "Rozumiem",
       "RESEND_ERROR_GENERIC": "Nie udało się wysłać linku aktywacyjnego. Spróbuj ponownie."
     },
     "OAUTH_CALLBACK": {
@@ -89,24 +90,13 @@
     "REGISTER": {
       "TITLE": "Dołącz do BidBattle",
       "SUBTITLE": "Utwórz nowe konto, aby zacząć licytować",
-      "FIRST_NAME": "Imię",
-      "FIRST_NAME_PLACEHOLDER": "Jan",
-      "LAST_NAME": "Nazwisko",
-      "LAST_NAME_PLACEHOLDER": "Kowalski",
-      "EMAIL": "Email",
-      "EMAIL_PLACEHOLDER": "ty@przykład.pl",
-      "PASSWORD": "Hasło",
-      "PASSWORD_PLACEHOLDER": "••••••••",
-      "PASSWORD_REPEAT": "Powtórz hasło",
-      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
       "SUBMIT": "Utwórz konto",
       "SUCCESS": "Rejestracja zakończona pomyślnie.",
       "ERROR_GENERIC": "Wystąpił błąd podczas rejestracji. Spróbuj ponownie.",
       "HAVE_ACCOUNT": "Masz już konto?",
       "SIGN_IN": "Zaloguj się",
       "SUCCESS_TITLE": "Rejestracja zakończona!",
-      "SUCCESS_MESSAGE": "Na podany adres e-mail wysłaliśmy link aktywacyjny. Sprawdź skrzynkę (oraz folder spam) i kliknij link, aby aktywować konto.",
-      "SUCCESS_CONFIRM": "Rozumiem"
+      "SUCCESS_MESSAGE": "Na podany adres e-mail wysłaliśmy link aktywacyjny. Sprawdź skrzynkę (oraz folder spam) i kliknij link, aby aktywować konto."
     }
   },
   "ERRORS": {

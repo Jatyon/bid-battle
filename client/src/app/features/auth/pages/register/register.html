@@ -6,31 +6,31 @@
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="register-card__form" novalidate>
         <div class="register-card__row">
-            <app-input formControlName="firstName" type="text" [label]="t('AUTH.REGISTER.FIRST_NAME')"
-                [placeholder]="t('AUTH.REGISTER.FIRST_NAME_PLACEHOLDER')" autocomplete="given-name" name="firstName"
+            <app-input formControlName="firstName" type="text" [label]="t('COMMON.FORMS.FIRST_NAME')"
+                [placeholder]="t('COMMON.FORMS.FIRST_NAME_PLACEHOLDER')" autocomplete="given-name" name="firstName"
                 [errorMessages]="{ required: t('AUTH.VALIDATION.FIRST_NAME_REQUIRED') }" />
 
-            <app-input formControlName="lastName" type="text" [label]="t('AUTH.REGISTER.LAST_NAME')"
-                [placeholder]="t('AUTH.REGISTER.LAST_NAME_PLACEHOLDER')" autocomplete="family-name" name="lastName"
+            <app-input formControlName="lastName" type="text" [label]="t('COMMON.FORMS.LAST_NAME')"
+                [placeholder]="t('COMMON.FORMS.LAST_NAME_PLACEHOLDER')" autocomplete="family-name" name="lastName"
                 [errorMessages]="{ required: t('AUTH.VALIDATION.LAST_NAME_REQUIRED') }" />
         </div>
 
-        <app-input formControlName="email" type="email" [label]="t('AUTH.REGISTER.EMAIL')"
-            [placeholder]="t('AUTH.REGISTER.EMAIL_PLACEHOLDER')" autocomplete="email" name="email" [errorMessages]="{
+        <app-input formControlName="email" type="email" [label]="t('COMMON.FORMS.EMAIL')"
+            [placeholder]="t('COMMON.FORMS.EMAIL_PLACEHOLDER')" autocomplete="email" name="email" [errorMessages]="{
                 required: t('AUTH.VALIDATION.EMAIL_REQUIRED'),
                 email:    t('AUTH.VALIDATION.EMAIL_INVALID')
             }" />
 
-        <app-input formControlName="password" type="password" [label]="t('AUTH.REGISTER.PASSWORD')"
-            [reserveHelperSpace]="true" [placeholder]="t('AUTH.REGISTER.PASSWORD_PLACEHOLDER')"
+        <app-input formControlName="password" type="password" [label]="t('COMMON.FORMS.PASSWORD')"
+            [reserveHelperSpace]="true" [placeholder]="t('COMMON.FORMS.PASSWORD_PLACEHOLDER')"
             autocomplete="new-password" name="password" [errorMessages]="{
                 required:  t('AUTH.VALIDATION.PASSWORD_REQUIRED'),
                 minlength: t('AUTH.VALIDATION.PASSWORD_MIN'),
                 pattern:   t('AUTH.VALIDATION.PASSWORD_TOO_WEAK')
             }" />
 
-        <app-input formControlName="passwordRepeat" type="password" [label]="t('AUTH.REGISTER.PASSWORD_REPEAT')"
-            [placeholder]="t('AUTH.REGISTER.PASSWORD_REPEAT_PLACEHOLDER')" autocomplete="new-password"
+        <app-input formControlName="passwordRepeat" type="password" [label]="t('COMMON.FORMS.PASSWORD_REPEAT')"
+            [placeholder]="t('COMMON.FORMS.PASSWORD_PLACEHOLDER')" autocomplete="new-password"
             name="passwordRepeat" [errorMessages]="{
                 required:          t('AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED'),
                 passwordMismatch:  t('AUTH.VALIDATION.PASSWORD_MISMATCH')

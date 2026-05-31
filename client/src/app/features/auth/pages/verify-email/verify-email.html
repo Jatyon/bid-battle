@@ -14,7 +14,7 @@
             <p class="verify-card__subtitle">{{ t('AUTH.VERIFY_EMAIL.SUCCESS_MESSAGE') }}</p>
         </div>
         <app-button type="button" [fullWidth]="true" size="md" variant="primary" (clicked)="goToLogin()">
-            {{ t('AUTH.VERIFY_EMAIL.GO_TO_LOGIN') }}
+            {{ t('COMMON.ACTIONS.GO_TO_LOGIN') }}
         </app-button>
     </div>
     }
@@ -26,7 +26,7 @@
             <p class="verify-card__subtitle">{{ t('AUTH.VERIFY_EMAIL.ERROR_NO_TOKEN') }}</p>
         </div>
         <app-button type="button" [fullWidth]="true" size="md" variant="primary" (clicked)="goToLogin()">
-            {{ t('AUTH.VERIFY_EMAIL.GO_TO_LOGIN') }}
+            {{ t('COMMON.ACTIONS.GO_TO_LOGIN') }}
         </app-button>
     </div>
     }
@@ -42,8 +42,7 @@
 
         <form [formGroup]="resendForm" (ngSubmit)="onResendSubmit()" class="verify-card__form" novalidate>
             <app-input formControlName="email" type="email" autocomplete="email" name="email"
-                [label]="t('AUTH.VERIFY_EMAIL.EMAIL')" [placeholder]="t('AUTH.VERIFY_EMAIL.EMAIL_PLACEHOLDER')"
-                [errorMessages]="{
+                [label]="t('COMMON.FORMS.EMAIL')" [placeholder]="t('COMMON.FORMS.EMAIL_PLACEHOLDER')" [errorMessages]="{
                             required: t('AUTH.VALIDATION.EMAIL_REQUIRED'),
                             email: t('AUTH.VALIDATION.EMAIL_INVALID')
                         }" />
@@ -55,7 +54,7 @@
 
         <p class="verify-card__footer">
             <a routerLink="/auth/login" class="verify-card__footer-link">
-                {{ t('AUTH.VERIFY_EMAIL.GO_TO_LOGIN') }}
+                {{ t('COMMON.ACTIONS.GO_TO_LOGIN') }}
             </a>
         </p>
     </div>

@@ -97,7 +97,7 @@ export class ResetPasswordPage implements OnInit {
         message: this.transloco.translate('AUTH.RESET_PASSWORD.SUCCESS_MESSAGE'),
         type: 'success',
         mode: 'info',
-        confirmText: this.transloco.translate('AUTH.RESET_PASSWORD.SUCCESS_CONFIRM'),
+        confirmText: this.transloco.translate('COMMON.ACTIONS.UNDERSTOOD'),
       })
       .then(() => this.router.navigate(['/auth/login']));
   }

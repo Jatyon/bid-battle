@@ -7,28 +7,8 @@
     "RESET_PASSWORD": "Reset password",
     "VERIFY_EMAIL": "Account activation"
   },
-  "AUTH": {
-    "LOGIN": {
-      "TITLE": "Welcome back",
-      "SUBTITLE": "Sign in to your BidBattle account",
-      "CONTINUE_GOOGLE": "Continue with Google",
-      "CONTINUE_GITHUB": "Continue with GitHub",
-      "OR": "or",
-      "EMAIL": "Email",
-      "EMAIL_PLACEHOLDER": "you@example.com",
-      "PASSWORD": "Password",
-      "PASSWORD_PLACEHOLDER": "••••••••",
-      "FORGOT_PASSWORD": "Forgot password?",
-      "SUBMIT": "Sign in",
-      "NO_ACCOUNT": "Don't have an account?",
-      "CREATE_ONE": "Create one",
-      "TOGGLE_PASSWORD": "Toggle password visibility",
-      "SUCCESS": "Successfully logged in!",
-      "ERROR_GENERIC": "Invalid email or password. Please try again."
-    },
-    "REGISTER": {
-      "TITLE": "Join BidBattle",
-      "SUBTITLE": "Create a new account to start bidding",
+  "COMMON": {
+    "FORMS": {
       "FIRST_NAME": "First Name",
       "FIRST_NAME_PLACEHOLDER": "John",
       "LAST_NAME": "Last Name",
@@ -37,16 +17,48 @@
       "EMAIL_PLACEHOLDER": "you@example.com",
       "PASSWORD": "Password",
       "PASSWORD_PLACEHOLDER": "••••••••",
-      "PASSWORD_REPEAT": "Repeat Password",
-      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
-      "SUBMIT": "Create Account",
-      "SUCCESS": "Registration completed successfully.",
-      "ERROR_GENERIC": "An error occurred during registration. Please try again.",
-      "HAVE_ACCOUNT": "Already have an account?",
-      "SIGN_IN": "Sign in",
-      "SUCCESS_TITLE": "Registration complete!",
-      "SUCCESS_MESSAGE": "We have sent an activation link to your e-mail address. Check your inbox (and spam folder) and click the link to activate your account.",
-      "SUCCESS_CONFIRM": "Got it"
+      "PASSWORD_REPEAT": "Repeat password"
+    },
+    "ACTIONS": {
+      "BACK_TO_LOGIN": "Back to sign in",
+      "GO_TO_LOGIN": "Go to sign in",
+      "UNDERSTOOD": "Got it"
+    }
+  },
+  "AUTH": {
+    "LOGIN": {
+      "TITLE": "Welcome back",
+      "SUBTITLE": "Sign in to your BidBattle account",
+      "CONTINUE_GOOGLE": "Continue with Google",
+      "CONTINUE_GITHUB": "Continue with GitHub",
+      "OR": "or",
+      "FORGOT_PASSWORD": "Forgot password?",
+      "SUBMIT": "Sign in",
+      "NO_ACCOUNT": "Don't have an account?",
+      "CREATE_ONE": "Create one",
+      "TOGGLE_PASSWORD": "Toggle password visibility",
+      "SUCCESS": "Successfully logged in!",
+      "ERROR_GENERIC": "Invalid email or password. Please try again."
+    },
+    "FORGOT_PASSWORD": {
+      "TITLE": "Forgot your password?",
+      "SUBTITLE": "Enter the email associated with your account and we will send you a reset link.",
+      "SUBMIT": "Send reset link",
+      "SUCCESS_TITLE": "Check your email",
+      "SUCCESS_MESSAGE": "If an account exists for this email, we have sent a password reset link. Check your inbox (and spam folder).",
+      "ERROR_GENERIC": "Could not send the reset link. Please try again."
+    },
+    "RESET_PASSWORD": {
+      "TITLE": "Set a new password",
+      "SUBTITLE": "Enter a new password for your account.",
+      "SUBTITLE_NO_TOKEN": "The reset link is invalid or has expired. Request a new link.",
+      "PASSWORD_NEW": "New password",
+      "SUBMIT": "Change password",
+      "REQUEST_NEW_LINK": "Request a new link",
+      "SUCCESS_TITLE": "Password changed",
+      "SUCCESS_MESSAGE": "Your password has been updated. You can now sign in.",
+      "ERROR_GENERIC": "Could not reset your password. Please try again or request a new link.",
+      "ERROR_NO_TOKEN": "Missing password reset token. Use the link from your email."
     },
     "VALIDATION": {
       "EMAIL_REQUIRED": "Email is required.",
@@ -54,59 +66,37 @@
       "PASSWORD_REQUIRED": "Password is required.",
       "PASSWORD_MIN": "Password must be at least 8 characters.",
       "PASSWORD_TOO_WEAK": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
-      "FIRST_NAME_REQUIRED": "First name is required.",
-      "LAST_NAME_REQUIRED": "Last name is required.",
+      "PASSWORD_MISMATCH": "Passwords do not match.",
       "PASSWORD_REPEAT_REQUIRED": "Password repeat is required.",
-      "PASSWORD_MISMATCH": "Passwords do not match."
+      "FIRST_NAME_REQUIRED": "First name is required.",
+      "LAST_NAME_REQUIRED": "Last name is required."
     },
     "VERIFY_EMAIL": {
       "LOADING": "Activating your account…",
       "SUCCESS_TITLE": "Account activated",
       "SUCCESS_MESSAGE": "Your email address has been confirmed. You can now sign in.",
-      "GO_TO_LOGIN": "Go to sign in",
       "ERROR_TITLE": "Could not activate account",
       "ERROR_NO_TOKEN": "Missing activation token. Use the link from your email.",
       "ERROR_GENERIC": "The activation link is invalid or has expired.",
       "RESEND_HINT": "You can request a new activation link:",
-      "EMAIL": "Email",
-      "EMAIL_PLACEHOLDER": "you@example.com",
       "RESEND_SUBMIT": "Resend activation link",
       "RESEND_SUCCESS_TITLE": "Check your email",
       "RESEND_SUCCESS_MESSAGE": "If an account exists for this email and is not yet active, we have sent a new activation link.",
-      "RESEND_SUCCESS_CONFIRM": "Got it",
       "RESEND_ERROR_GENERIC": "Could not send the activation link. Please try again."
     },
     "OAUTH_CALLBACK": {
       "LOADING": "Signing in…"
     },
-    "FORGOT_PASSWORD": {
-      "TITLE": "Forgot your password?",
-      "SUBTITLE": "Enter the email associated with your account and we will send you a reset link.",
-      "EMAIL": "Email",
-      "EMAIL_PLACEHOLDER": "you@example.com",
-      "SUBMIT": "Send reset link",
-      "BACK_TO_LOGIN": "Back to sign in",
-      "SUCCESS_TITLE": "Check your email",
-      "SUCCESS_MESSAGE": "If an account exists for this email, we have sent a password reset link. Check your inbox (and spam folder).",
-      "SUCCESS_CONFIRM": "Got it",
-      "ERROR_GENERIC": "Could not send the reset link. Please try again."
-    },
-    "RESET_PASSWORD": {
-      "TITLE": "Set a new password",
-      "SUBTITLE": "Enter a new password for your account.",
-      "SUBTITLE_NO_TOKEN": "The reset link is invalid or has expired. Request a new link.",
-      "PASSWORD": "New password",
-      "PASSWORD_PLACEHOLDER": "••••••••",
-      "PASSWORD_REPEAT": "Repeat password",
-      "PASSWORD_REPEAT_PLACEHOLDER": "••••••••",
-      "SUBMIT": "Change password",
-      "REQUEST_NEW_LINK": "Request a new link",
-      "BACK_TO_LOGIN": "Back to sign in",
-      "SUCCESS_TITLE": "Password changed",
-      "SUCCESS_MESSAGE": "Your password has been updated. You can now sign in.",
-      "SUCCESS_CONFIRM": "Go to sign in",
-      "ERROR_GENERIC": "Could not reset your password. Please try again or request a new link.",
-      "ERROR_NO_TOKEN": "Missing password reset token. Use the link from your email."
+    "REGISTER": {
+      "TITLE": "Join BidBattle",
+      "SUBTITLE": "Create a new account to start bidding",
+      "SUBMIT": "Create Account",
+      "SUCCESS": "Registration completed successfully.",
+      "ERROR_GENERIC": "An error occurred during registration. Please try again.",
+      "HAVE_ACCOUNT": "Already have an account?",
+      "SIGN_IN": "Sign in",
+      "SUCCESS_TITLE": "Registration complete!",
+      "SUCCESS_MESSAGE": "We have sent an activation link to your e-mail address. Check your inbox (and spam folder) and click the link to activate your account."
     }
   },
   "ERRORS": {

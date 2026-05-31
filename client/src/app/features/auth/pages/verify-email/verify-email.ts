@@ -89,7 +89,7 @@ export class VerifyEmailPage {
             message: this.transloco.translate('AUTH.VERIFY_EMAIL.RESEND_SUCCESS_MESSAGE'),
             type: 'success',
             mode: 'info',
-            confirmText: this.transloco.translate('AUTH.VERIFY_EMAIL.RESEND_SUCCESS_CONFIRM'),
+            confirmText: this.transloco.translate('COMMON.ACTIONS.UNDERSTOOD'),
           });
         },
         error: (err: HttpErrorResponse) => {
@@ -117,7 +117,8 @@ export class VerifyEmailPage {
           this.status.set('success');
         },
         error: (err: HttpErrorResponse) => {
-          const message = resolveHttpError(err) || this.transloco.translate('AUTH.VERIFY_EMAIL.ERROR_GENERIC');
+          const message =
+            resolveHttpError(err) || this.transloco.translate('AUTH.VERIFY_EMAIL.ERROR_GENERIC');
           this.errorMessage.set(message);
           this.status.set('error');
         },
