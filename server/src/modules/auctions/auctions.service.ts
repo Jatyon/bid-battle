@@ -444,7 +444,8 @@ export class AuctionsService {
 
     const toKeep = allExisting.filter((img) => existingImageUrls.includes(img.imageUrl));
     const toDelete = allExisting.filter((img) => !existingImageUrls.includes(img.imageUrl));
-    const oldPathsToDelete = toDelete.map((img) => img.imageUrl.replace('/uploads/', ''));
+
+    const oldFileKeysToDelete = toDelete.map((img) => this.fileUploadService.extractKeyFromUrl(img.imageUrl)).filter((key): key is string => key !== null);
 
     const MAX_IMAGES = 10;
     const totalCount = toKeep.length + files.length;
@@ -489,19 +490,13 @@ export class AuctionsService {
       this.logger.error(`updateAuctionImages failed for auction ${auctionId}`, dbError);
 
       if (uploadedFiles.length > 0) {
-        const newPaths = uploadedFiles.map((f) => f.url.replace('/uploads/', ''));
-        await this.fileUploadService.deleteFiles(newPaths).catch((deleteErr) => {
-          this.logger.error(`Failed to rollback uploaded files for auction ${auctionId}`, deleteErr);
-        });
+        const newFileKeys = uploadedFiles.map((f) => f.path);
+        await this.fileUploadService.deleteFiles(newFileKeys);
       }
       throw new BadRequestException('error.auction.update_images_failed');
     }
 
-    if (oldPathsToDelete.length > 0) {
-      await this.fileUploadService.deleteFiles(oldPathsToDelete).catch((err) => {
-        this.logger.error(`Failed to delete old auction images from disk for auction ${auctionId}`, err);
-      });
-    }
+    if (oldFileKeysToDelete.length > 0) await this.fileUploadService.deleteFiles(oldFileKeysToDelete);
 
     await this.invalidateAuctionsCache();
   }

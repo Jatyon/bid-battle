@@ -22,6 +22,7 @@ const state = JSON.parse(readFileSync(CONTAINERS_STATE_FILE, 'utf8')) as Contain
 process.env.NODE_ENV = 'test';
 process.env.NAME = 'Bid App E2E';
 process.env.CORS_ORIGIN = 'http://localhost';
+process.env.PUBLIC_URL = 'http://localhost:3000';
 process.env.FRONTEND_HOST = 'http://localhost:4200';
 process.env.JWT_SECRET = 'e2e-test-secret-string-with-length-32!';
 process.env.JWT_REFRESH_SECRET = 'e2e-test-refresh-secret-string-with-length-32!';

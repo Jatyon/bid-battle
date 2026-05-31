@@ -34,6 +34,7 @@ export class AppConfigService {
       mode: this.configService.get<string>('NODE_ENV', 'development'),
       name: this.configService.get<string>('NAME', 'Test App'),
       host: this.configService.get<string>('HOST', 'http://localhost'),
+      publicUrl: this.configService.get<string>('PUBLIC_URL', 'http://localhost:3000'),
       frontendHost: this.configService.get<string>('FRONTEND_HOST', 'http://localhost:4200'),
       port: this.configService.get<number>('PORT', 3000),
       timeoutMs: this.configService.get<number>('TIMEOUT_MS', 5000),

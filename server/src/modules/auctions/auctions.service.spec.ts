@@ -13,8 +13,8 @@ import {
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
-import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
 import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto, MyAuctionResponse } from './dto';
+import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { AuctionsService } from './auctions.service';
@@ -505,10 +505,6 @@ describe('AuctionsService', () => {
   });
 
   describe('cancelAuction', () => {
-    /**
-     * Helper that wires up dataSource.transaction to call the callback
-     * with a mock EntityManager (mockManager).
-     */
     const mockTransactionWith = (auctionInTx: ReturnType<typeof createAuctionFixture> | null, bidCount = 0) => {
       mockManager.findOne.mockResolvedValue(auctionInTx);
       mockManager.count.mockResolvedValue(bidCount);
@@ -611,10 +607,6 @@ describe('AuctionsService', () => {
   });
 
   describe('updateAuction', () => {
-    /**
-     * Helper that wires up dataSource.transaction to call the callback
-     * with a mock EntityManager (mockManager).
-     */
     const mockTransactionWith = (auctionInTx: ReturnType<typeof createAuctionFixture> | null, bidCount = 0) => {
       mockManager.findOne.mockResolvedValue(auctionInTx);
       mockManager.count.mockResolvedValue(bidCount);
@@ -811,8 +803,8 @@ describe('AuctionsService', () => {
     };
 
     const mockUploadedFile = {
-      url: '/uploads/new.jpg',
-      path: '/uploads/new.jpg',
+      url: 'http://localhost/uploads/2026/03/auctions/new.jpg',
+      path: '2026/03/auctions/new.jpg',
       filename: 'new.jpg',
       size: 12345,
       mimetype: 'image/jpeg',
@@ -820,6 +812,10 @@ describe('AuctionsService', () => {
 
     beforeEach(() => {
       bidRepository.count.mockResolvedValue(0);
+      fileUploadService.extractKeyFromUrl.mockImplementation((url: string) => {
+        if (!url || url.includes('invalid')) return null;
+        return url.replace(/^.*?\/uploads\//, '');
+      });
     });
 
     it('should throw NotFoundException when auction does not exist', async () => {
@@ -891,9 +887,9 @@ describe('AuctionsService', () => {
       expect(redisService.invalidateCache).toHaveBeenCalledWith('auctions:active:*');
     });
 
-    it('should delete removed images from disk after successful transaction', async () => {
+    it('should delete removed images from disk after successful transaction using extractKeyFromUrl', async () => {
       const mockAuction = createAuctionFixture();
-      const imageToDelete = createAuctionImageFixture({ auction: mockAuction, imageUrl: '/uploads/old.jpg' });
+      const imageToDelete = createAuctionImageFixture({ auction: mockAuction, imageUrl: 'http://localhost/uploads/2026/03/auctions/old.jpg' });
 
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
       auctionImageRepository.find.mockResolvedValue([imageToDelete]);
@@ -907,7 +903,8 @@ describe('AuctionsService', () => {
 
       await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0);
 
-      expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(['old.jpg']);
+      expect(fileUploadService.extractKeyFromUrl).toHaveBeenCalledWith('http://localhost/uploads/2026/03/auctions/old.jpg');
+      expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(['2026/03/auctions/old.jpg']);
     });
 
     it('should not call uploadMultiple when no new files are provided', async () => {
@@ -927,7 +924,7 @@ describe('AuctionsService', () => {
       expect(fileUploadService.uploadMultiple).not.toHaveBeenCalled();
     });
 
-    it('should rollback uploaded files and throw BadRequestException when transaction fails', async () => {
+    it('should rollback uploaded files using their path (fileKey) and throw BadRequestException when transaction fails', async () => {
       auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture());
       auctionImageRepository.find.mockResolvedValue([]);
       fileUploadService.uploadMultiple.mockResolvedValue([mockUploadedFile]);
@@ -936,18 +933,7 @@ describe('AuctionsService', () => {
 
       await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0)).rejects.toThrow(BadRequestException);
 
-      expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(['new.jpg']);
-    });
-
-    it('should still throw BadRequestException even when rollback file deletion also fails', async () => {
-      auctionsRepository.findOneBy.mockResolvedValue(createAuctionFixture());
-      auctionImageRepository.find.mockResolvedValue([]);
-      fileUploadService.uploadMultiple.mockResolvedValue([mockUploadedFile]);
-      fileUploadService.getAuctionImageUploadOptions.mockReturnValue(mockUploadOptions);
-      auctionsRepository.manager.transaction.mockRejectedValue(new Error('DB Error'));
-      fileUploadService.deleteFiles.mockRejectedValue(new Error('Disk error'));
-
-      await expect(service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0)).rejects.toThrow(BadRequestException);
+      expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(['2026/03/auctions/new.jpg']);
     });
 
     it('should update isPrimary flags and auction mainImageUrl when primaryImageIndex changes among existing images', async () => {
@@ -1000,30 +986,6 @@ describe('AuctionsService', () => {
       await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0);
 
       expect(fileUploadService.deleteFiles).not.toHaveBeenCalled();
-    });
-
-    it('should log an error and not fail the request if deleting old images from disk fails after a successful transaction', async () => {
-      const mockAuction = createAuctionFixture();
-      const imageToDelete = createAuctionImageFixture({ auction: mockAuction, imageUrl: '/uploads/old.jpg' });
-
-      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
-      auctionImageRepository.find.mockResolvedValue([imageToDelete]);
-
-      fileUploadService.uploadMultiple.mockResolvedValue([mockUploadedFile]);
-      fileUploadService.getAuctionImageUploadOptions.mockReturnValue(mockUploadOptions);
-
-      auctionsRepository.manager.transaction.mockImplementation(async (arg1: unknown, arg2?: unknown) => {
-        const cb = (arg2 || arg1) as (manager: typeof mockManager) => Promise<unknown>;
-        return cb(mockManager);
-      });
-
-      const diskError = new Error('Permission denied on disk');
-      fileUploadService.deleteFiles.mockRejectedValue(diskError);
-
-      await service.updateAuctionImages(1, 1, createMockFilesFixture(1), [], 0);
-
-      expect(fileUploadService.deleteFiles).toHaveBeenCalledWith(expect.arrayContaining(['old.jpg']));
-      expect(Logger.prototype.error).toHaveBeenCalledWith(`Failed to delete old auction images from disk for auction 1`, diskError);
     });
   });
 });

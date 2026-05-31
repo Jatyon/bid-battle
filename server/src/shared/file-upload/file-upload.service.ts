@@ -2,9 +2,9 @@ import { Injectable, BadRequestException, InternalServerErrorException, Logger }
 import { AppConfigService } from '@config/config.service';
 import { IConfigFile } from '@config/interfaces';
 import { IUploadedFile, IUploadOptions, IStorageStrategy } from './interfaces';
-import { LocalStorageStrategy } from './strategies';
-import { join, extname, resolve, basename, sep } from 'path';
+import { LocalStorageStrategy } from './strategies/local-storage.strategy';
 import * as crypto from 'crypto';
+import { extname } from 'path';
 
 @Injectable()
 export class FileUploadService {
@@ -17,7 +17,7 @@ export class FileUploadService {
 
     switch (this.config.storageType) {
       case 'local':
-        this.storageStrategy = new LocalStorageStrategy();
+        this.storageStrategy = new LocalStorageStrategy(this.configService);
         break;
       default: {
         const _exhaustiveCheck: never = this.config.storageType;
@@ -41,27 +41,18 @@ export class FileUploadService {
   async uploadSingle(file: Express.Multer.File, options: IUploadOptions): Promise<IUploadedFile> {
     await this.validateFile(file, options);
 
-    const uploadPath: string = this.generateUploadPath(options.subDir);
     const filename: string = this.generateFilename(file.originalname);
-    const fullPath: string = join(uploadPath, filename);
+    const fileKey: string = this.generateFileKey(options.subDir, filename);
 
     try {
-      const result = await this.storageStrategy.upload(file, fullPath);
+      const result = await this.storageStrategy.upload(file, fileKey);
 
-      let cleanUrl = result.url.replace(/\\/g, '/');
-
-      const folderName = basename(this.config.uploadsDir);
-      const prefixRegex = new RegExp(`^\\/?${folderName}\\/`);
-
-      cleanUrl = cleanUrl.replace(prefixRegex, '');
-      cleanUrl = cleanUrl.replace(/^\.\//, '');
-
-      this.logger.log(`File uploaded successfully: ${cleanUrl}`);
+      this.logger.log(`File uploaded successfully: ${result.url}`);
 
       return {
         filename,
         path: result.path,
-        url: cleanUrl,
+        url: result.url,
         size: file.size,
         mimetype: file.mimetype,
       };
@@ -88,27 +79,15 @@ export class FileUploadService {
   }
 
   /**
-   * Deletes a file by its relative path within the uploads directory.
+   * Deletes a single file from the storage backend.
+   * Errors during deletion are logged but not thrown, to prevent interrupting the main workflow.
    *
-   * Guards against path traversal attacks by resolving the full path and verifying
-   * it remains within `uploadsDir`. Paths that escape the uploads root are silently
-   * blocked and logged as errors. Deletion failures are also caught and logged
-   * without re-throwing, so callers are not interrupted by missing files.
-   *
-   * @param relativePath - Path relative to the uploads root, e.g. `2026/03/avatars/photo.jpg`.
+   * @param fileKey - The internal key/path of the file to delete (e.g. "2026/05/avatars/xyz.jpg").
    */
-  async deleteFile(relativePath: string): Promise<void> {
+  async deleteFile(fileKey: string): Promise<void> {
     try {
-      const uploadsBaseDir = resolve(this.config.uploadsDir);
-      const resolvedPath = resolve(uploadsBaseDir, relativePath);
-
-      if (!resolvedPath.startsWith(uploadsBaseDir + sep)) {
-        this.logger.error(`SECURITY ALERT: Path traversal attempt blocked! "${relativePath}" resolved to "${resolvedPath}"`);
-        return;
-      }
-
-      await this.storageStrategy.delete(resolvedPath);
-      this.logger.log(`File deleted successfully: ${relativePath}`);
+      await this.storageStrategy.delete(fileKey);
+      this.logger.log(`File deleted successfully: ${fileKey}`);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       const stack = error instanceof Error ? error.stack : undefined;
@@ -117,27 +96,41 @@ export class FileUploadService {
   }
 
   /**
-   * Deletes multiple files in parallel using `deleteFile` for each.
+   * Deletes multiple files from the storage backend in parallel.
+   * Errors are logged internally by `deleteFile`.
    *
-   * @param relativePaths - Array of relative paths to delete.
+   * @param fileKeys - Array of file keys/paths to delete.
    */
-  async deleteFiles(relativePaths: string[]): Promise<void> {
-    await Promise.all(relativePaths.map((path) => this.deleteFile(path)));
+  async deleteFiles(fileKeys: string[]): Promise<void> {
+    await Promise.all(fileKeys.map((key) => this.deleteFile(key)));
   }
 
   /**
-   * Validates a file against the provided upload options.
+   * Extracts the internal file key from a full public URL.
+   * Useful when deleting a file using the URL stored in the database.
    *
-   * Performs a three-step check:
-   * 1. **Presence** — rejects missing files.
-   * 2. **Size** — rejects files exceeding `options.maxSizeMB`.
-   * 3. **MIME type** — checks both the declared `Content-Type` header and the actual
-   *    magic bytes from the file buffer. This two-step verification prevents spoofing
-   *    by clients that forge the `Content-Type` header in multipart requests.
+   * @param url - The full public URL (e.g. "http://localhost:3000/uploads/2026/05/avatar.jpg").
+   * @returns The relative file key (e.g. "2026/05/avatar.jpg"), or null if parsing fails.
+   */
+  extractKeyFromUrl(url: string): string | null {
+    try {
+      const parsedUrl = new URL(url);
+
+      if (this.config.storageType === 'local') return parsedUrl.pathname.replace(/^\/uploads\//, '');
+
+      return parsedUrl.pathname.replace(/^\//, '');
+    } catch {
+      this.logger.warn(`Failed to parse URL: ${url}`);
+      return null;
+    }
+  }
+
+  /**
+   * Validates a file against the specified upload options.
    *
-   * @param file - Multer file object to validate.
-   * @param options - Constraints to validate against.
-   * @throws {BadRequestException} When any of the three checks fails.
+   * @param file - The file to validate.
+   * @param options - The upload options to apply.
+   * @throws {BadRequestException} When the file fails validation.
    */
   private async validateFile(file: Express.Multer.File, options: IUploadOptions): Promise<void> {
     if (!file) throw new BadRequestException('error.validation.file.no_file_provided');
@@ -159,34 +152,17 @@ export class FileUploadService {
   }
 
   /**
-   * Builds the absolute destination directory path for an uploaded file.
-   *
-   * The path is composed of `uploadsDir / year / month / subDir`,
-   * where year and month are derived from the current date.
-   *
-   * @param subDir - Subdirectory name that groups uploads by context, e.g. `auctions`.
-   * @returns Absolute path to the target upload directory.
+   * Builds an agnostic file key (path) using forward slashes.
+   * Example: "2026/05/auctions/filename.jpg"
    */
-  private generateUploadPath(subDir: string): string {
+  private generateFileKey(subDir: string, filename: string): string {
     const now = new Date();
     const year = now.getFullYear().toString();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const pathParts = [this.config.uploadsDir, year, month];
 
-    pathParts.push(subDir);
-
-    return join(...pathParts);
+    return `${year}/${month}/${subDir}/${filename}`;
   }
 
-  /**
-   * Generates a random filename while preserving the original file extension.
-   *
-   * Uses 8 random bytes (16 hex characters) to avoid collisions and prevent
-   * user-controlled filenames from reaching the filesystem.
-   *
-   * @param originalName - Original filename from the upload, used only to extract the extension.
-   * @returns A randomised filename, e.g. `a3f8c21d9b0e4f12.jpg`.
-   */
   private generateFilename(originalName: string): string {
     const ext: string = extname(originalName);
     const random: string = crypto.randomBytes(8).toString('hex');

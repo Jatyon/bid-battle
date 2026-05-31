@@ -88,52 +88,56 @@ describe('FileUploadService', () => {
   });
 
   describe('uploadSingle', () => {
-    it('should upload file, strip prefix and return clean URL in IUploadedFile', async () => {
+    it('should upload file and return precise URL and path provided by the strategy', async () => {
       const file = createFile();
-      mockStrategy.upload.mockResolvedValue({ url: '/uploads/2026/03/auctions/abc.jpg', path: '/uploads/2026/03/auctions/abc.jpg' });
+      const expectedUrl = 'http://localhost:3000/uploads/2026/03/auctions/abc.jpg';
+      const expectedPath = '2026/03/auctions/abc.jpg';
+
+      mockStrategy.upload.mockResolvedValue({ url: expectedUrl, path: expectedPath });
 
       const result = await service.uploadSingle(file, uploadOptions);
 
-      expect(mockStrategy.upload).toHaveBeenCalledWith(file, expect.any(String));
+      expect(mockStrategy.upload).toHaveBeenCalledWith(file, expect.stringMatching(/\d{4}\/\d{2}\/auctions\/.*\.jpg/));
+
       expect(result).toEqual(
         expect.objectContaining({
-          url: '2026/03/auctions/abc.jpg',
+          url: expectedUrl,
+          path: expectedPath,
           size: file.size,
           mimetype: file.mimetype,
           filename: expect.any(String) as string,
-          path: expect.any(String) as string,
         }),
       );
       expect(Logger.prototype.log).toHaveBeenCalledWith(expect.stringContaining('File uploaded successfully'));
     });
 
-    it('should include year/month/subDir in the upload path', async () => {
+    it('should include year/month/subDir in the generated file key', async () => {
       const file = createFile();
-      mockStrategy.upload.mockResolvedValue({ url: '/uploads/result.jpg', path: '/uploads/result.jpg' });
+      mockStrategy.upload.mockResolvedValue({ url: 'url', path: 'path' });
 
       await service.uploadSingle(file, uploadOptions);
 
       const callArgs = mockStrategy.upload.mock.calls[0] as [Express.Multer.File, string];
-      const uploadPath = callArgs[1];
+      const fileKey = callArgs[1];
 
-      expect(uploadPath).toMatch(/\d{4}/);
-      expect(uploadPath).toMatch(/\d{2}/);
-      expect(uploadPath).toContain('auctions');
+      expect(fileKey).toMatch(/\d{4}/);
+      expect(fileKey).toMatch(/\d{2}/);
+      expect(fileKey).toContain('auctions');
     });
 
     it('should generate a unique filename with original extension', async () => {
       const file = createFile({ originalname: 'my-photo.png' });
-      mockStrategy.upload.mockResolvedValue({ url: '/uploads/result.png', path: '/uploads/result.png' });
+      mockStrategy.upload.mockResolvedValue({ url: 'url', path: 'path' });
 
       await service.uploadSingle(file, uploadOptions);
 
       const callArgs = mockStrategy.upload.mock.calls[0] as [Express.Multer.File, string];
-      const uploadPath = callArgs[1];
+      const fileKey = callArgs[1];
 
-      expect(uploadPath).toMatch(/\.png$/);
+      expect(fileKey).toMatch(/\.png$/);
     });
 
-    it('should throw BadRequestException when file is missing', async () => {
+    it('should throw BadRequestException when validation fails (missing file)', async () => {
       jest.spyOn(service as any, 'validateFile').mockRestore();
 
       await expect(service.uploadSingle(null as unknown as Express.Multer.File, uploadOptions)).rejects.toThrow(BadRequestException);
@@ -170,9 +174,10 @@ describe('FileUploadService', () => {
   });
 
   describe('uploadMultiple', () => {
-    it('should upload all files sequentially and return array of results', async () => {
+    it('should upload all files in parallel and return array of results', async () => {
       const files = [createFile({ originalname: 'a.jpg' }), createFile({ originalname: 'b.png' })];
-      mockStrategy.upload.mockResolvedValueOnce({ url: '/uploads/a.jpg', path: '/uploads/a.jpg' }).mockResolvedValueOnce({ url: '/uploads/b.png', path: '/uploads/b.png' });
+
+      mockStrategy.upload.mockResolvedValueOnce({ url: 'http://loc/a.jpg', path: '2026/03/a.jpg' }).mockResolvedValueOnce({ url: 'http://loc/b.png', path: '2026/03/b.png' });
 
       const results = await service.uploadMultiple(files, uploadOptions);
 
@@ -189,7 +194,7 @@ describe('FileUploadService', () => {
 
     it('should throw when at least one of the files fails validation', async () => {
       const files = [createFile({ originalname: 'valid.jpg' }), createFile({ mimetype: 'application/pdf' })];
-      mockStrategy.upload.mockResolvedValue({ url: '/uploads/valid.jpg', path: '/uploads/valid.jpg' });
+      mockStrategy.upload.mockResolvedValue({ url: 'url', path: 'path' });
 
       jest.spyOn(service as any, 'validateFile').mockRestore();
 
@@ -198,14 +203,13 @@ describe('FileUploadService', () => {
   });
 
   describe('deleteFile', () => {
-    it('should call strategy.delete with resolved absolute path and log success', async () => {
+    it('should call strategy.delete with the provided fileKey and log success', async () => {
       mockStrategy.delete.mockResolvedValue(undefined);
 
-      await service.deleteFile('2026/03/auctions/abc.jpg');
+      const fileKey = '2026/03/auctions/abc.jpg';
+      await service.deleteFile(fileKey);
 
-      const expectedPath = '/uploads/2026/03/auctions/abc.jpg';
-
-      expect(mockStrategy.delete).toHaveBeenCalledWith(expectedPath);
+      expect(mockStrategy.delete).toHaveBeenCalledWith(fileKey);
       expect(Logger.prototype.log).toHaveBeenCalledWith(expect.stringContaining('File deleted successfully'));
     });
 
@@ -216,14 +220,6 @@ describe('FileUploadService', () => {
 
       expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Failed to delete file'), expect.anything());
     });
-
-    it('should block path traversal attempts and log a security alert', async () => {
-      await service.deleteFile('../../../etc/passwd');
-
-      expect(mockStrategy.delete).not.toHaveBeenCalled();
-
-      expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('SECURITY ALERT: Path traversal attempt blocked!'));
-    });
   });
 
   describe('deleteFiles', () => {
@@ -233,8 +229,25 @@ describe('FileUploadService', () => {
       await service.deleteFiles(['a.jpg', 'b.jpg']);
 
       expect(mockStrategy.delete).toHaveBeenCalledTimes(2);
-      expect(mockStrategy.delete).toHaveBeenCalledWith('/uploads/a.jpg');
-      expect(mockStrategy.delete).toHaveBeenCalledWith('/uploads/b.jpg');
+      expect(mockStrategy.delete).toHaveBeenCalledWith('a.jpg');
+      expect(mockStrategy.delete).toHaveBeenCalledWith('b.jpg');
+    });
+  });
+
+  describe('extractKeyFromUrl', () => {
+    it('should properly extract file key from a local full URL', () => {
+      const fullUrl = 'http://localhost:3000/uploads/2026/05/avatars/abc.jpg';
+
+      const result = service.extractKeyFromUrl(fullUrl);
+
+      expect(result).toBe('2026/05/avatars/abc.jpg');
+    });
+
+    it('should return null and log a warning if URL is completely invalid', () => {
+      const result = service.extractKeyFromUrl('not-a-valid-url-string');
+
+      expect(result).toBeNull();
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('Failed to parse URL'));
     });
   });
 

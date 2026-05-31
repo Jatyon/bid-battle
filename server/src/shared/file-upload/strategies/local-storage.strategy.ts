@@ -1,52 +1,43 @@
 import { Injectable } from '@nestjs/common';
+import { AppConfigService } from '@config/config.service';
 import { IUploadResult, IStorageStrategy } from '../interfaces';
+import { dirname, normalize, sep, resolve } from 'path';
 import { promises as fs } from 'fs';
-import { dirname, normalize, sep } from 'path';
 
 @Injectable()
 export class LocalStorageStrategy implements IStorageStrategy {
+  constructor(private readonly configService: AppConfigService) {}
+
   /**
-   * Saves a file to the local disk at the given path.
-   *
-   * Automatically creates any missing parent directories (equivalent to `mkdir -p`).
-   * Returns a public URL in the format `/uploads/...`.
-   *
-   * @param file - Multer file object containing the `buffer` with the file contents.
-   * @param path - Absolute destination path on disk, e.g. `/var/app/uploads/images/photo.jpg`.
-   * @returns An `IUploadResult` with a `url` (public URL) and `path` (path on disk).
+   * Saves a file to the local disk and returns its public URL.
+   * Automatically creates any missing parent directories.
    */
-  async upload(file: Express.Multer.File, path: string): Promise<IUploadResult> {
-    await fs.mkdir(dirname(path), { recursive: true });
-    await fs.writeFile(path, file.buffer);
+  async upload(file: Express.Multer.File, fileKey: string): Promise<IUploadResult> {
+    const uploadsDir = this.configService.file.uploadsDir;
+    const absolutePath = resolve(uploadsDir, fileKey);
 
-    const url = path.replace(/\\/g, '/').replace(/^.*\/uploads/, '/uploads');
+    await fs.mkdir(dirname(absolutePath), { recursive: true });
+    await fs.writeFile(absolutePath, file.buffer);
 
-    return { url, path };
+    const publicUrl = this.configService.app.publicUrl.replace(/\/$/, '');
+    const url = `${publicUrl}/uploads/${fileKey}`;
+
+    return { url, path: fileKey };
   }
 
   /**
-   * Deletes a file at the given absolute path from the local disk.
-   *
-   * Performs two security checks before deletion:
-   * - **Path traversal**: if `normalize(absolutePath) !== absolutePath`, the path contains
-   *   sequences such as `..` or redundant separators that change the target — the request is
-   *   rejected with `Unsafe path rejected`.
-   * - **Relative path**: if the path does not start with `/`, it is rejected
-   *   with `Non-absolute path rejected`.
-   *
-   * Validation that the path is within the `uploads` directory is handled upstream
-   * in `FileUploadService` before this method is called.
-   *
-   * @param absolutePath - The absolute path of the file to delete.
-   * @throws {Error} When the path contains path traversal sequences (`Unsafe path rejected`).
-   * @throws {Error} When the path is not absolute (`Non-absolute path rejected`).
+   * Deletes a file from the local disk.
+   * Prevents path traversal vulnerabilities by enforcing strict path resolution.
    */
-  async delete(absolutePath: string): Promise<void> {
+  async delete(fileKey: string): Promise<void> {
+    const uploadsDir = resolve(this.configService.file.uploadsDir);
+    const absolutePath = resolve(uploadsDir, fileKey);
+
+    if (!absolutePath.startsWith(uploadsDir + sep)) throw new Error(`SECURITY ALERT: Path traversal attempt blocked! "${fileKey}" resolved outside uploads directory.`);
+
     const normalized = normalize(absolutePath);
 
     if (normalized !== absolutePath) throw new Error(`Unsafe path rejected: "${absolutePath}"`);
-
-    if (!normalized.startsWith(sep) && !/^[A-Za-z]:[/\\]/.test(normalized)) throw new Error(`Non-absolute path rejected: "${absolutePath}"`);
 
     await fs.unlink(normalized);
   }

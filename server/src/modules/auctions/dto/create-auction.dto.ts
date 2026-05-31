@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AUCTION_MAX_DURATION_HOURS, AUCTION_PRICE_MAX } from '../auction.constants';
 import { AuctionCategory } from '../enums';
-import { IsString, IsDateString, IsNotEmpty, Min, Max, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize, IsEnum } from 'class-validator';
+import { IsString, IsDateString, IsNotEmpty, Min, Max, IsArray, IsOptional, IsInt, ArrayMinSize, MaxLength, Matches, ArrayMaxSize, IsEnum, IsUrl } from 'class-validator';
 import { registerDecorator, ValidationOptions } from 'class-validator';
 import { addHours, isAfter, isBefore } from 'date-fns';
 
@@ -62,15 +62,22 @@ export class CreateAuctionDto {
   endTime: string;
 
   @ApiProperty({
-    description: 'Array of auction image URLs (at least one image is required)',
+    description: 'Array of full auction image URLs (at least one image is required)',
     type: [String],
-    example: ['2026/03/auction/re90edae42366994.jpg', '2026/03/auction/7e90e8ae42366994.jpg'],
+    example: ['http://localhost/uploads/2026/03/auctions/re90edae42366994.jpg', 'http://localhost/uploads/2026/03/auctions/7e90e8ae42366994.jpg'],
   })
   @IsArray()
   @ArrayMinSize(1, { message: 'error.validation.auction.images_must_have_at_least_one_image' })
   @ArrayMaxSize(10, { message: 'error.validation.auction.images_too_many' })
   @IsString({ each: true, message: 'error.validation.auction.image_url_must_be_string' })
-  @Matches(/^\d{4}\/\d{2}\/[\w\-/.]+\.(jpg|jpeg|png)$/i, {
+  @IsUrl(
+    { require_tld: false },
+    {
+      each: true,
+      message: 'error.validation.auction.image_url_must_be_valid_url',
+    },
+  )
+  @Matches(/\d{4}\/\d{2}\/[\w\-/.]+\.(jpg|jpeg|png)$/i, {
     each: true,
     message: 'error.validation.auction.image_url_invalid_format',
   })

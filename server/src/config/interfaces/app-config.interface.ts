@@ -2,6 +2,7 @@ export interface IConfigApp {
   mode: string;
   name: string;
   host: string;
+  publicUrl: string;
   frontendHost: string;
   port: number;
   timeoutMs: number;

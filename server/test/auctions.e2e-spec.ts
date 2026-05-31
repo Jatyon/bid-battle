@@ -191,7 +191,7 @@ describe('Auctions (e2e)', () => {
       description: 'E2E test auction description with sufficient length',
       startingPrice: 1000,
       endTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-      imageUrls: ['2026/03/test-image.jpg'],
+      imageUrls: ['http://localhost:3000/uploads/2026/03/auctions/test-image.jpg'],
       primaryImageIndex: 0,
     };
 
@@ -263,7 +263,7 @@ describe('Auctions (e2e)', () => {
         description: 'E2E test auction description with sufficient length for the test',
         startingPrice: 500,
         endTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-        imageUrls: ['2026/03/test-image.jpg'],
+        imageUrls: ['http://localhost:3000/uploads/2026/03/auctions/test-image.jpg'],
         primaryImageIndex: 0,
       };
 
@@ -274,7 +274,6 @@ describe('Auctions (e2e)', () => {
       expect(response.body.data).toHaveProperty('startingPrice', payload.startingPrice);
       expect(response.body.data).toHaveProperty('status', AuctionStatus.PENDING);
 
-      // Cleanup
       await auctionImageRepository.delete({ auctionId: response.body.data.id });
       await auctionRepository.delete({ id: response.body.data.id });
     });
@@ -296,7 +295,7 @@ describe('Auctions (e2e)', () => {
         endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
         ownerId,
         status: AuctionStatus.ACTIVE,
-        mainImageUrl: '/uploads/2026/03/test.jpg',
+        mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
       });
       const saved = await auctionRepository.save(auction);
       auctionId = saved.id;
@@ -345,7 +344,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() + 1 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.CANCELED,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
 
@@ -367,7 +366,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() + 1 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.CANCELED,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
 
@@ -421,7 +420,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.ACTIVE,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
       auctionId = auction.id;
@@ -470,7 +469,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() + 3 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.ACTIVE,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
       auctionId = auction.id;
@@ -581,7 +580,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() - 1 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.ENDED,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
 
@@ -630,7 +629,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.PENDING,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
 
@@ -652,7 +651,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() - 1 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.ENDED,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
 
@@ -674,7 +673,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.PENDING,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
 
@@ -696,7 +695,7 @@ describe('Auctions (e2e)', () => {
           endTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
           ownerId,
           status: AuctionStatus.ACTIVE,
-          mainImageUrl: '/uploads/2026/03/test.jpg',
+          mainImageUrl: 'http://localhost:3000/uploads/2026/03/auctions/test.jpg',
         }),
       );
 

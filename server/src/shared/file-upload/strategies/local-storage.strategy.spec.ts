@@ -1,13 +1,17 @@
 import { createMockFilesFixture } from '@test/fixtures/file.fixtures';
+import { AppConfigService } from '@config/config.service';
 import { LocalStorageStrategy } from './local-storage.strategy';
-import { normalize, posix } from 'path';
+import { createMock } from '@golevelup/ts-jest';
 import { promises as fs } from 'fs';
+import { normalize } from 'path';
 
 jest.mock('path', () => {
   const actualPath = jest.requireActual<typeof import('path')>('path');
   return {
     ...actualPath,
-    normalize: jest.fn((p: string): string => posix.normalize(p)),
+    resolve: jest.fn((...args: string[]) => actualPath.posix.resolve(...args)),
+    normalize: jest.fn((p: string): string => actualPath.posix.normalize(p)),
+    dirname: jest.fn((p: string): string => actualPath.posix.dirname(p)),
     sep: '/',
   };
 });
@@ -26,10 +30,17 @@ const mockUnlink = jest.mocked(fs.unlink);
 
 describe('LocalStorageStrategy', () => {
   let strategy: LocalStorageStrategy;
+  let mockConfigService: AppConfigService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    strategy = new LocalStorageStrategy();
+
+    mockConfigService = createMock<AppConfigService>({
+      file: { uploadsDir: '/mock/uploads/dir' },
+      app: { publicUrl: 'http://localhost:3000' },
+    });
+
+    strategy = new LocalStorageStrategy(mockConfigService);
   });
 
   describe('upload', () => {
@@ -38,37 +49,44 @@ describe('LocalStorageStrategy', () => {
       mockWriteFile.mockResolvedValue(undefined);
 
       const [file] = createMockFilesFixture(1);
-      const path = '/uploads/2026/03/auctions/abc123.jpg';
+      const fileKey = '2026/03/auctions/abc123.jpg';
+      const expectedAbsolutePath = '/mock/uploads/dir/2026/03/auctions/abc123.jpg';
 
-      await strategy.upload(file, path);
+      await strategy.upload(file, fileKey);
 
-      expect(mockMkdir).toHaveBeenCalledWith('/uploads/2026/03/auctions', { recursive: true });
-      expect(mockWriteFile).toHaveBeenCalledWith(path, file.buffer);
+      expect(mockMkdir).toHaveBeenCalledWith('/mock/uploads/dir/2026/03/auctions', { recursive: true });
+      expect(mockWriteFile).toHaveBeenCalledWith(expectedAbsolutePath, file.buffer);
     });
 
-    it('should return correct url and path on success', async () => {
+    it('should return correct public url and file key path on success', async () => {
       mockMkdir.mockResolvedValue(undefined);
       mockWriteFile.mockResolvedValue(undefined);
 
       const [file] = createMockFilesFixture(1);
-      const path = '/uploads/2026/03/auctions/abc123.jpg';
+      const fileKey = '2026/03/auctions/abc123.jpg';
 
-      const result = await strategy.upload(file, path);
+      const result = await strategy.upload(file, fileKey);
 
-      expect(result.path).toBe(path);
-      expect(result.url).toBe('/uploads/2026/03/auctions/abc123.jpg');
+      expect(result.path).toBe(fileKey);
+      expect(result.url).toBe('http://localhost:3000/uploads/2026/03/auctions/abc123.jpg');
     });
 
-    it('should return url equal to path when path already starts with /uploads', async () => {
+    it('should strip trailing slash from publicUrl before appending fileKey', async () => {
       mockMkdir.mockResolvedValue(undefined);
       mockWriteFile.mockResolvedValue(undefined);
 
+      mockConfigService = createMock<AppConfigService>({
+        file: { uploadsDir: '/mock/uploads/dir' },
+        app: { publicUrl: 'https://api.domain.com/' },
+      });
+      strategy = new LocalStorageStrategy(mockConfigService);
+
       const [file] = createMockFilesFixture(1);
-      const path = '/uploads/2026/03/avatars/xyz.png';
+      const fileKey = 'avatars/xyz.png';
 
-      const result = await strategy.upload(file, path);
+      const result = await strategy.upload(file, fileKey);
 
-      expect(result.url).toBe('/uploads/2026/03/avatars/xyz.png');
+      expect(result.url).toBe('https://api.domain.com/uploads/avatars/xyz.png');
     });
 
     it('should propagate error when mkdir fails', async () => {
@@ -76,8 +94,7 @@ describe('LocalStorageStrategy', () => {
 
       const [file] = createMockFilesFixture(1);
 
-      await expect(strategy.upload(file, '/uploads/abc.jpg')).rejects.toThrow('Permission denied');
-
+      await expect(strategy.upload(file, 'abc.jpg')).rejects.toThrow('Permission denied');
       expect(mockWriteFile).not.toHaveBeenCalled();
     });
 
@@ -87,62 +104,49 @@ describe('LocalStorageStrategy', () => {
 
       const [file] = createMockFilesFixture(1);
 
-      await expect(strategy.upload(file, '/uploads/abc.jpg')).rejects.toThrow('Disk full');
+      await expect(strategy.upload(file, 'abc.jpg')).rejects.toThrow('Disk full');
     });
   });
 
   describe('delete', () => {
-    it('should call fs.unlink with the normalized absolute path', async () => {
+    it('should call fs.unlink with the absolute path', async () => {
       mockUnlink.mockResolvedValue(undefined);
 
-      const absolutePath = '/uploads/2026/03/auctions/abc123.jpg';
-      await strategy.delete(absolutePath);
+      const fileKey = '2026/03/auctions/abc123.jpg';
+      const expectedAbsolutePath = '/mock/uploads/dir/2026/03/auctions/abc123.jpg';
 
-      expect(mockUnlink).toHaveBeenCalledWith(normalize(absolutePath));
+      await strategy.delete(fileKey);
+
+      expect(mockUnlink).toHaveBeenCalledWith(expectedAbsolutePath);
+    });
+
+    it('should throw SECURITY ALERT when path contains ".." escaping uploads directory', async () => {
+      const maliciousKey = '../../etc/passwd';
+
+      await expect(strategy.delete(maliciousKey)).rejects.toThrow('SECURITY ALERT: Path traversal attempt blocked!');
+      expect(mockUnlink).not.toHaveBeenCalled();
+    });
+
+    it('should throw Unsafe path rejected if normalized path differs', async () => {
+      jest.mocked(normalize).mockReturnValueOnce('/different/path/entirely.jpg');
+
+      const fileKey = '2026/03/auctions/abc.jpg';
+
+      await expect(strategy.delete(fileKey)).rejects.toThrow('Unsafe path rejected');
+      expect(mockUnlink).not.toHaveBeenCalled();
     });
 
     it('should propagate error when fs.unlink fails', async () => {
       mockUnlink.mockRejectedValue(new Error('File not found'));
 
-      await expect(strategy.delete('/uploads/2026/03/auctions/abc.jpg')).rejects.toThrow('File not found');
+      await expect(strategy.delete('2026/03/auctions/abc.jpg')).rejects.toThrow('File not found');
     });
 
-    it('should throw when path contains ".." traversal segments', async () => {
-      await expect(strategy.delete('/uploads/../etc/passwd')).rejects.toThrow('Unsafe path rejected');
-
-      expect(mockUnlink).not.toHaveBeenCalled();
-    });
-
-    it('should throw when path contains "." current-dir segments', async () => {
-      await expect(strategy.delete('/uploads/./auctions/abc.jpg')).rejects.toThrow('Unsafe path rejected');
-
-      expect(mockUnlink).not.toHaveBeenCalled();
-    });
-
-    it('should throw when path is relative (no leading separator)', async () => {
-      await expect(strategy.delete('uploads/auctions/abc.jpg')).rejects.toThrow('Non-absolute path rejected');
-
-      expect(mockUnlink).not.toHaveBeenCalled();
-    });
-
-    it(`should throw for path that is just ".."`, async () => {
-      await expect(strategy.delete('..')).rejects.toThrow();
-
-      expect(mockUnlink).not.toHaveBeenCalled();
-    });
-
-    it('should accept a valid absolute path without throwing', async () => {
+    it('should accept a valid fileKey without throwing', async () => {
       mockUnlink.mockResolvedValue(undefined);
 
-      await expect(strategy.delete('/uploads/2026/03/auctions/safe.jpg')).resolves.not.toThrow();
-
+      await expect(strategy.delete('2026/03/auctions/safe.jpg')).resolves.not.toThrow();
       expect(mockUnlink).toHaveBeenCalledTimes(1);
-    });
-
-    it('should throw for path with redundant slashes (differs after normalization)', async () => {
-      await expect(strategy.delete('/uploads//auctions//abc.jpg')).rejects.toThrow('Unsafe path rejected');
-
-      expect(mockUnlink).not.toHaveBeenCalled();
     });
   });
 });

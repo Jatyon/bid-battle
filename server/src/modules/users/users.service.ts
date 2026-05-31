@@ -73,17 +73,16 @@ export class UsersService {
       throw new BadRequestException('user.error.update_avatar_failed');
     }
 
-    const oldAvatarPath = user.avatar ?? null;
+    const oldAvatarUrl = user.avatar ?? null;
 
     user.avatar = uploadedFile.url;
     const savedUser = await this.userRepository.save(user);
 
-    if (oldAvatarPath) {
-      await this.fileUploadService.deleteFile(oldAvatarPath).catch((err) => {
-        this.logger.warn(
-          `Failed to delete old avatar for user ${userId}: ${err instanceof Error ? err.message : String(err)} — stale file left on disk, recoverable via cleanup job`,
-        );
-      });
+    if (oldAvatarUrl) {
+      const oldFileKey = this.fileUploadService.extractKeyFromUrl(oldAvatarUrl);
+
+      if (oldFileKey) await this.fileUploadService.deleteFile(oldFileKey);
+      else this.logger.warn(`Could not extract file key from old avatar URL for user ${userId}. Stale file might be left.`);
     }
 
     return savedUser;
@@ -101,7 +100,10 @@ export class UsersService {
 
     if (!user || !user.avatar) return;
 
-    await this.fileUploadService.deleteFile(user.avatar);
+    const fileKey = this.fileUploadService.extractKeyFromUrl(user.avatar);
+
+    if (fileKey) await this.fileUploadService.deleteFile(fileKey);
+    else this.logger.warn(`Could not extract file key from avatar URL for user ${userId}. Stale file might be left.`);
 
     user.avatar = null;
     await this.userRepository.save(user);
