@@ -237,7 +237,10 @@ export class AuctionsService {
     const limit: number = paginator.limit;
     const skip: number = paginator.skip;
 
-    const auction = await this.auctionsRepository.findOneBy({ id: auctionId });
+    const auction = await this.auctionsRepository.findOne({
+      where: { id: auctionId },
+      select: ['id', 'status', 'ownerId'],
+    });
 
     if (!auction) throw new NotFoundException('error.auction.not_found');
 

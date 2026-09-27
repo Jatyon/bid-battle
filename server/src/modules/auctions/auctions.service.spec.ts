@@ -383,19 +383,19 @@ describe('AuctionsService', () => {
 
       const mockBids = [{ id: 1, amount: 200, auctionId: mockAuctionId, userId: 2 }] as any[];
 
-      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      auctionsRepository.findOne.mockResolvedValue(mockAuction);
       bidRepository.findPaginatedBidByAuction.mockResolvedValue([mockBids, 1]);
 
       const result = await service.findAuctionBids(mockAuctionId, mockPaginator);
 
-      expect(auctionsRepository.findOneBy).toHaveBeenCalledWith({ id: mockAuctionId });
+      expect(auctionsRepository.findOne).toHaveBeenCalledWith({ where: { id: mockAuctionId }, select: ['id', 'status', 'ownerId'] });
       expect(bidRepository.findPaginatedBidByAuction).toHaveBeenCalledWith(mockAuctionId, 0, 10);
       expect(result.items.length).toBe(1);
       expect(responseSpy).toHaveBeenCalledWith(expect.any(Array), 1, 10, 1);
     });
 
     it('should throw NotFoundException if auction does not exist', async () => {
-      auctionsRepository.findOneBy.mockResolvedValue(null);
+      auctionsRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findAuctionBids(1, mockPaginator)).rejects.toThrow(NotFoundException);
       expect(bidRepository.findPaginatedBidByAuction).not.toHaveBeenCalled();
@@ -403,7 +403,7 @@ describe('AuctionsService', () => {
 
     it('should throw NotFoundException if auction is CANCELED and requesting user is NOT the owner', async () => {
       const mockAuction = createAuctionFixture({ id: 10, status: AuctionStatus.CANCELED, ownerId: 1 });
-      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      auctionsRepository.findOne.mockResolvedValue(mockAuction);
 
       await expect(service.findAuctionBids(10, mockPaginator, 2)).rejects.toThrow(NotFoundException);
       expect(bidRepository.findPaginatedBidByAuction).not.toHaveBeenCalled();
@@ -414,7 +414,7 @@ describe('AuctionsService', () => {
       const mockOwnerId = 1;
       const mockAuction = createAuctionFixture({ id: mockAuctionId, status: AuctionStatus.CANCELED, ownerId: mockOwnerId });
 
-      auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
+      auctionsRepository.findOne.mockResolvedValue(mockAuction);
       bidRepository.findPaginatedBidByAuction.mockResolvedValue([[], 0]);
 
       await service.findAuctionBids(mockAuctionId, mockPaginator, mockOwnerId);
