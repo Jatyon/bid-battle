@@ -375,7 +375,6 @@ export class AuctionsService {
         if (updateAuctionDto.description) lockedAuction.description = updateAuctionDto.description;
         if (updateAuctionDto.category !== undefined) lockedAuction.category = updateAuctionDto.category ?? null;
 
-        updatedAuction = await em.save(Auction, lockedAuction);
         return em.save(Auction, lockedAuction);
       });
       endTimeChanged = true;
