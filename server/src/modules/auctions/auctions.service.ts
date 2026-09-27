@@ -425,10 +425,6 @@ export class AuctionsService {
     if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.update_forbidden_not_owner');
     if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.update_forbidden_not_active');
 
-    if (auction.status === AuctionStatus.ACTIVE) {
-      const bidCount = await this.bidRepository.count({ where: { auctionId } });
-      if (bidCount > 0) throw new BadRequestException('error.auction.update_forbidden_images_has_bids');
-    }
 
     const hasNewFiles = files.length > 0;
     const hasExistingUrls = existingImageUrls.length > 0;
@@ -460,6 +456,20 @@ export class AuctionsService {
 
     try {
       await this.auctionsRepository.manager.transaction(async (em) => {
+        // Re-validate with pessimistic lock to prevent TOCTOU race condition:
+        // a bid could be placed between the initial ownership/status check and this DB write.
+        if (auction.status === AuctionStatus.ACTIVE) {
+          const lockedAuction = await em.findOne(Auction, {
+            where: { id: auctionId },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (lockedAuction) {
+            const bidCount = await em.count(Bid, { where: { auctionId } });
+            if (bidCount > 0) throw new BadRequestException('error.auction.update_forbidden_images_has_bids');
+          }
+        }
+
         if (toDelete.length > 0) await em.delete(AuctionImage, { id: In(toDelete.map((img) => img.id)) });
 
         for (const img of toKeep) {
