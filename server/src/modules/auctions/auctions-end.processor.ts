@@ -47,7 +47,7 @@ export class AuctionEndProcessor extends WorkerHost {
 
     const finalPrice = await this.redisService.getLivePrice(auctionId);
 
-    if (!finalPrice) {
+    if (finalPrice === null) {
       this.logger.warn(`Auction ${auctionId} data already cleaned up from Redis — skipping`);
       return;
     }
