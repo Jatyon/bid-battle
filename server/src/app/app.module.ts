@@ -52,8 +52,16 @@ import { join } from 'path';
       inject: [AppConfigService],
       useFactory: (config: AppConfigService) => [
         {
+          name: 'default',
           ttl: config.app.throttleTtlMs,
           limit: config.app.throttleLimit,
+        },
+        {
+          // Stricter throttler for sensitive auth endpoints (login, forgot-password, resend-verification).
+          // Applied per-endpoint via @Throttle({ auth: { ... } }) decorator.
+          name: 'auth',
+          ttl: config.app.authThrottleTtlMs,
+          limit: config.app.authThrottleLimit,
         },
       ],
     }),

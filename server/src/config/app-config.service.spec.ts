@@ -53,6 +53,34 @@ describe('AppConfigService', () => {
 
       expect(() => service.app).toThrow('Missing required environment variable: CORS_ORIGIN');
     });
+
+    it('should return auth throttle config with default values', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => {
+        if (key === 'CORS_ORIGIN') return 'http://localhost';
+        return defaultValue;
+      });
+
+      const config = service.app;
+
+      expect(config.authThrottleTtlMs).toBe(60000);
+      expect(config.authThrottleLimit).toBe(5);
+    });
+
+    it('should return auth throttle config with custom values from env', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => {
+        const values: Record<string, unknown> = {
+          CORS_ORIGIN: 'http://localhost',
+          AUTH_THROTTLE_TTL_MS: 30000,
+          AUTH_THROTTLE_LIMIT: 3,
+        };
+        return values[key] !== undefined ? values[key] : defaultValue;
+      });
+
+      const config = service.app;
+
+      expect(config.authThrottleTtlMs).toBe(30000);
+      expect(config.authThrottleLimit).toBe(3);
+    });
   });
 
   describe('database', () => {

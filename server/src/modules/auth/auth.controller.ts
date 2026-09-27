@@ -1,5 +1,6 @@
 import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, Res, UnauthorizedException, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConflictResponse, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ApiStandardResponse, CurrentUser, Public } from '@core/decorators';
 import { MessageResponse } from '@core/models';
 import { AppConfigService } from '@config/config.service';
@@ -45,6 +46,7 @@ export class AuthController {
     description: 'Authenticate user and return JWT tokens',
   })
   @ApiStandardResponse(AuthLoginResponse, false)
+  @Throttle({ auth: {} })
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -87,6 +89,7 @@ export class AuthController {
     description: 'Send password reset email to user',
   })
   @ApiStandardResponse(MessageResponse, false)
+  @Throttle({ auth: {} })
   @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
@@ -142,6 +145,7 @@ export class AuthController {
     description: 'Resend the email verification link. Silently succeeds even if email is not found.',
   })
   @ApiStandardResponse(MessageResponse, false)
+  @Throttle({ auth: {} })
   @Public()
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)

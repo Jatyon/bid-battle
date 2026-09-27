@@ -8,6 +8,8 @@ export interface IConfigApp {
   timeoutMs: number;
   throttleTtlMs: number;
   throttleLimit: number;
+  authThrottleTtlMs: number;
+  authThrottleLimit: number;
   corsOrigin: string;
   emailVerificationExpiresInMin: number;
   resetPasswordExpiresInMin: number;
