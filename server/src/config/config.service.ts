@@ -19,6 +19,19 @@ import { DatabaseType } from 'typeorm';
 
 @Injectable()
 export class AppConfigService {
+  private _app?: IConfigApp;
+  private _database?: IDatabaseConfig;
+  private _i18n?: IConfigI18n;
+  private _file?: IConfigFile;
+  private _jwt?: IConfigJWT;
+  private _mailer?: IConfigMailer;
+  private _redis?: IConfigRedis;
+  private _socket?: IConfigSocket;
+  private _bid?: IConfigBid;
+  private _google?: IConfigGoogle;
+  private _github?: IConfigGithub;
+  private _cookies?: IConfigCookies;
+
   constructor(private readonly configService: ConfigService) {}
 
   private requireGet<T = string>(key: string): T {
@@ -30,7 +43,7 @@ export class AppConfigService {
   }
 
   get app(): IConfigApp {
-    return {
+    return (this._app ??= {
       mode: this.configService.get<string>('NODE_ENV', 'development'),
       name: this.configService.get<string>('NAME', 'Test App'),
       host: this.configService.get<string>('HOST', 'http://localhost'),
@@ -45,11 +58,11 @@ export class AppConfigService {
       corsOrigin: this.requireGet<string>('CORS_ORIGIN'),
       emailVerificationExpiresInMin: this.configService.get<number>('EMAIL_VERIFICATION_EXPIRES_IN', 15),
       resetPasswordExpiresInMin: this.configService.get<number>('RESET_PASSWORD_EXPIRES_IN', 15),
-    };
+    });
   }
 
   get database(): IDatabaseConfig {
-    return {
+    return (this._database ??= {
       type: this.configService.get<DatabaseType>('DATABASE_TYPE', 'mysql'),
       host: this.configService.get<string>('DATABASE_HOST', 'localhost'),
       port: this.configService.get<number>('DATABASE_PORT', 3306),
@@ -61,100 +74,94 @@ export class AppConfigService {
       seeds: ['dist/database/seeds/*.js'],
       synchronize: this.configService.get<boolean>('DATABASE_SYNCHRONIZE', false),
       migrationsRun: this.configService.get<boolean>('DATABASE_MIGRATIONS_RUN', false),
-    };
+    });
   }
 
   get i18n(): IConfigI18n {
-    return {
+    return (this._i18n ??= {
       fallbackLanguage: this.configService.get<string>('I18N_FALLBACK_LANGUAGE', 'en'),
-    };
+    });
   }
 
   get file(): IConfigFile {
-    return {
+    return (this._file ??= {
       avatarMaxSizeMB: this.configService.get<number>('AVATAR_MAX_SIZE_MB', 5),
       auctionImageMaxSizeMB: this.configService.get<number>('AUCTION_IMAGE_MAX_SIZE_MB', 10),
       allowedImageTypes: this.configService.get<string>('ALLOWED_IMAGE_TYPES', 'image/jpeg,image/png').split(','),
       uploadsDir: this.configService.get<string>('UPLOADS_DIR', 'uploads'),
       storageType: this.configService.get<StorageType>('STORAGE_TYPE', 'local'),
-    };
+    });
   }
 
   get jwt(): IConfigJWT {
-    return {
+    return (this._jwt ??= {
       tokenLife: this.configService.get<string>('JWT_EXPIRES_IN', '1d'),
       refreshTokenLife: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
       secret: this.requireGet<string>('JWT_SECRET'),
       refreshSecret: this.requireGet<string>('JWT_REFRESH_SECRET'),
       saltOrRounds: this.requireGet<number>('JWT_SALT_OR_ROUNDS'),
-    };
+    });
   }
 
   get mailer(): IConfigMailer {
-    {
-      return {
-        host: this.configService.get<string>('SMTP_HOST', 'localhost'),
-        port: this.configService.get<number>('SMTP_PORT', 587),
-        ignoreTLS: this.configService.get<boolean>('SMTP_IGNORE_TLS', false),
-        secure: this.configService.get<boolean>('SMTP_SECURE', false),
-        auth: {
-          user: this.configService.get<string>('SMTP_USER', ''),
-          pass: this.configService.get<string>('SMTP_PASSWORD', ''),
-        },
-        from: {
-          name: this.configService.get<string>('SMTP_FROM_NAME', 'No Reply'),
-          address: this.configService.get<string>('SMTP_FROM_ADDRESS', ''),
-        },
-      };
-    }
+    return (this._mailer ??= {
+      host: this.configService.get<string>('SMTP_HOST', 'localhost'),
+      port: this.configService.get<number>('SMTP_PORT', 587),
+      ignoreTLS: this.configService.get<boolean>('SMTP_IGNORE_TLS', false),
+      secure: this.configService.get<boolean>('SMTP_SECURE', false),
+      auth: {
+        user: this.configService.get<string>('SMTP_USER', ''),
+        pass: this.configService.get<string>('SMTP_PASSWORD', ''),
+      },
+      from: {
+        name: this.configService.get<string>('SMTP_FROM_NAME', 'No Reply'),
+        address: this.configService.get<string>('SMTP_FROM_ADDRESS', ''),
+      },
+    });
   }
 
   get redis(): IConfigRedis {
-    {
-      return {
-        host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-        port: this.configService.get<number>('REDIS_PORT', 6379),
-        password: this.configService.get<string>('REDIS_PASSWORD', ''),
-        ttl: this.configService.get<number>('REDIS_TTL', 300),
-      };
-    }
+    return (this._redis ??= {
+      host: this.configService.get<string>('REDIS_HOST', 'localhost'),
+      port: this.configService.get<number>('REDIS_PORT', 6379),
+      password: this.configService.get<string>('REDIS_PASSWORD', ''),
+      ttl: this.configService.get<number>('REDIS_TTL', 300),
+    });
   }
 
   get socket(): IConfigSocket {
-    {
-      return {
-        windowMs: this.configService.get<number>('WS_RATE_LIMIT_MS', 10000),
-        maxEvents: this.configService.get<number>('WS_RATE_LIMIT_MAX', 10),
-      };
-    }
+    return (this._socket ??= {
+      windowMs: this.configService.get<number>('WS_RATE_LIMIT_MS', 10000),
+      maxEvents: this.configService.get<number>('WS_RATE_LIMIT_MAX', 10),
+    });
   }
 
   get bid(): IConfigBid {
-    return {
+    return (this._bid ??= {
       minIncrementPercent: this.configService.get<number>('BID_MIN_INCREMENT_PERCENT', 1),
       minIncrementAbsolute: this.configService.get<number>('BID_MIN_INCREMENT_ABSOLUTE', 0.01),
-    };
+    });
   }
 
   get google(): IConfigGoogle {
-    return {
+    return (this._google ??= {
       clientId: this.requireGet<string>('GOOGLE_CLIENT_ID'),
       clientSecret: this.requireGet<string>('GOOGLE_CLIENT_SECRET'),
       callbackUrl: this.requireGet<string>('GOOGLE_CALLBACK_URL'),
-    };
+    });
   }
 
   get github(): IConfigGithub {
-    return {
+    return (this._github ??= {
       clientId: this.requireGet<string>('GITHUB_CLIENT_ID'),
       clientSecret: this.requireGet<string>('GITHUB_CLIENT_SECRET'),
       callbackUrl: this.requireGet<string>('GITHUB_CALLBACK_URL'),
-    };
+    });
   }
 
   get cookies(): IConfigCookies {
-    return {
+    return (this._cookies ??= {
       refreshTokenName: this.configService.get<string>('REFRESH_TOKEN_COOKIE_NAME', 'refreshToken'),
-    };
+    });
   }
 }

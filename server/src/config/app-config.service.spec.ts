@@ -81,6 +81,18 @@ describe('AppConfigService', () => {
       expect(config.authThrottleTtlMs).toBe(30000);
       expect(config.authThrottleLimit).toBe(3);
     });
+
+    it('should memoize app config instance across multiple calls', () => {
+      configService.get.mockImplementation((key: string, defaultValue: any) => {
+        if (key === 'CORS_ORIGIN') return 'http://localhost';
+        return defaultValue;
+      });
+
+      const first = service.app;
+      const second = service.app;
+
+      expect(first).toBe(second);
+    });
   });
 
   describe('database', () => {
