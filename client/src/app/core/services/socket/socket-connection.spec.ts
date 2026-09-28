@@ -40,6 +40,9 @@ describe('SocketConnection', () => {
   let connection: SocketConnection;
 
   beforeEach(() => {
+    vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
     mockSocket = createMockSocket();
     socketFactory = vi.fn().mockReturnValue(mockSocket);
     getToken = vi.fn().mockReturnValue('test-token');
