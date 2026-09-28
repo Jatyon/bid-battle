@@ -22,7 +22,7 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status !== 401) return throwError(() => error);
 
-      if (tokenService.isRefreshing) {
+      if (tokenService.isRefreshing()) {
         return tokenService.waitForToken().pipe(
           switchMap((newToken) => {
             if (!newToken) return throwError(() => error);

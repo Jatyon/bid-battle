@@ -33,18 +33,18 @@ describe('TokenService', () => {
 
   describe('isRefreshing', () => {
     it('should be false initially', () => {
-      expect(service.isRefreshing).toBe(false);
+      expect(service.isRefreshing()).toBe(false);
     });
 
     it('should be true after startRefresh()', () => {
       service.startRefresh();
-      expect(service.isRefreshing).toBe(true);
+      expect(service.isRefreshing()).toBe(true);
     });
 
     it('should be false after resolveRefresh()', () => {
       service.startRefresh();
       service.resolveRefresh('new-token');
-      expect(service.isRefreshing).toBe(false);
+      expect(service.isRefreshing()).toBe(false);
     });
 
     it('should update accessToken after resolveRefresh()', () => {
@@ -56,7 +56,7 @@ describe('TokenService', () => {
     it('should be false after rejectRefresh()', () => {
       service.startRefresh();
       service.rejectRefresh();
-      expect(service.isRefreshing).toBe(false);
+      expect(service.isRefreshing()).toBe(false);
     });
   });
 

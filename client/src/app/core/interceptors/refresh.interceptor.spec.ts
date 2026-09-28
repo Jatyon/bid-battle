@@ -14,7 +14,7 @@ describe('refreshInterceptor', () => {
   let httpMock: HttpTestingController;
   let tokenService: {
     accessToken: ReturnType<typeof vi.fn>;
-    isRefreshing: boolean;
+    isRefreshing: ReturnType<typeof vi.fn>;
     startRefresh: ReturnType<typeof vi.fn>;
     resolveRefresh: ReturnType<typeof vi.fn>;
     rejectRefresh: ReturnType<typeof vi.fn>;
@@ -30,7 +30,7 @@ describe('refreshInterceptor', () => {
   beforeEach(() => {
     tokenService = {
       accessToken: vi.fn().mockReturnValue(null),
-      isRefreshing: false,
+      isRefreshing: vi.fn().mockReturnValue(false),
       startRefresh: vi.fn(),
       resolveRefresh: vi.fn(),
       rejectRefresh: vi.fn(),
@@ -149,7 +149,7 @@ describe('refreshInterceptor', () => {
 
   describe('queuing during refresh', () => {
     it('should retry with new token when refresh is already in progress and succeeds', () => {
-      tokenService.isRefreshing = true;
+      tokenService.isRefreshing.mockReturnValue(true);
       tokenService.waitForToken.mockReturnValue(of('queued-token'));
 
       let response: unknown;
@@ -167,7 +167,7 @@ describe('refreshInterceptor', () => {
     });
 
     it('should propagate error when waitForToken emits null (refresh rejected)', () => {
-      tokenService.isRefreshing = true;
+      tokenService.isRefreshing.mockReturnValue(true);
       tokenService.waitForToken.mockReturnValue(of(null));
 
       let capturedStatus: number | undefined;

@@ -19,9 +19,7 @@ export class TokenService {
   private readonly _isRefreshing = signal(false);
   private readonly _refreshSubject = new Subject<string | null>();
 
-  get isRefreshing(): boolean {
-    return this._isRefreshing();
-  }
+  readonly isRefreshing = this._isRefreshing.asReadonly();
 
   /** Sets the token after a successful login or token refresh. */
   setAccessToken(token: string): void {
