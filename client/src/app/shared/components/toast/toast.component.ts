@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, Signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Notification, NotificationType, NotificationService } from '@core/index';
 import { TranslocoService } from '@jsverse/transloco';
 import {
@@ -22,10 +23,12 @@ export class ToastComponent {
   private readonly notificationService = inject(NotificationService);
   private readonly transloco = inject(TranslocoService);
 
-  readonly notifications = this.notificationService.notifications;
+  readonly notifications: Signal<Notification[]> = this.notificationService.notifications;
   readonly NotificationType = NotificationType;
 
-  readonly closeLabel = () => this.transloco.translate('TOAST.CLOSE');
+  readonly closeLabel = toSignal(this.transloco.selectTranslate('TOAST.CLOSE'), {
+    initialValue: '',
+  });
 
   readonly icons: Record<NotificationType, LucideIconData> = {
     [NotificationType.Success]: CircleCheck,
@@ -38,9 +41,5 @@ export class ToastComponent {
 
   dismiss(id: string): void {
     this.notificationService.dismiss(id);
-  }
-
-  trackById(_: number, item: Notification): string {
-    return item.id;
   }
 }
