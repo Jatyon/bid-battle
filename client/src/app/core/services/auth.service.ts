@@ -1,14 +1,17 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  ForgotPasswordForm,
-  LoginForm,
-  RegisterForm,
-  ResendVerificationForm,
-  ResetPasswordForm,
-} from '@app/features/auth';
 import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
-import { User, AuthTokens } from '@core/models';
+import {
+  User,
+  AuthTokens,
+  LoginRequest,
+  RegisterRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
+  ResendVerificationRequest,
+  ChangePasswordRequest,
+} from '@core/models';
 import { StorageService } from './storage.service';
 import { TokenService } from './token.service';
 import { ApiService } from './api.service';
@@ -71,31 +74,45 @@ export class AuthService {
     this.state.update((s) => ({ ...s, user }));
   }
 
-  login(credentials: LoginForm): Observable<void> {
+  login(credentials: LoginRequest): Observable<void> {
     return this.api.post<{ accessToken: string; user: User }>('/auth/login', credentials).pipe(
       tap((response) => this.setSession(response.data.accessToken, response.data.user)),
       map(() => undefined),
     );
   }
 
-  register(data: RegisterForm): Observable<void> {
-    return this.api.post<{ message: string }>('/auth/register', data).pipe(map(() => undefined));
+  register(request: RegisterRequest): Observable<void> {
+    return this.api.post<{ message: string }>('/auth/register', request).pipe(map(() => undefined));
   }
 
-  forgotPassword(data: ForgotPasswordForm): Observable<void> {
-    return this.api.post<{ message: string }>('/auth/forgot-password', data).pipe(map(() => undefined));
+  forgotPassword(request: ForgotPasswordRequest): Observable<void> {
+    return this.api
+      .post<{ message: string }>('/auth/forgot-password', request)
+      .pipe(map(() => undefined));
   }
 
-  resetPassword(data: ResetPasswordForm): Observable<void> {
-    return this.api.post<{ message: string }>('/auth/reset-password', data).pipe(map(() => undefined));
+  resetPassword(request: ResetPasswordRequest): Observable<void> {
+    return this.api
+      .post<{ message: string }>('/auth/reset-password', request)
+      .pipe(map(() => undefined));
   }
 
-  verifyEmail(token: string): Observable<void> {
-    return this.api.post<{ message: string }>('/auth/verify-email', { token }).pipe(map(() => undefined));
+  verifyEmail(request: VerifyEmailRequest): Observable<void> {
+    return this.api
+      .post<{ message: string }>('/auth/verify-email', request)
+      .pipe(map(() => undefined));
   }
 
-  resendVerificationEmail(data: ResendVerificationForm): Observable<void> {
-    return this.api.post<{ message: string }>('/auth/resend-verification', data).pipe(map(() => undefined));
+  resendVerificationEmail(request: ResendVerificationRequest): Observable<void> {
+    return this.api
+      .post<{ message: string }>('/auth/resend-verification', request)
+      .pipe(map(() => undefined));
+  }
+
+  changePassword(request: ChangePasswordRequest): Observable<void> {
+    return this.api
+      .post<{ message: string }>('/auth/change-password', request)
+      .pipe(map(() => undefined));
   }
 
   /**

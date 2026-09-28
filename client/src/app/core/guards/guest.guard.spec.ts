@@ -1,6 +1,6 @@
 import { UrlTree, provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
-import { AuthService } from '@core/index';
+import { AuthService } from '@core/services';
 import { guestGuard } from './guest.guard';
 
 const runGuard = () => TestBed.runInInjectionContext(() => guestGuard({} as never, {} as never));

@@ -4,8 +4,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService } from '@core/index';
-import type { ForgotPasswordForm } from '@features/auth/models';
+import { AuthService } from '@core/services';
+import type { ForgotPasswordRequest } from '@core/models';
 import { resolveHttpError } from '@features/auth/utils';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
@@ -39,10 +39,10 @@ export class ForgotPasswordPage {
     if (this.isLoading()) return;
     this.isLoading.set(true);
 
-    const data: ForgotPasswordForm = this.form.getRawValue();
+    const request: ForgotPasswordRequest = this.form.getRawValue();
 
     this.authService
-      .forgotPassword(data)
+      .forgotPassword(request)
       .pipe(
         finalize(() => this.isLoading.set(false)),
         takeUntilDestroyed(this.destroyRef),

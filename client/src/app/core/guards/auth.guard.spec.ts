@@ -1,6 +1,6 @@
 import { UrlTree, provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
-import { AuthService } from '@core/index';
+import { AuthService } from '@core/services';
 import { authGuard } from './auth.guard';
 import { firstValueFrom, Observable, of } from 'rxjs';
 
@@ -74,7 +74,7 @@ describe('authGuard', () => {
         currentUser: { id: 1 },
         silentRefreshResult: false,
       });
-      
+
       const result = await firstValueFrom(runGuard() as Observable<boolean | UrlTree>);
 
       expect(result).toBeInstanceOf(UrlTree);

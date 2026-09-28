@@ -1,7 +1,15 @@
 import { provideRouter, Router } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
-import { User } from '@core/models';
+import {
+  ForgotPasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  ResendVerificationRequest,
+  User,
+  VerifyEmailRequest,
+} from '@core/models';
 import { createUserFixture } from '@test/fixtures';
 import { StorageService } from './storage.service';
 import { TokenService } from './token.service';
@@ -127,7 +135,7 @@ describe('AuthService', () => {
   });
 
   describe('login()', () => {
-    const credentials = { email: 'test@example.com', password: 'Password1!' };
+    const credentials: LoginRequest = { email: 'test@example.com', password: 'Password1!' };
 
     it('should call POST /auth/login and set session on success', async () => {
       apiMock.post.mockReturnValue(
@@ -145,13 +153,15 @@ describe('AuthService', () => {
     it('should propagate API errors', async () => {
       apiMock.post.mockReturnValue(throwError(() => new Error('Invalid credentials')));
 
-      await expect(firstValueFrom(service.login(credentials))).rejects.toThrow('Invalid credentials');
+      await expect(firstValueFrom(service.login(credentials))).rejects.toThrow(
+        'Invalid credentials',
+      );
       expect(tokenMock.setAccessToken).not.toHaveBeenCalled();
     });
   });
 
   describe('register()', () => {
-    const registerData = {
+    const registerData: RegisterRequest = {
       firstName: 'Jan',
       lastName: 'Kowalski',
       email: 'jan@example.com',
@@ -172,12 +182,14 @@ describe('AuthService', () => {
     it('should propagate API errors', async () => {
       apiMock.post.mockReturnValue(throwError(() => new Error('Email already exists')));
 
-      await expect(firstValueFrom(service.register(registerData))).rejects.toThrow('Email already exists');
+      await expect(firstValueFrom(service.register(registerData))).rejects.toThrow(
+        'Email already exists',
+      );
     });
   });
 
   describe('forgotPassword()', () => {
-    const forgotData = { email: 'test@example.com' };
+    const forgotData: ForgotPasswordRequest = { email: 'test@example.com' };
 
     it('should call POST /auth/forgot-password', async () => {
       apiMock.post.mockReturnValue(of({ data: { message: 'Reset link sent' } } as never));
@@ -190,12 +202,14 @@ describe('AuthService', () => {
     it('should propagate API errors', async () => {
       apiMock.post.mockReturnValue(throwError(() => new Error('OAuth account')));
 
-      await expect(firstValueFrom(service.forgotPassword(forgotData))).rejects.toThrow('OAuth account');
+      await expect(firstValueFrom(service.forgotPassword(forgotData))).rejects.toThrow(
+        'OAuth account',
+      );
     });
   });
 
   describe('resetPassword()', () => {
-    const resetData = {
+    const resetData: ResetPasswordRequest = {
       token: 'reset-token',
       password: 'NewPassword1!',
       passwordRepeat: 'NewPassword1!',
@@ -212,19 +226,21 @@ describe('AuthService', () => {
     it('should propagate API errors', async () => {
       apiMock.post.mockReturnValue(throwError(() => new Error('Invalid token')));
 
-      await expect(firstValueFrom(service.resetPassword(resetData))).rejects.toThrow('Invalid token');
+      await expect(firstValueFrom(service.resetPassword(resetData))).rejects.toThrow(
+        'Invalid token',
+      );
     });
   });
 
   describe('verifyEmail()', () => {
-    const token = 'verify-token-abc';
+    const token: VerifyEmailRequest = { token: 'verify-token-abc' };
 
     it('should call POST /auth/verify-email with token', async () => {
       apiMock.post.mockReturnValue(of({ data: { message: 'Email verified' } } as never));
 
       await firstValueFrom(service.verifyEmail(token));
 
-      expect(apiMock.post).toHaveBeenCalledWith('/auth/verify-email', { token });
+      expect(apiMock.post).toHaveBeenCalledWith('/auth/verify-email', token);
     });
 
     it('should propagate API errors', async () => {
@@ -235,7 +251,7 @@ describe('AuthService', () => {
   });
 
   describe('resendVerificationEmail()', () => {
-    const resendData = { email: 'test@example.com' };
+    const resendData: ResendVerificationRequest = { email: 'test@example.com' };
 
     it('should call POST /auth/resend-verification', async () => {
       apiMock.post.mockReturnValue(of({ data: { message: 'Verification email resent' } } as never));

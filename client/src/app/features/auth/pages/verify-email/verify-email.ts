@@ -13,8 +13,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { isPlatformBrowser } from '@angular/common';
 import { ButtonComponent, DotsLoaderComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService } from '@core/index';
-import type { ResendVerificationForm } from '@features/auth/models';
+import { AuthService } from '@core/services';
+import type { ResendVerificationRequest, VerifyEmailRequest } from '@core/models';
 import { resolveHttpError } from '@features/auth/utils';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
@@ -74,10 +74,10 @@ export class VerifyEmailPage {
     if (this.isResendLoading()) return;
     this.isResendLoading.set(true);
 
-    const data: ResendVerificationForm = this.resendForm.getRawValue();
+    const request: ResendVerificationRequest = this.resendForm.getRawValue();
 
     this.authService
-      .resendVerificationEmail(data)
+      .resendVerificationEmail(request)
       .pipe(
         finalize(() => this.isResendLoading.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -109,8 +109,10 @@ export class VerifyEmailPage {
       return;
     }
 
+    const request: VerifyEmailRequest = { token };
+
     this.authService
-      .verifyEmail(token)
+      .verifyEmail(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {

@@ -12,7 +12,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
 import { AuthService, NotificationService } from '@core/index';
-import type { ResetPasswordForm } from '@features/auth/models';
+import type { ResetPasswordRequest } from '@core/models';
 import {
   passwordRepeatMatchValidator,
   resolveHttpError,
@@ -70,10 +70,10 @@ export class ResetPasswordPage implements OnInit {
     this.isLoading.set(true);
 
     const { password, passwordRepeat } = this.form.getRawValue();
-    const data: ResetPasswordForm = { token: resetToken, password, passwordRepeat };
+    const request: ResetPasswordRequest = { token: resetToken, password, passwordRepeat };
 
     this.authService
-      .resetPassword(data)
+      .resetPassword(request)
       .pipe(
         finalize(() => this.isLoading.set(false)),
         takeUntilDestroyed(this.destroyRef),

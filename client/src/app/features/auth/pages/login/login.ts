@@ -3,9 +3,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, Router } from '@angular/router';
 import { ButtonComponent, InputComponent } from '@app/shared';
-import { NotificationService, OAuthProvider, OAuthService } from '@core/index';
-import { AuthService } from '@core/services/auth.service';
-import type { LoginForm } from '@features/auth/models';
+import { NotificationService, OAuthProvider, OAuthService, AuthService } from '@core/index';
+import type { LoginRequest } from '@core/models';
 import { strongPasswordValidators } from '@features/auth/utils';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
@@ -43,7 +42,7 @@ export class LoginPage {
 
     this.isLoading.set(true);
 
-    const credentials: LoginForm = this.form.getRawValue();
+    const credentials: LoginRequest = this.form.getRawValue();
 
     this.authService
       .login(credentials)

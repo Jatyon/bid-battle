@@ -11,8 +11,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, Router } from '@angular/router';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService } from '@core/index';
-import type { RegisterForm } from '@features/auth/models';
+import { AuthService } from '@core/services';
+import type { RegisterRequest } from '@core/models';
 import {
   passwordRepeatMatchValidator,
   resolveHttpError,
@@ -64,10 +64,10 @@ export class RegisterPage implements OnInit {
     this.isLoading.set(true);
 
     const { firstName, lastName, email, password, passwordRepeat } = this.form.getRawValue();
-    const data: RegisterForm = { firstName, lastName, email, password, passwordRepeat };
+    const request: RegisterRequest = { firstName, lastName, email, password, passwordRepeat };
 
     this.authService
-      .register(data)
+      .register(request)
       .pipe(
         finalize(() => this.isLoading.set(false)),
         takeUntilDestroyed(this.destroyRef),

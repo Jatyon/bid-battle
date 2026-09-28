@@ -7,9 +7,8 @@ import {
 } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
-import { NotificationService, OAuthService } from '@app/core';
+import { NotificationService, OAuthService, AuthService } from '@app/core';
 import { DotsLoaderComponent } from '@app/shared';
-import { AuthService } from '@core/services/auth.service';
 import { TranslocoDirective } from '@jsverse/transloco';
 
 /**
@@ -63,7 +62,7 @@ export class OAuthCallbackPage {
       this.router.navigate(['/auth/login']);
       return;
     }
-    
+
     this.oauthService.exchangeCode(code).subscribe({
       next: ({ accessToken, user }) => {
         this.authService.setSession(accessToken, user);
