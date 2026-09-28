@@ -3,9 +3,9 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, Router } from '@angular/router';
 import { ButtonComponent, InputComponent } from '@app/shared';
-import { NotificationService, OAuthProvider, OAuthService, AuthService } from '@core/index';
+import { NotificationService, OAuthProvider, OAuthService } from '@core/index';
+import { AuthService } from '@core/services/auth.service';
 import type { LoginRequest } from '@core/models';
-import { strongPasswordValidators } from '@features/auth/utils';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 
@@ -29,7 +29,7 @@ export class LoginPage {
 
   readonly form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', strongPasswordValidators],
+    password: ['', Validators.required],
   });
 
   onSubmit(): void {
