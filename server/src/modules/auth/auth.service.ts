@@ -207,6 +207,7 @@ export class AuthService {
       },
     );
 
+    await this.usersTokenService.revokeAllRefreshTokens(tokenEntity.userId);
     await this.usersTokenService.markTokenAsUsed(tokenEntity);
 
     await this.mailService.sendPasswordChangedEmail(user.email, i18n.lang, user.concatName);

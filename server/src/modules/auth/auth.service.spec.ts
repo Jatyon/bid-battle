@@ -343,6 +343,7 @@ describe('AuthService', () => {
       expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 'random_salt');
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
+      expect(usersTokenService.revokeAllRefreshTokens).toHaveBeenCalledWith(mockUserToken.userId);
       expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(mockUserToken);
       expect(mailService.sendPasswordChangedEmail).toHaveBeenCalledWith(mockUserToken.user.email, mockI18nContext.lang, mockUserToken.user.concatName);
     });

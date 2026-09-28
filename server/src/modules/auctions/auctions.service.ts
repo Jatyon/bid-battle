@@ -428,7 +428,6 @@ export class AuctionsService {
     if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.update_forbidden_not_owner');
     if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.update_forbidden_not_active');
 
-
     const hasNewFiles = files.length > 0;
     const hasExistingUrls = existingImageUrls.length > 0;
 
