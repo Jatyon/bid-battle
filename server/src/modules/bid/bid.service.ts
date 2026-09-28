@@ -97,7 +97,7 @@ export class BidService {
         } catch (dbError) {
           this.logger.error(`DB save failed after atomic bid — rolling back Redis for auction ${auctionId}`, dbError instanceof Error ? dbError.stack : String(dbError));
 
-          await this.redisService.rollbackBid(auctionId, atomicResult.data.previousPrice, atomicResult.data.previousBidderId);
+          await this.redisService.rollbackBid(auctionId, amount, userId, atomicResult.data.previousPrice, atomicResult.data.previousBidderId);
           return this.fail('SERVER_ERROR', 'bid.error.bid_failed', lang);
         }
 

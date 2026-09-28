@@ -19,6 +19,14 @@ declare module 'ioredis' {
       userId: number,
       minIncrement: number,
     ): Result<[number, string | null, string | null], Context>;
+    rollbackBidAtomicCommand(
+      priceKey: string,
+      bidderKey: string,
+      expectedPrice: number,
+      expectedBidderId: number,
+      previousPrice: number | '',
+      previousBidderId: number | '',
+    ): Result<number, Context>;
   }
 }
 
@@ -96,12 +104,62 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return {1, currentPriceStr or false, currentBidderStr or false}
   `;
 
+  /**
+   * Rolls a bid back only if Redis still contains the exact bid that failed to
+   * persist. This compare-and-set prevents an older failed DB write from
+   * overwriting a newer bid accepted by another request.
+   * ARGV[3]/ARGV[4] use an empty string when there was no previous bid.
+   */
+  private readonly ROLLBACK_BID_SCRIPT = `
+    local priceKey = KEYS[1]
+    local bidderKey = KEYS[2]
+    local currentPrice = redis.call('GET', priceKey)
+    local currentBidder = redis.call('GET', bidderKey)
+
+    if not currentPrice or not currentBidder then
+      return 0
+    end
+
+    if tonumber(currentPrice) ~= tonumber(ARGV[1]) or currentBidder ~= ARGV[2] then
+      return 0
+    end
+
+    local remainingTtl = redis.call('PTTL', priceKey)
+    if remainingTtl == -2 then
+      return 0
+    end
+
+    if ARGV[3] == '' then
+      redis.call('DEL', priceKey, bidderKey)
+    elseif remainingTtl > 0 then
+      redis.call('SET', priceKey, ARGV[3], 'PX', remainingTtl)
+      if ARGV[4] == '' then
+        redis.call('DEL', bidderKey)
+      else
+        redis.call('SET', bidderKey, ARGV[4], 'PX', remainingTtl)
+      end
+    else
+      redis.call('SET', priceKey, ARGV[3])
+      if ARGV[4] == '' then
+        redis.call('DEL', bidderKey)
+      else
+        redis.call('SET', bidderKey, ARGV[4])
+      end
+    end
+
+    return 1
+  `;
+
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
   onModuleInit() {
     this.redis.defineCommand('placeBidAtomicCommand', {
       numberOfKeys: 3,
       lua: this.BID_SCRIPT,
+    });
+    this.redis.defineCommand('rollbackBidAtomicCommand', {
+      numberOfKeys: 2,
+      lua: this.ROLLBACK_BID_SCRIPT,
     });
     this.logger.log('Redis Lua scripts loaded.');
   }
@@ -602,37 +660,31 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Atomically rolls back the Redis state if database persistence fails after a successful bid.
-   * Restores the previous price and bidder ID while maintaining the original TTL.
+   * Atomically rolls back the Redis state only if it still contains the bid
+   * whose database persistence failed. A newer accepted bid is never overwritten.
    *
    * @param auctionId - The ID of the auction.
+   * @param expectedPrice - The price of the bid that failed to persist.
+   * @param expectedBidderId - The bidder whose failed bid may be rolled back.
    * @param previousPrice - The price to restore, or null if this was the first bid.
    * @param previousBidderId - The bidder ID to restore, or null if there was no prior bidder.
    */
-  async rollbackBid(auctionId: number, previousPrice: number | null, previousBidderId: number | null): Promise<void> {
+  async rollbackBid(auctionId: number, expectedPrice: number, expectedBidderId: number, previousPrice: number | null, previousBidderId: number | null): Promise<void> {
     try {
-      const remainingTtl = await this.redis.ttl(RedisKey.auctionPrice(auctionId));
+      const rolledBack = await this.redis.rollbackBidAtomicCommand(
+        RedisKey.auctionPrice(auctionId),
+        RedisKey.auctionBidder(auctionId),
+        expectedPrice,
+        expectedBidderId,
+        previousPrice ?? '',
+        previousBidderId ?? '',
+      );
 
-      if (remainingTtl === -2) {
-        this.logger.warn(`Rollback skipped for auction ${auctionId} — price key no longer exists`);
-        return;
-      }
-
-      const safeTtl = remainingTtl > 0 ? remainingTtl : 3600;
-
-      const pipeline = this.redis.pipeline();
-
-      if (previousPrice !== null) pipeline.set(RedisKey.auctionPrice(auctionId), previousPrice, 'EX', safeTtl);
-      else pipeline.del(RedisKey.auctionPrice(auctionId));
-
-      if (previousBidderId !== null) {
-        pipeline.set(RedisKey.auctionBidder(auctionId), previousBidderId, 'EX', safeTtl);
+      if (rolledBack === 1) {
+        this.logger.warn(`Bid rolled back in Redis for auction ${auctionId} — restored price=${previousPrice}, bidder=${previousBidderId ?? 'none'}`);
       } else {
-        pipeline.del(RedisKey.auctionBidder(auctionId));
+        this.logger.warn(`Rollback skipped for auction ${auctionId} — current Redis bid no longer matches failed bid`);
       }
-
-      await pipeline.exec();
-      this.logger.warn(`Bid rolled back in Redis for auction ${auctionId} — restored price=${previousPrice}, bidder=${previousBidderId ?? 'none'}`);
     } catch (error: unknown) {
       this.logger.error(`CRITICAL: Redis rollback failed for auction ${auctionId}. Inconsistency risk!`, error instanceof Error ? error.stack : String(error));
     }

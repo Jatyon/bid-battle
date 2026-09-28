@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { Paginator } from '@core/models';
+import { Language } from '@core/enums';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
 import { BidRejectionCode, RedisService } from '@shared/redis';
 import { BidRepository } from './repositories/bid.repository';
@@ -12,6 +13,7 @@ import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nService } from 'nestjs-i18n';
 
 const MOCK_BID_CONFIG = { minIncrementPercent: 1, minIncrementAbsolute: 1 };
+const LANGUAGE = Language.EN;
 
 describe('BidService', () => {
   let service: BidService;
@@ -108,20 +110,20 @@ describe('BidService', () => {
 
   describe('placeBid — input validation', () => {
     it('should return INVALID_AMOUNT when amount is 0', async () => {
-      const result = await service.placeBid(1, 1, 0);
+      const result = await service.placeBid(1, 1, 0, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'INVALID_AMOUNT' }));
       expect(redisService.getAuctionOwner).not.toHaveBeenCalled();
     });
 
     it('should return INVALID_AMOUNT when amount is negative', async () => {
-      const result = await service.placeBid(1, 1, -50);
+      const result = await service.placeBid(1, 1, -50, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'INVALID_AMOUNT' }));
     });
 
     it('should return INVALID_AMOUNT when amount is Infinity', async () => {
-      const result = await service.placeBid(1, 1, Infinity);
+      const result = await service.placeBid(1, 1, Infinity, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'INVALID_AMOUNT' }));
     });
@@ -131,7 +133,7 @@ describe('BidService', () => {
     it('should return AUCTION_ENDED and log warn when owner key is missing in Redis', async () => {
       setupActiveAuction({ owner: null });
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'AUCTION_ENDED' }));
       expect(Logger.prototype.warn).toHaveBeenCalledWith(expect.stringContaining('Owner key missing'));
@@ -141,7 +143,7 @@ describe('BidService', () => {
     it('should return OWNER_CANNOT_BID when userId matches ownerId', async () => {
       setupActiveAuction({ owner: 5 });
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'OWNER_CANNOT_BID' }));
       expect(redisService.placeBidAtomicWithSnapshot).not.toHaveBeenCalled();
@@ -150,7 +152,7 @@ describe('BidService', () => {
     it('should return AUCTION_ENDED when auction is not active in Redis', async () => {
       setupActiveAuction({ isActive: false });
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'AUCTION_ENDED' }));
       expect(redisService.placeBidAtomicWithSnapshot).not.toHaveBeenCalled();
@@ -159,7 +161,7 @@ describe('BidService', () => {
     it('should return BID_TOO_LOW with price details when amount is below currentPrice + MIN_BID_INCREMENT', async () => {
       setupActiveAuction({ currentPrice: 200 });
 
-      const result = await service.placeBid(1, 5, 200);
+      const result = await service.placeBid(1, 5, 200, LANGUAGE);
       const expectedMinIncrement = calcMinIncrement(200, MOCK_BID_CONFIG.minIncrementPercent, MOCK_BID_CONFIG.minIncrementAbsolute);
 
       expect(result).toEqual(
@@ -183,7 +185,7 @@ describe('BidService', () => {
       bidRepository.save.mockResolvedValue({} as Bid);
 
       const minIncrement = calcMinIncrement(200, MOCK_BID_CONFIG.minIncrementPercent, MOCK_BID_CONFIG.minIncrementAbsolute);
-      const result = await service.placeBid(1, 5, 200 + minIncrement);
+      const result = await service.placeBid(1, 5, 200 + minIncrement, LANGUAGE);
 
       expect(result.success).toBe(true);
     });
@@ -196,7 +198,7 @@ describe('BidService', () => {
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockResolvedValue({} as Bid);
 
-      const result = await service.placeBid(1, 5, 1);
+      const result = await service.placeBid(1, 5, 1, LANGUAGE);
 
       expect(result.success).toBe(true);
     });
@@ -214,7 +216,7 @@ describe('BidService', () => {
       bidRepository.create.mockReturnValue(mockBid);
       bidRepository.save.mockResolvedValue(mockBid);
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(redisService.placeBidAtomicWithSnapshot).toHaveBeenCalledWith(
         1,
@@ -239,9 +241,9 @@ describe('BidService', () => {
       bidRepository.save.mockRejectedValue(new Error('DB error'));
       redisService.rollbackBid.mockResolvedValue(undefined);
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
-      expect(redisService.rollbackBid).toHaveBeenCalledWith(1, 100, 3);
+      expect(redisService.rollbackBid).toHaveBeenCalledWith(1, 150, 5, 100, 3);
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'SERVER_ERROR' }));
       expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('DB save failed after atomic bid'), expect.any(String));
     });
@@ -254,9 +256,9 @@ describe('BidService', () => {
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockRejectedValue(new Error('DB error'));
 
-      await service.placeBid(1, 5, 50);
+      await service.placeBid(1, 5, 50, LANGUAGE);
 
-      expect(redisService.rollbackBid).toHaveBeenCalledWith(1, null, null);
+      expect(redisService.rollbackBid).toHaveBeenCalledWith(1, 50, 5, null, null);
     });
 
     it('should return OUTBID with current price when atomic bid fails with code 4 (amount too low at Lua level)', async () => {
@@ -264,7 +266,7 @@ describe('BidService', () => {
       redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false, rejectionCode: BidRejectionCode.BID_TOO_LOW });
       redisService.getLivePrice.mockResolvedValueOnce(100).mockResolvedValueOnce(120);
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(bidRepository.save).not.toHaveBeenCalled();
       expect(result).toEqual(
@@ -281,7 +283,7 @@ describe('BidService', () => {
       redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false });
       redisService.getLivePrice.mockResolvedValueOnce(100).mockResolvedValueOnce(120);
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'OUTBID' }));
     });
@@ -291,7 +293,7 @@ describe('BidService', () => {
       redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false, rejectionCode: BidRejectionCode.ALREADY_LEADING });
       redisService.getLivePrice.mockResolvedValue(100);
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(bidRepository.save).not.toHaveBeenCalled();
       expect(result).toEqual(
@@ -307,7 +309,7 @@ describe('BidService', () => {
       setupActiveAuction({ currentPrice: 100 });
       redisService.placeBidAtomicWithSnapshot.mockResolvedValue({ success: false, rejectionCode: BidRejectionCode.AUCTION_INACTIVE });
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(bidRepository.save).not.toHaveBeenCalled();
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'AUCTION_ENDED' }));
@@ -322,7 +324,7 @@ describe('BidService', () => {
       bidRepository.create.mockReturnValue({} as Bid);
       bidRepository.save.mockResolvedValue({} as Bid);
 
-      await service.placeBid(1, 5, 150);
+      await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(redisService.getHighestBidderId).not.toHaveBeenCalled();
     });
@@ -330,7 +332,7 @@ describe('BidService', () => {
     it('should return SERVER_ERROR and log error when an unexpected error is thrown', async () => {
       redisService.getAuctionOwner.mockRejectedValue(new Error('Unexpected Redis crash'));
 
-      const result = await service.placeBid(1, 5, 150);
+      const result = await service.placeBid(1, 5, 150, LANGUAGE);
 
       expect(result).toEqual(expect.objectContaining({ success: false, code: 'SERVER_ERROR' }));
       expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Error placing bid'), expect.anything());

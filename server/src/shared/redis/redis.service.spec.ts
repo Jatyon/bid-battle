@@ -23,6 +23,7 @@ describe('RedisService', () => {
       defineCommand: jest.fn(),
       disconnect: jest.fn(),
       placeBidAtomicCommand: jest.fn(),
+      rollbackBidAtomicCommand: jest.fn(),
     } as unknown as jest.Mocked<Redis>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -52,6 +53,10 @@ describe('RedisService', () => {
       expect(mockRedis.defineCommand).toHaveBeenCalledWith('placeBidAtomicCommand', {
         numberOfKeys: 3,
         lua: expect.any(String) as string,
+      });
+      expect(mockRedis.defineCommand).toHaveBeenCalledWith('rollbackBidAtomicCommand', {
+        numberOfKeys: 2,
+        lua: expect.stringContaining('currentBidder ~= ARGV[2]') as string,
       });
       expect(service['logger'].log).toHaveBeenCalledWith('Redis Lua scripts loaded.');
     });
@@ -812,76 +817,38 @@ describe('RedisService', () => {
   });
 
   describe('rollbackBid', () => {
-    it('should restore previous price and bidder via pipeline when both exist', async () => {
-      (mockRedis.ttl as jest.Mock).mockResolvedValue(3600);
-      const mockPipeline = {
-        set: jest.fn().mockReturnThis(),
-        del: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([]),
-      };
-      (mockRedis.pipeline as jest.Mock).mockReturnValue(mockPipeline);
+    it('should atomically restore the snapshot when Redis still contains the failed bid', async () => {
+      (mockRedis.rollbackBidAtomicCommand as jest.Mock).mockResolvedValue(1);
       jest.spyOn(service['logger'], 'warn').mockImplementation();
 
-      await service.rollbackBid(1, 200, 7);
+      await service.rollbackBid(1, 250, 8, 200, 7);
 
-      expect(mockPipeline.set).toHaveBeenCalledWith('auction:1:price', 200, 'EX', 3600);
-      expect(mockPipeline.set).toHaveBeenCalledWith('auction:1:highest_bidder', 7, 'EX', 3600);
-      expect(mockPipeline.exec).toHaveBeenCalled();
+      expect(mockRedis.rollbackBidAtomicCommand).toHaveBeenCalledWith('auction:1:price', 'auction:1:highest_bidder', 250, 8, 200, 7);
       expect(service['logger'].warn).toHaveBeenCalledWith(expect.stringContaining('Bid rolled back'));
     });
 
-    it('should delete price and bidder keys when both previousPrice and previousBidderId are null', async () => {
-      (mockRedis.ttl as jest.Mock).mockResolvedValue(3600);
-      const mockPipeline = {
-        set: jest.fn().mockReturnThis(),
-        del: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([]),
-      };
-      (mockRedis.pipeline as jest.Mock).mockReturnValue(mockPipeline);
+    it('should pass empty sentinels when rolling back the first bid', async () => {
+      (mockRedis.rollbackBidAtomicCommand as jest.Mock).mockResolvedValue(1);
       jest.spyOn(service['logger'], 'warn').mockImplementation();
 
-      await service.rollbackBid(1, null, null);
+      await service.rollbackBid(1, 50, 5, null, null);
 
-      expect(mockPipeline.del).toHaveBeenCalledWith('auction:1:price');
-      expect(mockPipeline.del).toHaveBeenCalledWith('auction:1:highest_bidder');
-      expect(mockPipeline.set).not.toHaveBeenCalled();
+      expect(mockRedis.rollbackBidAtomicCommand).toHaveBeenCalledWith('auction:1:price', 'auction:1:highest_bidder', 50, 5, '', '');
     });
 
-    it('should use safeTtl of 3600 when ttl returns -1 (key has no expiry)', async () => {
-      (mockRedis.ttl as jest.Mock).mockResolvedValue(-1);
-      const mockPipeline = {
-        set: jest.fn().mockReturnThis(),
-        del: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([]),
-      };
-      (mockRedis.pipeline as jest.Mock).mockReturnValue(mockPipeline);
+    it('should skip rollback when the current Redis bid no longer matches the failed bid', async () => {
+      (mockRedis.rollbackBidAtomicCommand as jest.Mock).mockResolvedValue(0);
       jest.spyOn(service['logger'], 'warn').mockImplementation();
 
-      await service.rollbackBid(1, 100, null);
+      await service.rollbackBid(1, 250, 8, 100, null);
 
-      expect(mockPipeline.set).toHaveBeenCalledWith('auction:1:price', 100, 'EX', 3600);
+      expect(service['logger'].warn).toHaveBeenCalledWith(expect.stringContaining('current Redis bid no longer matches'));
     });
 
-    it('should warn and skip rollback when price key no longer exists (ttl === -2)', async () => {
-      (mockRedis.ttl as jest.Mock).mockResolvedValue(-2);
-      jest.spyOn(service['logger'], 'warn').mockImplementation();
+    it('should log critical error and not throw when atomic rollback fails', async () => {
+      (mockRedis.rollbackBidAtomicCommand as jest.Mock).mockRejectedValue(new Error('Lua error'));
 
-      await service.rollbackBid(1, 100, 5);
-
-      expect(mockRedis.pipeline).not.toHaveBeenCalled();
-      expect(service['logger'].warn).toHaveBeenCalledWith(expect.stringContaining('Rollback skipped'));
-    });
-
-    it('should log critical error and not throw when pipeline fails', async () => {
-      (mockRedis.ttl as jest.Mock).mockResolvedValue(3600);
-      const mockPipeline = {
-        set: jest.fn().mockReturnThis(),
-        del: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockRejectedValue(new Error('Pipeline error')),
-      };
-      (mockRedis.pipeline as jest.Mock).mockReturnValue(mockPipeline);
-
-      await expect(service.rollbackBid(1, 100, 5)).resolves.not.toThrow();
+      await expect(service.rollbackBid(1, 250, 8, 100, 5)).resolves.not.toThrow();
 
       expect(service['logger'].error).toHaveBeenCalledWith(expect.stringContaining('CRITICAL'), expect.any(String));
     });
