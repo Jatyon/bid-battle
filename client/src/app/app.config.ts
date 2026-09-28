@@ -17,6 +17,7 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import {
   Language,
   LanguageService,
+  ThemeService,
   TranslocoHttpLoader,
   AppTitleStrategy,
   languageInterceptor,
@@ -56,6 +57,9 @@ export const appConfig: ApplicationConfig = {
     }),
     provideAppInitializer(() => {
       inject(LanguageService).init();
+    }),
+    provideAppInitializer(() => {
+      inject(ThemeService);
     }),
 
     { provide: TitleStrategy, useClass: AppTitleStrategy },
