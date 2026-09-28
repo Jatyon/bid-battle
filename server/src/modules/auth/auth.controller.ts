@@ -64,9 +64,12 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refreshToken(@Cookie('refreshToken') token: string): Promise<AuthRefreshResponse> {
+  async refreshToken(@Cookie('refreshToken') token: string, @Res({ passthrough: true }) res: express.Response): Promise<AuthRefreshResponse> {
     if (!token) throw new UnauthorizedException('auth.errors.refresh_token_not_recognized');
-    return this.authService.refreshToken(token);
+
+    const { accessToken, refreshToken } = await this.authService.refreshToken(token);
+    this.cookieService.setRefreshToken(res, refreshToken);
+    return { accessToken };
   }
 
   @ApiOperation({

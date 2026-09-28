@@ -11,7 +11,7 @@ import { RedisService } from '@shared/redis';
 import { MailService } from '@shared/mail';
 import { AuthRegisterDto, AuthLoginDto, ForgotPasswordDto, AuthChangePasswordDto, AuthResetPasswordDto, VerifyEmailDto, ResendVerificationEmailDto } from './dto';
 import { IAuthJwt, IAuthJwtPayload, IOAuthProfile, IOAuthUser } from './interfaces';
-import { AuthRefreshResponse, AuthSession, AuthTokens } from './models';
+import { AuthSession, AuthTokens } from './models';
 import { I18nContext } from 'nestjs-i18n';
 import { DataSource } from 'typeorm';
 import { randomUUID } from 'crypto';
@@ -131,7 +131,7 @@ export class AuthService {
     return { ...tokens, user: oAuthUser };
   }
 
-  async refreshToken(refreshToken: string): Promise<AuthRefreshResponse> {
+  async refreshToken(refreshToken: string): Promise<AuthTokens> {
     let payload: IAuthJwtPayload;
 
     try {
@@ -150,10 +150,10 @@ export class AuthService {
 
     if (!storedToken) throw new UnauthorizedException('auth.errors.refresh_token_not_recognized');
 
-    await this.usersTokenService.markTokenAsUsed(storedToken);
+    const [accessToken, newRefreshToken] = await Promise.all([this.generateAccessToken(user), this.generateRefreshToken(user)]);
 
-    const accessToken = await this.generateAccessToken(user);
-    return { accessToken };
+    await this.usersTokenService.markTokenAsUsed(storedToken);
+    return { accessToken, refreshToken: newRefreshToken };
   }
 
   async logout(refreshToken: string | undefined): Promise<void> {

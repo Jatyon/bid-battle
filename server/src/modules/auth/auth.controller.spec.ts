@@ -124,22 +124,24 @@ describe('AuthController', () => {
     const validToken = 'valid_refresh_token';
 
     it('returns new accessToken for a valid refresh token', async () => {
-      authService.refreshToken.mockResolvedValue({ accessToken: mockTokens.accessToken });
+      authService.refreshToken.mockResolvedValue(mockTokens);
+      const mockRes = createMock<express.Response>();
 
-      const result = await controller.refreshToken(validToken);
+      const result = await controller.refreshToken(validToken, mockRes);
 
       expect(authService.refreshToken).toHaveBeenCalledWith(validToken);
+      expect(cookieService.setRefreshToken).toHaveBeenCalledWith(mockRes, mockTokens.refreshToken);
       expect(result).toEqual({ accessToken: mockTokens.accessToken });
     });
 
     it('throws UnauthorizedException when refresh token is missing in cookie', async () => {
-      await expect(controller.refreshToken('')).rejects.toThrow(UnauthorizedException);
+      await expect(controller.refreshToken('', createMock<express.Response>())).rejects.toThrow(UnauthorizedException);
     });
 
     it('propagates UnauthorizedException when refresh token is invalid', async () => {
       authService.refreshToken.mockRejectedValue(new UnauthorizedException('Token not recognized'));
 
-      await expect(controller.refreshToken(validToken)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.refreshToken(validToken, createMock<express.Response>())).rejects.toThrow(UnauthorizedException);
     });
   });
 

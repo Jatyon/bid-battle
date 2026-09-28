@@ -231,13 +231,16 @@ describe('AuthService', () => {
       usersService.findOneBy.mockResolvedValue(mockUser);
       usersTokenService.findActiveRefreshToken.mockResolvedValue(storedToken);
 
-      jwtService.signAsync.mockResolvedValueOnce('new_access_token');
+      jwtService.signAsync.mockResolvedValueOnce('new_access_token').mockResolvedValueOnce('new_refresh_token');
 
       const result = await authService.refreshToken(validRefreshToken);
 
       expect(usersTokenService.findActiveRefreshToken).toHaveBeenCalledWith(validRefreshToken, mockUser.id);
+      expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(storedToken);
+      expect(usersTokenService.saveRefreshToken).toHaveBeenCalledWith(mockUser, 'new_refresh_token', '7d');
       expect(result).toEqual({
         accessToken: 'new_access_token',
+        refreshToken: 'new_refresh_token',
       });
     });
 
