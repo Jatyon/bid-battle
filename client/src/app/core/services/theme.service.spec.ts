@@ -73,6 +73,12 @@ describe('ThemeService', () => {
       expect(service.currentTheme()).toBe('light');
     });
 
+    it('should not persist the OS-preferred theme as a user preference', () => {
+      storageMock.get.mockReturnValue(null);
+      createService();
+      expect(storageMock.set).not.toHaveBeenCalled();
+    });
+
     it('should register OS change listener when no saved preference', () => {
       storageMock.get.mockReturnValue(null);
       createService();

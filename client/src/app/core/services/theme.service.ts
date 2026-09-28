@@ -32,7 +32,7 @@ export class ThemeService implements OnDestroy {
 
     // If the user has previously saved an explicit preference, honour it.
     // Otherwise follow the OS setting — including future changes.
-    this.applyTheme(saved ?? preferred);
+    this.applyTheme(saved ?? preferred, saved !== null);
 
     // Only mirror OS changes when the user has NOT set a manual preference.
     // Once they call toggle(), the saved value takes over and OS changes are ignored.
@@ -41,7 +41,7 @@ export class ThemeService implements OnDestroy {
         // Re-check storage: the user might have called toggle() between the
         // listener being registered and this event firing.
         if (this.storage.get(this.STORAGE_KEY)) return;
-        this.applyTheme(e.matches ? 'dark' : 'light');
+        this.applyTheme(e.matches ? 'dark' : 'light', false);
       };
       this._mediaQuery.addEventListener('change', this._mediaQueryListener);
     }
@@ -53,7 +53,7 @@ export class ThemeService implements OnDestroy {
     // Toggling sets an explicit user preference — stop following OS changes.
     this.removeMediaQueryListener();
 
-    this.applyTheme(next);
+    this.applyTheme(next, true);
   }
 
   ngOnDestroy(): void {
@@ -67,9 +67,9 @@ export class ThemeService implements OnDestroy {
     }
   }
 
-  private applyTheme(theme: Theme): void {
+  private applyTheme(theme: Theme, persist: boolean): void {
     if (this.isBrowser) document.documentElement.setAttribute('data-theme', theme);
-    this.storage.set(this.STORAGE_KEY, theme);
+    if (persist) this.storage.set(this.STORAGE_KEY, theme);
     this._currentTheme.set(theme);
   }
 }
