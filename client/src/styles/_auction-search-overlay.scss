@@ -1,0 +1,117 @@
+@use './abstracts/variables' as *;
+
+.auction-search__icon {
+  width: $icon-size-sm;
+  height: $icon-size-sm;
+}
+
+.auction-search__icon--md {
+  width: $icon-size-md;
+  height: $icon-size-md;
+}
+
+.auction-search__clear-icon {
+  width: $icon-size-xs;
+  height: $icon-size-xs;
+}
+
+.auction-search__control--desktop {
+  display: none;
+}
+
+.auction-search__mobile-trigger {
+  display: inline-flex;
+  width: $touch-target-size;
+  height: $touch-target-size;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: $radius-md;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.auction-search__mobile-trigger:hover {
+  background: var(--color-surface-2);
+}
+
+.auction-search__mobile-trigger:focus-visible {
+  outline: $focus-ring-width solid var(--color-primary);
+  outline-offset: $focus-ring-offset;
+}
+
+.auction-search__mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal + 1;
+  display: flex;
+  background: var(--color-surface);
+}
+
+.auction-search__mobile-dialog {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0) + #{$spacing-sm}) $spacing-md
+    calc(env(safe-area-inset-bottom, 0) + #{$spacing-md});
+  background: var(--color-surface);
+}
+
+.auction-search__mobile-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: $spacing-sm;
+  padding-bottom: $spacing-md;
+  border-bottom: $border-width solid var(--color-border);
+}
+
+.auction-search__control--mobile {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.auction-search__close {
+  flex: 0 0 auto;
+  padding: $spacing-sm 0 $spacing-sm $spacing-xs;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: $font-size-base;
+  font-weight: $fw-medium;
+  cursor: pointer;
+}
+
+.auction-search__mobile-dialog .auction-search__results {
+  display: block;
+  position: static;
+  width: 100%;
+  flex: 0 1 auto;
+  max-height: min(70vh, $search-results-max-height);
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@include bp-lg {
+  app-auction-search.navbar__search {
+    order: initial;
+    width: 100%;
+    max-width: $search-max-width;
+    flex: 0 1 auto;
+  }
+
+  .auction-search__control--desktop {
+    display: flex;
+  }
+
+  .auction-search__mobile-trigger,
+  .auction-search__mobile-backdrop {
+    display: none;
+  }
+}

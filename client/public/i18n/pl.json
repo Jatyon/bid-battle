@@ -5,7 +5,48 @@
     "REGISTER": "Rejestracja",
     "FORGOT_PASSWORD": "Przypomnienie hasła",
     "RESET_PASSWORD": "Reset hasła",
-    "VERIFY_EMAIL": "Aktywacja konta"
+    "VERIFY_EMAIL": "Aktywacja konta",
+    "PROFILE": "Profil"
+  },
+  "NAVBAR": {
+    "HOME": "Strona główna",
+    "SELL": "Sprzedaj",
+    "MY_ACTIVITY": "Moja aktywność",
+    "SEARCH_PLACEHOLDER": "Szukaj aukcji...",
+    "SEARCH_PLACEHOLDER_SHORT": "Szukaj...",
+    "PROFILE": "Profil",
+    "LOGOUT": "Wyloguj się",
+    "LOGIN": "Zaloguj się",
+    "SIGN_UP": "Zarejestruj się",
+    "USERS": "Użytkownicy",
+    "OPEN_ACCOUNT_MENU": "Otwórz menu konta",
+    "ACCOUNT_MENU": "Menu konta",
+    "SWITCH_TO_LIGHT": "Włącz jasny motyw",
+    "SWITCH_TO_DARK": "Włącz ciemny motyw"
+  },
+  "SEARCH": {
+    "RESULTS": "Wyniki wyszukiwania",
+    "FEATURED": "Popularne aukcje",
+    "DEMO_BADGE": "Dane demonstracyjne",
+    "CLEAR": "Wyczyść wyszukiwanie",
+    "OPEN": "Otwórz wyszukiwanie",
+    "DIALOG": "Wyszukiwanie aukcji",
+    "CLOSE": "Zamknij",
+    "CURRENT_BID": "Aktualna cena",
+    "BIDS": "ofert",
+    "EMPTY": "Nie znaleziono aukcji pasujących do wyszukiwania.",
+    "CATEGORIES": {
+      "ELECTRONICS": "Elektronika",
+      "FASHION": "Moda",
+      "HOME_GARDEN": "Dom i ogród",
+      "COLLECTIBLES": "Kolekcje",
+      "VEHICLES": "Motoryzacja",
+      "SPORTS": "Sport",
+      "ART": "Sztuka",
+      "BOOKS": "Książki",
+      "TOYS": "Zabawki",
+      "OTHER": "Inne"
+    }
   },
   "COMMON": {
     "FORMS": {

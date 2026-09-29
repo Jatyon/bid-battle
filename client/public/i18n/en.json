@@ -5,7 +5,48 @@
     "REGISTER": "Register",
     "FORGOT_PASSWORD": "Forgot password",
     "RESET_PASSWORD": "Reset password",
-    "VERIFY_EMAIL": "Account activation"
+    "VERIFY_EMAIL": "Account activation",
+    "PROFILE": "Profile"
+  },
+  "NAVBAR": {
+    "HOME": "Home",
+    "SELL": "Sell",
+    "MY_ACTIVITY": "My Activity",
+    "SEARCH_PLACEHOLDER": "Search auctions...",
+    "SEARCH_PLACEHOLDER_SHORT": "Search...",
+    "PROFILE": "Profile",
+    "LOGOUT": "Log out",
+    "LOGIN": "Log in",
+    "SIGN_UP": "Sign up",
+    "USERS": "Users",
+    "OPEN_ACCOUNT_MENU": "Open account menu",
+    "ACCOUNT_MENU": "Account menu",
+    "SWITCH_TO_LIGHT": "Switch to light mode",
+    "SWITCH_TO_DARK": "Switch to dark mode"
+  },
+  "SEARCH": {
+    "RESULTS": "Search results",
+    "FEATURED": "Popular auctions",
+    "DEMO_BADGE": "Demo data",
+    "CLEAR": "Clear search",
+    "OPEN": "Open search",
+    "DIALOG": "Auction search",
+    "CLOSE": "Close",
+    "CURRENT_BID": "Current bid",
+    "BIDS": "bids",
+    "EMPTY": "No auctions match your search.",
+    "CATEGORIES": {
+      "ELECTRONICS": "Electronics",
+      "FASHION": "Fashion",
+      "HOME_GARDEN": "Home & Garden",
+      "COLLECTIBLES": "Collectibles",
+      "VEHICLES": "Vehicles",
+      "SPORTS": "Sports",
+      "ART": "Art",
+      "BOOKS": "Books",
+      "TOYS": "Toys",
+      "OTHER": "Other"
+    }
   },
   "COMMON": {
     "FORMS": {

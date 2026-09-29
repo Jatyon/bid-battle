@@ -1,0 +1,92 @@
+<ng-container *transloco="let t">
+    <div class="auction-search">
+        <div class="auction-search__control auction-search__control--desktop">
+            <lucide-icon [img]="searchIcon" class="auction-search__icon" aria-hidden="true" />
+            <input #searchInput type="search" [value]="query()" [placeholder]="t('NAVBAR.SEARCH_PLACEHOLDER_SHORT')"
+                [attr.aria-label]="t('NAVBAR.SEARCH_PLACEHOLDER')" aria-autocomplete="list"
+                [attr.aria-expanded]="isOpen()" (input)="onInput($event)" (focus)="openResults()"
+                (keydown)="onKeydown($event)" />
+            @if (query()) {
+            <button type="button" class="auction-search__clear" [attr.aria-label]="t('SEARCH.CLEAR')"
+                (click)="clearSearch(searchInput)">
+                <lucide-icon [img]="clearIcon" class="auction-search__clear-icon" aria-hidden="true" />
+            </button>
+            }
+        </div>
+
+        <button type="button" class="auction-search__mobile-trigger" [attr.aria-label]="t('SEARCH.OPEN')"
+            (click)="openMobileSearch()">
+            <lucide-icon [img]="searchIcon" class="auction-search__icon auction-search__icon--md" aria-hidden="true" />
+        </button>
+
+        @if (isOpen() && !isMobileSearchOpen()) {
+        <ng-container [ngTemplateOutlet]="resultsPanel" />
+        }
+
+        @if (isMobileSearchOpen()) {
+        <div class="auction-search__mobile-backdrop" tabindex="0" (click)="closeFromBackdrop($event)"
+            (keyup.enter)="closeFromBackdrop($event)" (keyup.space)="closeFromBackdrop($event)">
+            <section class="auction-search__mobile-dialog" role="dialog" aria-modal="true"
+                [attr.aria-label]="t('SEARCH.DIALOG')">
+                <div class="auction-search__mobile-toolbar">
+                    <div class="auction-search__control auction-search__control--mobile">
+                        <lucide-icon [img]="searchIcon" class="auction-search__icon" aria-hidden="true" />
+                        <input #mobileSearchInput type="search" [value]="query()"
+                            [placeholder]="t('NAVBAR.SEARCH_PLACEHOLDER_SHORT')"
+                            [attr.aria-label]="t('NAVBAR.SEARCH_PLACEHOLDER')" aria-autocomplete="list"
+                            [attr.aria-expanded]="isOpen()" (input)="onInput($event)" (focus)="openResults()"
+                            (keydown)="onKeydown($event)" />
+                        @if (query()) {
+                        <button type="button" class="auction-search__clear" [attr.aria-label]="t('SEARCH.CLEAR')"
+                            (click)="clearSearch(mobileSearchInput)">
+                            <lucide-icon [img]="clearIcon" class="auction-search__clear-icon" aria-hidden="true" />
+                        </button>
+                        }
+                    </div>
+                    <button type="button" class="auction-search__close" [attr.aria-label]="t('SEARCH.CLOSE')"
+                        (click)="closeMobileSearch()">
+                        {{ t('SEARCH.CLOSE') }}
+                    </button>
+                </div>
+                <ng-container [ngTemplateOutlet]="resultsPanel" />
+            </section>
+        </div>
+        }
+    </div>
+
+    <ng-template #resultsPanel>
+        <section class="auction-search__results"
+            [attr.aria-label]="query() ? t('SEARCH.RESULTS') : t('SEARCH.FEATURED')">
+            <div class="auction-search__results-heading">
+                <span>{{ query() ? t('SEARCH.RESULTS') : t('SEARCH.FEATURED') }}</span>
+                <span class="auction-search__mock-badge">{{ t('SEARCH.DEMO_BADGE') }}</span>
+            </div>
+
+            @if (results().length) {
+            <ul class="auction-search__list" role="listbox">
+                @for (auction of results(); track auction.id) {
+                <li role="presentation">
+                    <button type="button" class="auction-search__result" role="option" aria-selected="false"
+                        [attr.aria-label]="auction.title + ', ' + (auction.currentPrice / 100 | currency: 'PLN')"
+                        (click)="selectResult(auction)">
+                        <img class="auction-search__thumbnail" [src]="auction.imageUrl" [alt]="auction.title"
+                            loading="lazy" />
+                        <span class="auction-search__details">
+                            <span class="auction-search__title">{{ auction.title }}</span>
+                            <span class="auction-search__meta">{{ t('SEARCH.CATEGORIES.' + auction.category) }} ·
+                                {{ auction.bidsCount }} {{ t('SEARCH.BIDS') }}</span>
+                        </span>
+                        <span class="auction-search__price">
+                            <span>{{ t('SEARCH.CURRENT_BID') }}</span>
+                            <strong>{{ auction.currentPrice / 100 | currency: 'PLN' }}</strong>
+                        </span>
+                    </button>
+                </li>
+                }
+            </ul>
+            } @else {
+            <p class="auction-search__empty">{{ t('SEARCH.EMPTY') }}</p>
+            }
+        </section>
+    </ng-template>
+</ng-container>
