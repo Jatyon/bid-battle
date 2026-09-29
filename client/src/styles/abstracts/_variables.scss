@@ -1,6 +1,10 @@
 // Spacing
+$spacing-2xs: 2px;
+$spacing-3xs: 3px;
 $spacing-xs: 4px;
+$spacing-compact: 6px;
 $spacing-sm: 8px;
+$spacing-input: 10px;
 $spacing-md: 16px;
 $spacing-lg: 24px;
 $spacing-xl: 48px;
@@ -9,6 +13,53 @@ $spacing-xl: 48px;
 $radius-sm: 4px;
 $radius-md: 8px;
 $radius-lg: 16px;
+$radius-full: 999px;
+
+// Borders and focus indicators
+$border-width: 1px;
+$focus-ring-width: 2px;
+$focus-ring-offset: 2px;
+$decoration-bar-height: 4px;
+
+// Common control and icon dimensions
+$icon-size-xs: 16px;
+$icon-size-sm: 18px;
+$icon-size-md: 20px;
+$icon-button-size: 40px;
+$touch-target-size: 44px;
+$navbar-auth-button-height: 36px;
+$search-control-height: 42px;
+$search-clear-size: 32px;
+$search-min-column-width: 280px;
+$search-max-width: 640px;
+$search-results-max-height: 480px;
+$search-thumbnail-max-size: 56px;
+$account-sheet-max-height: 560px;
+$account-sheet-handle-width: 36px;
+$menu-item-min-height: 48px;
+$mobile-header-height: 56px;
+$avatar-size-sm: 32px;
+$avatar-size-md: 36px;
+$avatar-size-lg: 48px;
+$avatar-size-xl: 64px;
+$dropdown-min-width: 180px;
+$auth-state-min-height: 180px;
+$profile-sidebar-width: 220px;
+$auth-card-max-width: 480px;
+$popup-max-width: 440px;
+$popup-icon-size: 64px;
+$popup-action-min-width: 140px;
+$toast-min-height: 52px;
+$toast-max-height: 120px;
+$loader-dot-size: 10px;
+
+// Shadow geometry is shared by light/dark theme color definitions.
+$shadow-sm-y: 1px;
+$shadow-sm-blur: 3px;
+$shadow-md-y: 4px;
+$shadow-md-blur: 12px;
+$shadow-lg-y: 8px;
+$shadow-lg-blur: 24px;
 
 // Icon sizes
 $logo-icon-size: 36px;
@@ -82,9 +133,10 @@ $lh-tight: 1.1;
 // Layout
 $container-max-width: 1200px;
 $navbar-height: 64px;
+$mobile-nav-height: 68px;
 $card-padding-mobile: $spacing-lg $spacing-md;
-$card-padding-sm: $spacing-xl 40px;
-$card-padding-md: $spacing-xl 48px;
+$card-padding-sm: $spacing-xl ($spacing-xl - $spacing-sm);
+$card-padding-md: $spacing-xl $spacing-xl;
 
 // Toast
 $toast-min-width: 280px;
@@ -95,16 +147,16 @@ $toast-icon-size: 20px;
 // Spinner
 $spinner-size-sm: $spacing-md; // 16px
 $spinner-size-md: $spacing-lg; // 24px
-$spinner-size-lg: 40px;
+$spinner-size-lg: $icon-button-size;
 $spinner-duration: 0.8s;
 
 // Button
-$btn-padding-sm: 6px $spacing-sm;
-$btn-padding-sm-bp: 6px $spacing-md;
-$btn-padding-md: 10px $spacing-md;
+$btn-padding-sm: $spacing-compact $spacing-sm;
+$btn-padding-sm-bp: $spacing-compact $spacing-md;
+$btn-padding-md: $spacing-input $spacing-md;
 $btn-padding-md-bp: $spacing-sm $spacing-lg;
 $btn-padding-lg: $spacing-sm $spacing-md;
-$btn-padding-lg-bp: $spacing-sm + 2px $spacing-xl;
+$btn-padding-lg-bp: $spacing-sm + $spacing-2xs $spacing-xl;
 $btn-font-size-sm: $font-size-sm;
 $btn-font-size-md: $font-size-base;
 $btn-font-size-lg: $font-size-md;
@@ -114,10 +166,10 @@ $btn-min-height-md: 40px;
 $btn-min-height-lg: 52px;
 
 // Input
-$input-padding-y: 10px;
+$input-padding-y: $spacing-input;
 $input-padding-y-md: 12px;
-$input-font-size: 14px;
-$input-line-height: 18px;
-$input-toggle-right: $spacing-sm + 4px; // 12px
-$input-toggle-icon-size: 18px;
+$input-font-size: $font-size-base;
+$input-line-height: $icon-size-sm;
+$input-toggle-right: $spacing-sm + $spacing-xs; // 12px
+$input-toggle-icon-size: $icon-size-sm;
 $input-toggle-area: $input-toggle-right * 2 + $input-toggle-icon-size; // 44px
