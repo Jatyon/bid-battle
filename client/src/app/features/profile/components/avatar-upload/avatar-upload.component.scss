@@ -1,0 +1,51 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+}
+
+.avatar-upload {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $avatar-size-xl;
+    height: $avatar-size-xl;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+    font-size: $font-size-xl;
+    font-weight: $fw-semibold;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    position: relative;
+  }
+
+  &__input {
+    display: none;
+  }
+
+  &__hint {
+    width: 100%;
+    margin: 0;
+    font-size: $font-size-sm;
+    color: var(--color-text-muted);
+  }
+}

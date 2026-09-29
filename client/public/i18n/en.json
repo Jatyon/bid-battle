@@ -153,5 +153,47 @@
   "POPUP": {
     "CONFIRM": "Confirm",
     "CANCEL": "Cancel"
+  },
+  "PROFILE": {
+    "NAV": {
+      "PROFILE": "Profile",
+      "MY_AUCTIONS": "My Auctions",
+      "MY_BIDS": "My Bids",
+      "PREFERENCES": "Preferences"
+    },
+    "INFO": {
+      "TITLE": "Profile Information",
+      "EMAIL_READONLY": "Email (read-only)",
+      "SAVE": "Save changes",
+      "SAVE_SUCCESS": "Profile updated successfully."
+    },
+    "AVATAR": {
+      "UPLOAD": "Upload photo",
+      "REMOVE": "Remove",
+      "HINT": "JPG or PNG. Max 5MB.",
+      "ERROR_TYPE": "Only JPG or PNG images are allowed.",
+      "ERROR_SIZE": "The image must be smaller than 5MB."
+    },
+    "VALIDATION": {
+      "FIRST_NAME_REQUIRED": "First name is required.",
+      "LAST_NAME_REQUIRED": "Last name is required."
+    },
+    "PASSWORD": {
+      "TITLE": "Change Password",
+      "CURRENT": "Current password",
+      "CURRENT_REQUIRED": "Current password is required.",
+      "NEW": "New password",
+      "NEW_PLACEHOLDER": "Min. 8 characters",
+      "REPEAT_PLACEHOLDER": "Repeat password",
+      "SUBMIT": "Update password",
+      "SUCCESS": "Your password has been updated."
+    },
+    "DANGER_ZONE": {
+      "TITLE": "Danger Zone",
+      "DESCRIPTION": "Permanently delete your account and all associated data. This action cannot be undone. Your active auctions will be cancelled and your bids will be removed.",
+      "DELETE": "Delete Account",
+      "CONFIRM_TITLE": "Delete account?",
+      "CONFIRM_MESSAGE": "This action cannot be undone. Your account and all associated data will be permanently removed."
+    }
   }
 }

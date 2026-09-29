@@ -1,0 +1,29 @@
+<ng-container *transloco="let t">
+    <div class="avatar-upload">
+        <span class="avatar-upload__avatar">
+            @if (user()?.avatar; as avatar) {
+            <img [src]="avatar" [alt]="user()?.firstName" />
+            } @else {
+            {{ initials() }}
+            }
+        </span>
+
+        <div class="avatar-upload__actions">
+            <app-button type="button" variant="secondary" size="sm" [loading]="isUploading()"
+                (clicked)="openFilePicker()">
+                {{ t('PROFILE.AVATAR.UPLOAD') }}
+            </app-button>
+
+            @if (user()?.avatar) {
+            <app-button type="button" variant="ghost" size="sm" [loading]="isRemoving()" (clicked)="removeAvatar()">
+                {{ t('PROFILE.AVATAR.REMOVE') }}
+            </app-button>
+            }
+
+            <input #fileInput type="file" class="avatar-upload__input" accept="image/jpeg,image/png"
+                (change)="onFileSelected($event)" />
+        </div>
+
+        <p class="avatar-upload__hint">{{ t('PROFILE.AVATAR.HINT') }}</p>
+    </div>
+</ng-container>

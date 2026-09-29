@@ -1,0 +1,99 @@
+<ng-container *transloco="let t">
+    <div class="profile-page">
+        <aside class="profile-page__sidebar">
+            <span class="profile-page__nav-item profile-page__nav-item--active">
+                <lucide-icon [img]="profileIcon" class="profile-page__nav-icon" />
+                {{ t('PROFILE.NAV.PROFILE') }}
+            </span>
+            <span class="profile-page__nav-item profile-page__nav-item--disabled">
+                <lucide-icon [img]="auctionsIcon" class="profile-page__nav-icon" />
+                {{ t('PROFILE.NAV.MY_AUCTIONS') }}
+            </span>
+            <span class="profile-page__nav-item profile-page__nav-item--disabled">
+                <lucide-icon [img]="bidsIcon" class="profile-page__nav-icon" />
+                {{ t('PROFILE.NAV.MY_BIDS') }}
+            </span>
+            <span class="profile-page__nav-item profile-page__nav-item--disabled">
+                <lucide-icon [img]="preferencesIcon" class="profile-page__nav-icon" />
+                {{ t('PROFILE.NAV.PREFERENCES') }}
+            </span>
+        </aside>
+
+        <div class="profile-page__content">
+            <section class="profile-card">
+                <h2 class="profile-card__title">{{ t('PROFILE.INFO.TITLE') }}</h2>
+
+                <app-avatar-upload [user]="currentUser()" (userUpdated)="onUserUpdated($event)" />
+
+                <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()" class="profile-card__form" novalidate>
+                    <div class="profile-card__row">
+                        <app-input formControlName="firstName" [label]="t('COMMON.FORMS.FIRST_NAME')" name="firstName"
+                            [errorMessages]="{
+                                required: t('PROFILE.VALIDATION.FIRST_NAME_REQUIRED')
+                            }" />
+
+                        <app-input formControlName="lastName" [label]="t('COMMON.FORMS.LAST_NAME')" name="lastName"
+                            [errorMessages]="{
+                                required: t('PROFILE.VALIDATION.LAST_NAME_REQUIRED')
+                            }" />
+                    </div>
+
+                    <app-input formControlName="email" [label]="t('PROFILE.INFO.EMAIL_READONLY')" [disabled]="true"
+                        name="email" />
+
+                    <app-button type="submit" [loading]="isSavingProfile()" size="md" variant="primary">
+                        {{ t('PROFILE.INFO.SAVE') }}
+                    </app-button>
+                </form>
+            </section>
+
+            <section class="profile-card">
+                <h2 class="profile-card__title">{{ t('PROFILE.PASSWORD.TITLE') }}</h2>
+
+                <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="profile-card__form" novalidate>
+                    <div class="profile-card__row">
+                        <app-input formControlName="currentPassword" type="password"
+                            [label]="t('PROFILE.PASSWORD.CURRENT')" autocomplete="current-password"
+                            name="currentPassword" [errorMessages]="{
+                                required: t('PROFILE.PASSWORD.CURRENT_REQUIRED')
+                            }" />
+                    </div>
+
+                    <div class="profile-card__row">
+                        <app-input formControlName="password" type="password" [label]="t('PROFILE.PASSWORD.NEW')"
+                            [placeholder]="t('PROFILE.PASSWORD.NEW_PLACEHOLDER')" autocomplete="new-password"
+                            name="password" [errorMessages]="{
+                                required: t('AUTH.VALIDATION.PASSWORD_REQUIRED'),
+                                minlength: t('AUTH.VALIDATION.PASSWORD_MIN'),
+                                pattern: t('AUTH.VALIDATION.PASSWORD_TOO_WEAK')
+                            }" />
+
+                        <app-input formControlName="passwordRepeat" type="password"
+                            [label]="t('COMMON.FORMS.PASSWORD_REPEAT')"
+                            [placeholder]="t('PROFILE.PASSWORD.REPEAT_PLACEHOLDER')" autocomplete="new-password"
+                            name="passwordRepeat" [errorMessages]="{
+                                required: t('AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED'),
+                                passwordMismatch: t('AUTH.VALIDATION.PASSWORD_MISMATCH')
+                            }" />
+                    </div>
+
+                    <app-button type="submit" [loading]="isChangingPassword()" size="md" variant="primary">
+                        {{ t('PROFILE.PASSWORD.SUBMIT') }}
+                    </app-button>
+                </form>
+            </section>
+
+            <section class="profile-card profile-card--danger">
+                <h2 class="profile-card__title profile-card__title--danger">
+                    {{ t('PROFILE.DANGER_ZONE.TITLE') }}
+                </h2>
+                <p class="profile-card__description">{{ t('PROFILE.DANGER_ZONE.DESCRIPTION') }}</p>
+
+                <app-button type="button" variant="danger" size="md" [loading]="isDeletingAccount()"
+                    (clicked)="onDeleteAccount()">
+                    {{ t('PROFILE.DANGER_ZONE.DELETE') }}
+                </app-button>
+            </section>
+        </div>
+    </div>
+</ng-container>

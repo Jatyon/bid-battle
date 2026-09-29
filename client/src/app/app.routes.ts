@@ -1,11 +1,18 @@
 import { Routes } from '@angular/router';
-import { guestGuard } from '@core/guards';
+import { authGuard, guestGuard } from '@core/guards';
 
 export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('@layouts/main-layout/main-layout').then((m) => m.MainLayout),
-    children: [],
+    children: [
+      {
+        path: 'profile',
+        canActivate: [authGuard],
+        title: 'ROUTES.PROFILE',
+        loadComponent: () => import('@features/profile').then((m) => m.ProfilePage),
+      },
+    ],
   },
 
   {

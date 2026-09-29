@@ -153,5 +153,47 @@
   "POPUP": {
     "CONFIRM": "Potwierdź",
     "CANCEL": "Anuluj"
+  },
+  "PROFILE": {
+    "NAV": {
+      "PROFILE": "Profil",
+      "MY_AUCTIONS": "Moje aukcje",
+      "MY_BIDS": "Moje oferty",
+      "PREFERENCES": "Preferencje"
+    },
+    "INFO": {
+      "TITLE": "Informacje o profilu",
+      "EMAIL_READONLY": "Email (tylko do odczytu)",
+      "SAVE": "Zapisz zmiany",
+      "SAVE_SUCCESS": "Profil został zaktualizowany."
+    },
+    "AVATAR": {
+      "UPLOAD": "Prześlij zdjęcie",
+      "REMOVE": "Usuń",
+      "HINT": "JPG lub PNG. Maks. 5MB.",
+      "ERROR_TYPE": "Dozwolone są tylko obrazy JPG lub PNG.",
+      "ERROR_SIZE": "Obraz musi być mniejszy niż 5MB."
+    },
+    "VALIDATION": {
+      "FIRST_NAME_REQUIRED": "Imię jest wymagane.",
+      "LAST_NAME_REQUIRED": "Nazwisko jest wymagane."
+    },
+    "PASSWORD": {
+      "TITLE": "Zmiana hasła",
+      "CURRENT": "Aktualne hasło",
+      "CURRENT_REQUIRED": "Aktualne hasło jest wymagane.",
+      "NEW": "Nowe hasło",
+      "NEW_PLACEHOLDER": "Min. 8 znaków",
+      "REPEAT_PLACEHOLDER": "Powtórz hasło",
+      "SUBMIT": "Zaktualizuj hasło",
+      "SUCCESS": "Twoje hasło zostało zaktualizowane."
+    },
+    "DANGER_ZONE": {
+      "TITLE": "Strefa zagrożenia",
+      "DESCRIPTION": "Trwale usuń swoje konto i wszystkie powiązane dane. Tej operacji nie można cofnąć. Twoje aktywne aukcje zostaną anulowane, a oferty usunięte.",
+      "DELETE": "Usuń konto",
+      "CONFIRM_TITLE": "Usunąć konto?",
+      "CONFIRM_MESSAGE": "Tej operacji nie można cofnąć. Twoje konto i wszystkie powiązane dane zostaną trwale usunięte."
+    }
   }
 }
