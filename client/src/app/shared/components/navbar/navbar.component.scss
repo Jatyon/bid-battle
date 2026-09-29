@@ -1,0 +1,228 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: none;
+  z-index: $z-dropdown;
+
+  @include bp-lg {
+    display: block;
+    position: sticky;
+    top: 0;
+  }
+}
+
+.navbar {
+  width: 100%;
+  min-height: $navbar-height;
+  background-color: var(--color-surface);
+  border-bottom: $border-width solid var(--color-border);
+
+  &__inner {
+    width: 100%;
+    min-height: $navbar-height;
+    padding: 0 clamp(#{$spacing-md}, 2.5vw, #{$spacing-xl});
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr) minmax($search-min-column-width, min(40vw, $search-max-width))
+      minmax(0, 1fr);
+    align-items: center;
+    gap: $spacing-lg;
+  }
+
+  &__left {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: clamp(#{$spacing-md}, 2vw, #{$spacing-xl});
+  }
+
+  &__right {
+    display: flex;
+    min-width: 0;
+    justify-content: flex-end;
+    align-items: center;
+    gap: $spacing-md;
+  }
+
+  &__links {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  &__brand {
+    flex-shrink: 0;
+  }
+
+  &__link {
+    display: inline-flex;
+    width: $icon-button-size;
+    height: $icon-button-size;
+    align-items: center;
+    justify-content: center;
+    border-radius: $radius-md;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition:
+      background-color $transition-fast,
+      color $transition-fast;
+
+    &:hover {
+      background-color: var(--color-surface-2);
+      color: var(--color-text);
+    }
+
+    &--active {
+      color: var(--color-primary);
+      background-color: var(--color-surface-2);
+    }
+  }
+
+  &__link-icon {
+    width: $icon-size-md;
+    height: $icon-size-md;
+  }
+
+  &__user {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  &__auth-actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  &__auth-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: $navbar-auth-button-height;
+    padding: 0 $spacing-md;
+    border: $border-width solid transparent;
+    border-radius: $radius-md;
+    font-size: $font-size-base;
+    font-weight: $fw-semibold;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background-color $transition-fast,
+      border-color $transition-fast,
+      color $transition-fast;
+
+    &--login {
+      color: var(--color-text);
+      border-color: var(--color-border);
+      background-color: var(--color-surface);
+
+      &:hover {
+        background-color: var(--color-surface-2);
+      }
+    }
+
+    &--register {
+      color: var(--color-text-primary);
+      background-color: var(--color-primary);
+
+      &:hover {
+        filter: brightness(0.95);
+      }
+    }
+  }
+
+  &__user-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-sm;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: $spacing-xs;
+    border-radius: $radius-md;
+    color: var(--color-text);
+
+    &:hover {
+      background-color: var(--color-surface-2);
+    }
+  }
+
+  &__user-chevron,
+  &__menu-icon {
+    width: $icon-size-xs;
+    height: $icon-size-xs;
+  }
+
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $avatar-size-sm;
+    height: $avatar-size-sm;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: var(--color-text-primary);
+    font-size: $font-size-sm;
+    font-weight: $fw-semibold;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__user-name {
+    display: none;
+    font-size: $font-size-base;
+    font-weight: $fw-medium;
+
+    @include bp-xl {
+      display: inline;
+    }
+  }
+
+  &__menu {
+    position: absolute;
+    top: calc(100% + #{$spacing-xs});
+    right: 0;
+    min-width: $dropdown-min-width;
+    background-color: var(--color-surface);
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    box-shadow: var(--shadow-md);
+    padding: $spacing-xs;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2xs;
+  }
+
+  &__menu-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-sm;
+    border: none;
+    background: transparent;
+    border-radius: $radius-sm;
+    font-size: $font-size-base;
+    font-family: inherit;
+    color: var(--color-text);
+    text-decoration: none;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+
+    &:hover {
+      background-color: var(--color-surface-2);
+    }
+
+    &--danger {
+      color: var(--color-danger);
+    }
+  }
+}

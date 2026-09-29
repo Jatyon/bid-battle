@@ -1,0 +1,68 @@
+<ng-container *transloco="let t">
+    <header class="mobile-header">
+        <div class="mobile-header__top">
+            <div class="mobile-header__brand">
+                <app-brand-logo />
+            </div>
+
+            <div class="mobile-header__actions">
+                <app-auction-search />
+                @if (currentUser(); as user) {
+                <button type="button" class="mobile-header__account-trigger" (click)="toggleMenu()"
+                    [attr.aria-expanded]="isMenuOpen()" aria-controls="mobile-account-menu"
+                    [attr.aria-label]="t('NAVBAR.OPEN_ACCOUNT_MENU')">
+                    <span class="mobile-header__avatar">
+                        @if (user.avatar) {
+                        <img [src]="user.avatar" [alt]="fullName()" />
+                        } @else {
+                        {{ initials() }}
+                        }
+                    </span>
+                </button>
+                }
+            </div>
+        </div>
+
+        @if (currentUser(); as user) {
+        @if (isMenuOpen()) {
+        <div class="mobile-header__backdrop" tabindex="0" (click)="closeFromBackdrop($event)"
+            (keyup.enter)="closeFromBackdrop($event)" (keyup.space)="closeFromBackdrop($event)">
+            <section id="mobile-account-menu" class="mobile-header__sheet" role="dialog" aria-modal="true"
+                [attr.aria-label]="t('NAVBAR.ACCOUNT_MENU')">
+                <div class="mobile-header__handle" aria-hidden="true"></div>
+                <div class="mobile-header__identity">
+                    <span class="mobile-header__avatar mobile-header__avatar--large">
+                        @if (user.avatar) {
+                        <img [src]="user.avatar" [alt]="fullName()" />
+                        } @else {
+                        {{ initials() }}
+                        }
+                    </span>
+                    <span class="mobile-header__name">{{ fullName() }}</span>
+                </div>
+
+                <a routerLink="/profile" class="mobile-header__menu-item" (click)="closeMenu()">
+                    <lucide-icon [img]="profileIcon" class="mobile-header__menu-icon" aria-hidden="true" />
+                    <span>{{ t('NAVBAR.PROFILE') }}</span>
+                </a>
+                <button type="button" class="mobile-header__menu-item" (click)="toggleTheme()">
+                    <lucide-icon [img]="themeIcon()" class="mobile-header__menu-icon" aria-hidden="true" />
+                    <span>
+                        @if (themeService.currentTheme() === 'dark') {
+                        {{ t('NAVBAR.SWITCH_TO_LIGHT') }}
+                        } @else {
+                        {{ t('NAVBAR.SWITCH_TO_DARK') }}
+                        }
+                    </span>
+                </button>
+                <button type="button" class="mobile-header__menu-item mobile-header__menu-item--danger"
+                    (click)="logout()">
+                    <lucide-icon [img]="logoutIcon" class="mobile-header__menu-icon" aria-hidden="true" />
+                    <span>{{ t('NAVBAR.LOGOUT') }}</span>
+                </button>
+            </section>
+        </div>
+        }
+        }
+    </header>
+</ng-container>

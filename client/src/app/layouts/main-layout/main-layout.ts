@@ -1,9 +1,12 @@
-import { RouterOutlet } from '@angular/router';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { MobileHeaderComponent } from '@app/shared/components/mobile-header/mobile-header.component';
+import { MobileNavComponent } from '@app/shared/components/mobile-nav/mobile-nav.component';
+import { NavbarComponent } from '@app/shared/components/navbar/navbar.component';
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, NavbarComponent, MobileHeaderComponent, MobileNavComponent],
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

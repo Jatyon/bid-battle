@@ -6,55 +6,26 @@
   flex-direction: column;
   background-color: var(--color-bg);
 
-  &__brand {
-    padding: $spacing-md $spacing-md;
-  }
-
-  &__logo {
-    display: inline-flex;
-    align-items: center;
-    gap: $spacing-sm;
-    text-decoration: none;
-    color: var(--color-text);
-  }
-
-  &__logo-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: $logo-icon-size;
-    height: $logo-icon-size;
-    border-radius: $radius-md;
-
-    img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-  }
-
-  &__logo-text {
-    font-size: $font-size-lg;
-    font-weight: 700;
-    color: var(--color-text);
-
-    @include bp-sm {
-      font-size: $font-size-xl;
-    }
-  }
-
   &__content {
     flex: 1;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 0;
+    padding: 0 0 calc(#{$mobile-nav-height} + env(safe-area-inset-bottom, 0));
 
     @include bp-sm {
       align-items: center;
+      padding: $spacing-md $spacing-md
+        calc(#{$spacing-md} + #{$mobile-nav-height} + env(safe-area-inset-bottom, 0));
+    }
+
+    @include bp-lg {
       padding: $spacing-md;
     }
+  }
+
+  @include bp-lg {
+    min-height: calc(100vh - #{$navbar-height});
   }
 
   &__card {
@@ -66,7 +37,7 @@
     box-shadow: none;
 
     @include bp-sm {
-      max-width: 480px;
+      max-width: $auth-card-max-width;
       border-radius: $radius-lg;
       padding: $card-padding-sm;
       box-shadow: var(--shadow-lg);

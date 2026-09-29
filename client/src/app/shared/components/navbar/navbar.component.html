@@ -1,0 +1,78 @@
+<ng-container *transloco="let t">
+    <header class="navbar">
+        <div class="navbar__inner">
+            <div class="navbar__left">
+                <div class="navbar__brand" [class.navbar__brand--guest]="!currentUser()">
+                    <app-brand-logo />
+                </div>
+            </div>
+
+            <app-auction-search class="navbar__search" />
+
+            <div class="navbar__right">
+                <nav class="navbar__links" [attr.aria-label]="t('NAVBAR.MAIN_MENU')">
+                    <a routerLink="/users" routerLinkActive="navbar__link--active" class="navbar__link"
+                        [attr.aria-label]="t('NAVBAR.USERS')" [title]="t('NAVBAR.USERS')">
+                        <lucide-icon [img]="usersIcon" class="navbar__link-icon" aria-hidden="true" />
+                    </a>
+                    @if (currentUser()) {
+                    <a routerLink="/sell" routerLinkActive="navbar__link--active" class="navbar__link"
+                        [attr.aria-label]="t('NAVBAR.SELL')" [title]="t('NAVBAR.SELL')">
+                        <lucide-icon [img]="sellIcon" class="navbar__link-icon" aria-hidden="true" />
+                    </a>
+                    <a routerLink="/activity" routerLinkActive="navbar__link--active" class="navbar__link"
+                        [attr.aria-label]="t('NAVBAR.MY_ACTIVITY')" [title]="t('NAVBAR.MY_ACTIVITY')">
+                        <lucide-icon [img]="activityIcon" class="navbar__link-icon" aria-hidden="true" />
+                    </a>
+                    }
+                </nav>
+                @if (currentUser(); as user) {
+                <div class="navbar__user">
+                    <button type="button" class="navbar__user-trigger" (click)="toggleMenu()"
+                        [attr.aria-expanded]="isMenuOpen()">
+                        <span class="navbar__avatar">
+                            @if (user.avatar) {
+                            <img [src]="user.avatar" [alt]="fullName()" />
+                            } @else {
+                            {{ initials() }}
+                            }
+                        </span>
+                        <span class="navbar__user-name">{{ fullName() }}</span>
+                        <lucide-icon [img]="chevronIcon" class="navbar__user-chevron" />
+                    </button>
+
+                    @if (isMenuOpen()) {
+                    <div class="navbar__menu">
+                        <a routerLink="/profile" class="navbar__menu-item" (click)="closeMenu()">
+                            <lucide-icon [img]="userIcon" class="navbar__menu-icon" />
+                            {{ t('NAVBAR.PROFILE') }}
+                        </a>
+                        <button type="button" class="navbar__menu-item" (click)="toggleTheme()">
+                            <lucide-icon [img]="themeIcon()" class="navbar__menu-icon" />
+                            @if (themeService.currentTheme() === 'dark') {
+                            {{ t('NAVBAR.SWITCH_TO_LIGHT') }}
+                            } @else {
+                            {{ t('NAVBAR.SWITCH_TO_DARK') }}
+                            }
+                        </button>
+                        <button type="button" class="navbar__menu-item navbar__menu-item--danger" (click)="logout()">
+                            <lucide-icon [img]="logoutIcon" class="navbar__menu-icon" />
+                            {{ t('NAVBAR.LOGOUT') }}
+                        </button>
+                    </div>
+                    }
+                </div>
+                } @else {
+                <div class="navbar__auth-actions">
+                    <a routerLink="/auth/login" class="navbar__auth-button navbar__auth-button--login">
+                        {{ t('NAVBAR.LOGIN') }}
+                    </a>
+                    <a routerLink="/auth/register" class="navbar__auth-button navbar__auth-button--register">
+                        {{ t('NAVBAR.SIGN_UP') }}
+                    </a>
+                </div>
+                }
+            </div>
+        </div>
+    </header>
+</ng-container>

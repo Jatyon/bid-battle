@@ -10,6 +10,7 @@
   },
   "NAVBAR": {
     "HOME": "Home",
+    "MAIN_MENU": "Main menu",
     "SELL": "Sell",
     "MY_ACTIVITY": "My Activity",
     "SEARCH_PLACEHOLDER": "Search auctions...",

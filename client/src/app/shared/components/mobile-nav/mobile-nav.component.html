@@ -1,0 +1,32 @@
+<ng-container *transloco="let t">
+    <nav class="mobile-nav">
+        <a routerLink="/" routerLinkActive="mobile-nav__item--active" [routerLinkActiveOptions]="{ exact: true }"
+            class="mobile-nav__item">
+            <lucide-icon [img]="homeIcon" class="mobile-nav__icon" aria-hidden="true" />
+            <span>{{ t('NAVBAR.HOME') }}</span>
+        </a>
+        <a routerLink="/users" routerLinkActive="mobile-nav__item--active" class="mobile-nav__item">
+            <lucide-icon [img]="usersIcon" class="mobile-nav__icon" aria-hidden="true" />
+            <span>{{ t('NAVBAR.USERS') }}</span>
+        </a>
+        @if (currentUser()) {
+        <a routerLink="/sell" routerLinkActive="mobile-nav__item--active" class="mobile-nav__item">
+            <lucide-icon [img]="sellIcon" class="mobile-nav__icon" aria-hidden="true" />
+            <span>{{ t('NAVBAR.SELL') }}</span>
+        </a>
+        <a routerLink="/activity" routerLinkActive="mobile-nav__item--active" class="mobile-nav__item">
+            <lucide-icon [img]="activityIcon" class="mobile-nav__icon" aria-hidden="true" />
+            <span>{{ t('NAVBAR.MY_ACTIVITY') }}</span>
+        </a>
+        <a routerLink="/profile" routerLinkActive="mobile-nav__item--active" class="mobile-nav__item">
+            <lucide-icon [img]="profileIcon" class="mobile-nav__icon" aria-hidden="true" />
+            <span>{{ t('NAVBAR.PROFILE') }}</span>
+        </a>
+        } @else {
+        <a routerLink="/auth/login" routerLinkActive="mobile-nav__item--active" class="mobile-nav__item">
+            <lucide-icon [img]="loginIcon" class="mobile-nav__icon" aria-hidden="true" />
+            <span>{{ t('NAVBAR.LOGIN') }}</span>
+        </a>
+        }
+    </nav>
+</ng-container>

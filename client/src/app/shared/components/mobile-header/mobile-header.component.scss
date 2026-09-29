@@ -1,0 +1,186 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+  padding: env(safe-area-inset-top, 0) $spacing-md 0;
+  border-bottom: $border-width solid var(--color-border);
+  background-color: var(--color-surface);
+
+  @include bp-lg {
+    display: none;
+  }
+}
+
+.mobile-header {
+  display: flex;
+  min-height: $mobile-header-height;
+  align-items: center;
+
+  &__top {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: $mobile-header-height;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+  }
+
+  &__brand {
+    flex: 0 0 auto;
+  }
+
+  &__actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: $spacing-xs;
+
+    app-auction-search {
+      order: 1;
+    }
+  }
+
+  &__account-trigger {
+    order: 2;
+    display: inline-flex;
+    width: $touch-target-size;
+    height: $touch-target-size;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-surface-2);
+    }
+
+    &:focus-visible {
+      outline: $focus-ring-width solid var(--color-primary);
+      outline-offset: $focus-ring-offset;
+    }
+  }
+
+  &__avatar {
+    display: inline-flex;
+    width: $avatar-size-md;
+    height: $avatar-size-md;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-text-primary);
+    font-size: $font-size-sm;
+    font-weight: $fw-semibold;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &--large {
+      width: $avatar-size-lg;
+      height: $avatar-size-lg;
+      font-size: $font-size-md;
+    }
+  }
+
+  &__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: $z-modal;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgb(0 0 0 / 48%);
+  }
+
+  &__sheet {
+    width: 100%;
+    max-height: min(75vh, $account-sheet-max-height);
+    overflow-y: auto;
+    padding: $spacing-sm $spacing-md calc(#{$spacing-md} + env(safe-area-inset-bottom, 0));
+    border: $border-width solid var(--color-border);
+    border-bottom: 0;
+    border-radius: $radius-lg $radius-lg 0 0;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg);
+    animation: mobile-account-sheet-enter $transition-fast;
+  }
+
+  &__handle {
+    width: $account-sheet-handle-width;
+    height: $decoration-bar-height;
+    margin: 0 auto $spacing-md;
+    border-radius: $radius-full;
+    background: var(--color-border);
+  }
+
+  &__identity {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: 0 0 $spacing-md;
+    margin-bottom: $spacing-xs;
+    border-bottom: $border-width solid var(--color-border);
+  }
+
+  &__name {
+    color: var(--color-text);
+    font-size: $font-size-md;
+    font-weight: $fw-semibold;
+  }
+
+  &__menu-item {
+    display: flex;
+    width: 100%;
+    min-height: $menu-item-min-height;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-sm;
+    border: 0;
+    border-radius: $radius-md;
+    background: transparent;
+    color: var(--color-text);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-surface-2);
+    }
+
+    &:focus-visible {
+      outline: $focus-ring-width solid var(--color-primary);
+      outline-offset: -$spacing-2xs;
+    }
+
+    &--danger {
+      color: var(--color-danger);
+    }
+  }
+
+  &__menu-icon {
+    width: $icon-size-md;
+    height: $icon-size-md;
+  }
+}
+
+@keyframes mobile-account-sheet-enter {
+  from {
+    transform: translateY($spacing-lg);
+    opacity: 0.7;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
