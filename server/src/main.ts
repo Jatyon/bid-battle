@@ -45,11 +45,11 @@ async function bootstrap() {
   // Static file guard — block path traversal and directory listing attempts on /uploads
   app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
     const requestedPath = req.path;
-    const normalizedPath = path.normalize(requestedPath);
+    const normalizedPath = path.posix.normalize(requestedPath);
 
-    if (normalizedPath !== requestedPath) return res.status(403).json({ statusCode: 403, message: 'Forbidden' });
+    if (requestedPath.includes('\\') || normalizedPath !== requestedPath) return res.status(403).json({ statusCode: 403, message: 'Forbidden' });
 
-    const lastSegment = path.basename(normalizedPath);
+    const lastSegment = path.posix.basename(normalizedPath);
 
     if (!lastSegment.includes('.')) return res.status(403).json({ statusCode: 403, message: 'Forbidden' });
 

@@ -16,6 +16,7 @@ import { BidModule } from '@modules/bid';
 import { HealthModule } from '@health/health.module';
 import { I18nConfigProvider, MailerConfigProvider, ProvidersModule } from '@shared/providers';
 import { FileUploadModule } from '@shared/file-upload';
+import type { Response } from 'express';
 import { CookiesModule } from '@shared/cookies';
 import { RedisModule } from '@shared/redis';
 import { MailModule } from '@shared/mail';
@@ -82,6 +83,11 @@ import { join } from 'path';
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
+      serveStaticOptions: {
+        setHeaders: (res: Response) => {
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        },
+      },
     }),
 
     AppConfigModule.forRoot(),
