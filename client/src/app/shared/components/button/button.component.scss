@@ -43,8 +43,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: $icon-size-sm;
+    height: $icon-size-sm;
     flex-shrink: 0;
   }
 
@@ -74,7 +74,6 @@
     padding: $btn-padding-lg-bp;
     font-size: $btn-font-size-lg;
     min-height: $btn-min-height-lg;
-
   }
 
   // Variants
@@ -117,7 +116,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    outline: $focus-ring-width solid var(--color-primary);
+    outline-offset: $focus-ring-offset;
   }
 }

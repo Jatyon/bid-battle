@@ -6,8 +6,8 @@
   gap: $spacing-sm;
 
   &__dot {
-    width: 10px;
-    height: 10px;
+    width: $loader-dot-size;
+    height: $loader-dot-size;
     border-radius: 50%;
     background-color: currentColor;
     animation: dots-bounce 1.2s ease-in-out infinite;

@@ -9,14 +9,14 @@
   justify-content: center;
   padding: $spacing-md;
   background-color: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur($spacing-2xs);
   animation: backdropIn $transition-base forwards;
 }
 
 .popup {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: $popup-max-width;
   padding: $spacing-xl $spacing-lg $spacing-lg;
   border-radius: $radius-lg;
   background-color: var(--color-surface);
@@ -34,7 +34,7 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: $decoration-bar-height;
     border-radius: $radius-lg $radius-lg 0 0;
     background-color: var(--popup-accent);
   }
@@ -61,8 +61,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
+  width: $popup-icon-size;
+  height: $popup-icon-size;
   border-radius: 50%;
   background-color: color-mix(in srgb, var(--popup-accent) 12%, transparent);
   color: var(--popup-icon);
@@ -100,7 +100,7 @@
 
     app-button {
       flex: unset;
-      min-width: 140px;
+      min-width: $popup-action-min-width;
     }
   }
 }
@@ -117,7 +117,7 @@
 @keyframes popupIn {
   from {
     opacity: 0;
-    transform: scale(0.92) translateY(12px);
+    transform: scale(0.92) translateY($spacing-sm + $spacing-xs);
   }
   to {
     opacity: 1;

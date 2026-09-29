@@ -45,7 +45,7 @@
     &::after {
       content: '';
       flex: 1;
-      height: 1px;
+      height: $border-width;
       background-color: var(--color-border);
     }
   }

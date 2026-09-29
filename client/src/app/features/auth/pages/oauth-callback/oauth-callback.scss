@@ -11,7 +11,7 @@
   justify-content: center;
   gap: $spacing-lg;
   padding: $card-padding-mobile;
-  min-height: 180px;
+  min-height: $auth-state-min-height;
 
   @include bp-sm {
     padding: $card-padding-sm;

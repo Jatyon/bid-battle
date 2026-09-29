@@ -12,7 +12,7 @@
   &--centered {
     align-items: center;
     justify-content: center;
-    min-height: 180px;
+    min-height: $auth-state-min-height;
     padding: $card-padding-mobile;
 
     @include bp-sm {

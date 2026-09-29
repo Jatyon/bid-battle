@@ -29,13 +29,13 @@
   box-shadow: var(--shadow-md);
   border-left: $toast-accent-border solid transparent;
   font-size: $font-size-base;
-  min-height: 52px;
+  min-height: $toast-min-height;
   pointer-events: all;
   animation: toastIn 240ms cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top center;
   will-change: opacity, transform, max-height, margin, padding;
   overflow: hidden;
-  max-height: 120px;
+  max-height: $toast-max-height;
   transition:
     margin 220ms ease,
     padding 220ms ease,
@@ -124,13 +124,13 @@
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.98);
+    transform: translateY(-$spacing-sm) scale(0.98);
     max-height: 0;
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-    max-height: 120px;
+    max-height: $toast-max-height;
   }
 }
 
@@ -138,14 +138,14 @@
   from {
     opacity: 1;
     transform: translateY(0) scale(1);
-    max-height: 120px;
+    max-height: $toast-max-height;
     margin-bottom: $spacing-sm;
     padding-top: $spacing-sm;
     padding-bottom: $spacing-sm;
   }
   to {
     opacity: 0;
-    transform: translateY(-12px) scale(0.96);
+    transform: translateY(-($spacing-sm + $spacing-xs)) scale(0.96);
     max-height: 0;
     margin-bottom: 0;
     padding-top: 0;
