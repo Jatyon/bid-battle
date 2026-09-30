@@ -1,0 +1,80 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.switch-field {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
+  border-bottom: $border-width solid var(--color-border);
+
+  &__copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: $spacing-2xs;
+  }
+
+  &__label {
+    color: var(--color-text);
+    font-size: $font-size-base;
+    font-weight: $fw-medium;
+  }
+
+  &__description {
+    color: var(--color-text-secondary);
+    font-size: $font-size-sm;
+  }
+
+  &__control {
+    position: relative;
+    display: inline-flex;
+    width: $switch-width;
+    height: $switch-height;
+    flex: 0 0 auto;
+    align-items: center;
+    padding: $spacing-2xs;
+    border: 0;
+    border-radius: $radius-full;
+    background: var(--color-surface-3);
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &[aria-checked='true'] {
+      background: var(--color-primary);
+
+      .switch-field__thumb {
+        transform: translateX($switch-thumb-travel);
+      }
+    }
+
+    &:focus-visible {
+      outline: $focus-ring-width solid var(--color-primary);
+      outline-offset: $focus-ring-offset;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  &__thumb {
+    width: $switch-thumb-size;
+    height: $switch-thumb-size;
+    border-radius: $radius-full;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    transition: transform $transition-fast;
+  }
+
+  &--disabled {
+    opacity: 0.65;
+  }
+}

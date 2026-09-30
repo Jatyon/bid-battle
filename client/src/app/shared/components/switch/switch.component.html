@@ -1,0 +1,14 @@
+<div class="switch-field" [class.switch-field--disabled]="disabled() || controlDisabled()">
+    <span class="switch-field__copy">
+        <span class="switch-field__label" [id]="id() + '-label'">{{ label() }}</span>
+        @if (description()) {
+        <span class="switch-field__description" [id]="id() + '-description'">{{ description() }}</span>
+        }
+    </span>
+
+    <button type="button" class="switch-field__control" role="switch" [id]="id()" [attr.aria-checked]="checked()"
+        [attr.aria-labelledby]="id() + '-label'" [attr.aria-describedby]="description() ? id() + '-description' : null"
+        [disabled]="disabled() || controlDisabled()" (click)="toggle()">
+        <span class="switch-field__thumb"></span>
+    </button>
+</div>
