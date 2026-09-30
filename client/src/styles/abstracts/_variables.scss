@@ -21,37 +21,24 @@ $focus-ring-width: 2px;
 $focus-ring-offset: 2px;
 $decoration-bar-height: 4px;
 
-// Common control and icon dimensions
+// Icon sizes
 $icon-size-xs: 16px;
 $icon-size-sm: 18px;
 $icon-size-md: 20px;
+$logo-icon-size: 36px;
+
+// Shared control dimensions
 $icon-button-size: 40px;
 $touch-target-size: 44px;
-$navbar-auth-button-height: 36px;
-$search-control-height: 42px;
-$search-clear-size: 32px;
-$search-min-column-width: 280px;
-$search-max-width: 640px;
-$search-results-max-height: 480px;
-$search-thumbnail-max-size: 56px;
-$account-sheet-max-height: 560px;
-$account-sheet-handle-width: 36px;
 $menu-item-min-height: 48px;
-$mobile-header-height: 56px;
-$avatar-size-sm: 32px;
-$avatar-size-md: 36px;
-$avatar-size-lg: 48px;
-$avatar-size-xl: 64px;
 $dropdown-min-width: 180px;
+
+// Auth
 $auth-state-min-height: 180px;
-$profile-sidebar-width: 220px;
 $auth-card-max-width: 480px;
-$popup-max-width: 440px;
-$popup-icon-size: 64px;
-$popup-action-min-width: 140px;
-$toast-min-height: 52px;
-$toast-max-height: 120px;
-$loader-dot-size: 10px;
+
+// Profile
+$profile-content-max-width: 800px;
 
 // Shadow geometry is shared by light/dark theme color definitions.
 $shadow-sm-y: 1px;
@@ -60,9 +47,6 @@ $shadow-md-y: 4px;
 $shadow-md-blur: 12px;
 $shadow-lg-y: 8px;
 $shadow-lg-blur: 24px;
-
-// Icon sizes
-$logo-icon-size: 36px;
 
 // Transitions
 $transition-fast: 150ms ease;
@@ -141,6 +125,8 @@ $card-padding-md: $spacing-xl $spacing-xl;
 // Toast
 $toast-min-width: 280px;
 $toast-max-width: 420px;
+$toast-min-height: 52px;
+$toast-max-height: 120px;
 $toast-accent-border: 4px;
 $toast-icon-size: 20px;
 
@@ -173,3 +159,42 @@ $input-line-height: $icon-size-sm;
 $input-toggle-right: $spacing-sm + $spacing-xs; // 12px
 $input-toggle-icon-size: $icon-size-sm;
 $input-toggle-area: $input-toggle-right * 2 + $input-toggle-icon-size; // 44px
+
+// Navbar
+$navbar-auth-button-height: 36px;
+
+// Switch
+$switch-width: 48px;
+$switch-height: 28px;
+$switch-thumb-size: 20px;
+$switch-thumb-travel: 24px;
+
+// Search
+$search-control-height: 42px;
+$search-clear-size: 32px;
+$search-min-column-width: 280px;
+$search-max-width: 640px;
+$search-results-max-height: 480px;
+$search-thumbnail-max-size: 56px;
+
+// Select
+$select-options-max-height: 280px;
+
+// Mobile header / account sheet
+$mobile-header-height: 56px;
+$account-sheet-max-height: 560px;
+$account-sheet-handle-width: 36px;
+
+// Avatar
+$avatar-size-sm: 32px;
+$avatar-size-md: 36px;
+$avatar-size-lg: 48px;
+$avatar-size-xl: 64px;
+
+// Popup
+$popup-max-width: 440px;
+$popup-icon-size: 64px;
+$popup-action-min-width: 140px;
+
+// Loader
+$loader-dot-size: 10px;
