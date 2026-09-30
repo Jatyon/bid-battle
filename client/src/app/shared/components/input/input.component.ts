@@ -56,6 +56,9 @@ export class InputComponent implements ControlValueAccessor, OnInit {
   readonly id = input(`input-${++InputComponent._counter}`);
   readonly maxlength = input<number | undefined>(undefined);
   readonly minlength = input<number | undefined>(undefined);
+  readonly min = input<number | undefined>(undefined);
+  readonly max = input<number | undefined>(undefined);
+  readonly step = input<number | undefined>(undefined);
   readonly pattern = input<string | undefined>(undefined);
   readonly required = input(false);
   readonly ariaLabel = input<string | undefined>(undefined);

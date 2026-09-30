@@ -1,0 +1,191 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+}
+
+.auction-page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+
+  &__intro {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: $spacing-md;
+  }
+
+  &__eyebrow {
+    margin-bottom: $spacing-xs;
+    color: var(--color-primary);
+    font-size: $font-size-sm;
+    font-weight: $fw-semibold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    color: var(--color-text);
+    font-size: clamp($font-size-2xl, 5vw, $font-size-4xl);
+    font-weight: $fw-bold;
+    line-height: $lh-tight;
+  }
+
+  &__subtitle {
+    max-width: 44rem;
+    margin-top: $spacing-sm;
+    color: var(--color-text-secondary);
+    font-size: $font-size-base;
+    line-height: $lh-base;
+  }
+
+  &__live-badge {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-full;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: $font-size-sm;
+    font-weight: $fw-medium;
+  }
+
+  &__live-indicator {
+    width: $spacing-xs;
+    height: $spacing-xs;
+    border-radius: $radius-full;
+    background: var(--color-success);
+    box-shadow: 0 0 0 $spacing-3xs color-mix(in srgb, var(--color-success) 18%, transparent);
+  }
+
+  .auction-results {
+    min-width: 0;
+
+    &__heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-md;
+      margin-bottom: $spacing-md;
+      color: var(--color-text-secondary);
+      font-size: $font-size-sm;
+
+      p {
+        color: var(--color-text);
+        font-weight: $fw-semibold;
+      }
+    }
+  }
+
+  .auction-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-md;
+  }
+
+  .auction-state {
+    display: flex;
+    min-height: 14rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+    padding: $spacing-lg;
+    border: $border-width dashed var(--color-border);
+    border-radius: $radius-md;
+    color: var(--color-text-secondary);
+    text-align: center;
+
+    &--error {
+      color: var(--color-danger);
+    }
+
+    &__empty-title {
+      color: var(--color-text);
+      font-size: $font-size-lg;
+      font-weight: $fw-semibold;
+    }
+
+    &__spinner {
+      width: $spacing-lg;
+      height: $spacing-lg;
+      border: $border-width * 3 solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: $radius-full;
+      animation: auction-spin 0.8s linear infinite;
+    }
+
+    &__retry {
+      padding: $spacing-sm $spacing-md;
+      border: 0;
+      border-radius: $radius-sm;
+      background: var(--color-primary);
+      color: var(--color-text-primary);
+      font: inherit;
+      font-weight: $fw-semibold;
+      cursor: pointer;
+    }
+  }
+
+  .auction-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-md;
+    margin-top: $spacing-lg;
+    color: var(--color-text-secondary);
+    font-size: $font-size-sm;
+
+    button {
+      display: grid;
+      width: $touch-target-size;
+      height: $touch-target-size;
+      place-items: center;
+      border: $border-width solid var(--color-border);
+      border-radius: $radius-sm;
+      background: var(--color-surface);
+      color: var(--color-text);
+      cursor: pointer;
+
+      &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      &:not(:disabled):hover {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  @include bp-sm {
+    .auction-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @include bp-md {
+    gap: $spacing-xl;
+
+    .auction-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @include bp-lg {
+    .auction-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+}
+
+@keyframes auction-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -14,9 +14,10 @@
     <div class="input-field__wrapper">
         <input class="input-field__input" [class.input-field__input--has-toggle]="isPasswordType()" [id]="id()"
             [type]="effectiveType()" [placeholder]="placeholder()" [disabled]="disabled()" [readOnly]="readonly()"
-            [value]="value()" [name]="name()" [attr.autocomplete]="autocomplete() || null"
-            [attr.aria-label]="ariaLabel() || null" [attr.aria-describedby]="ariaDescribedByValue() || null"
-            (input)="onInput($event)" (focus)="onFocus()" (blur)="onBlur()" />
+            [value]="value()" [name]="name()" [attr.autocomplete]="autocomplete() || null" [attr.min]="min() ?? null"
+            [attr.max]="max() ?? null" [attr.step]="step() ?? null" [attr.aria-label]="ariaLabel() || null"
+            [attr.aria-describedby]="ariaDescribedByValue() || null" (input)="onInput($event)" (focus)="onFocus()"
+            (blur)="onBlur()" />
 
         @if (isPasswordType()) {
         <button type="button" class="input-field__toggle" (click)="togglePasswordVisibility()"

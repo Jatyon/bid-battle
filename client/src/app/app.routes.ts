@@ -7,6 +7,11 @@ export const routes: Routes = [
     loadComponent: () => import('@layouts/main-layout/main-layout').then((m) => m.MainLayout),
     children: [
       {
+        path: '',
+        title: 'ROUTES.HOME',
+        loadComponent: () => import('@features/auctions').then((m) => m.AuctionListPage),
+      },
+      {
         path: 'profile',
         canActivate: [authGuard],
         title: 'ROUTES.PROFILE',

@@ -1,0 +1,52 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+}
+
+.auction-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 1fr);
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border: $border-width solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+
+  > app-input,
+  > app-select {
+    display: block;
+    min-width: 0;
+  }
+
+  &__search {
+    grid-column: 1 / -1;
+  }
+
+  &__actions {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: $spacing-sm;
+    align-items: center;
+  }
+
+  @media (min-width: $bp-md) {
+    &__search {
+      grid-column: span 2;
+    }
+
+    &__actions {
+      grid-column: span 2;
+    }
+  }
+
+  @media (min-width: $bp-lg) {
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+
+    &__actions {
+      grid-column: span 2;
+    }
+  }
+}

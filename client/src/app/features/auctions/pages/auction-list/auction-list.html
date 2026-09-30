@@ -1,0 +1,63 @@
+<ng-container *transloco="let t">
+    <main class="auction-page">
+        <header class="auction-page__intro">
+            <div>
+                <p class="auction-page__eyebrow">{{ t('AUCTIONS.PAGE.EYEBROW') }}</p>
+                <h1 class="auction-page__title">{{ t('AUCTIONS.PAGE.TITLE') }}</h1>
+                <p class="auction-page__subtitle">{{ t('AUCTIONS.PAGE.SUBTITLE') }}</p>
+            </div>
+            <div class="auction-page__live-badge">
+                <span class="auction-page__live-indicator"></span>
+                {{ t('AUCTIONS.PAGE.LIVE') }}
+            </div>
+        </header>
+
+        <app-auction-filters (filtersApplied)="applyFilters($event)" />
+
+        <section class="auction-results" [attr.aria-label]="t('AUCTIONS.PAGE.RESULTS')" aria-live="polite">
+            @if (loading()) {
+            <div class="auction-state" role="status">
+                <span class="auction-state__spinner"></span>
+                <span>{{ t('AUCTIONS.STATE.LOADING') }}</span>
+            </div>
+            } @else if (hasError()) {
+            <div class="auction-state auction-state--error" role="alert">
+                <p>{{ t('AUCTIONS.STATE.ERROR') }}</p>
+                <button type="button" class="auction-state__retry" (click)="retry()">
+                    {{ t('AUCTIONS.STATE.RETRY') }}
+                </button>
+            </div>
+            } @else if (auctions().length === 0) {
+            <div class="auction-state">
+                <p class="auction-state__empty-title">{{ t('AUCTIONS.STATE.EMPTY_TITLE') }}</p>
+                <p>{{ t('AUCTIONS.STATE.EMPTY') }}</p>
+            </div>
+            } @else {
+            <div class="auction-results__heading">
+                <p>{{ t('AUCTIONS.PAGE.RESULT_COUNT', { count: pageData()?.total ?? 0 }) }}</p>
+                <span>{{ t('AUCTIONS.PAGE.PAGE_COUNT', { page: page(), pages: totalPages }) }}</span>
+            </div>
+
+            <div class="auction-grid">
+                @for (auction of auctions(); track auction.id) {
+                <app-auction-card [auction]="auction" />
+                }
+            </div>
+
+            @if (totalPages > 1) {
+            <nav class="auction-pagination" [attr.aria-label]="t('AUCTIONS.PAGINATION.LABEL')">
+                <button type="button" [disabled]="page() <= 1" [attr.aria-label]="t('AUCTIONS.PAGINATION.PREVIOUS')"
+                    (click)="goToPage(page() - 1)">
+                    <lucide-icon [img]="previousIcon" aria-hidden="true" />
+                </button>
+                <span>{{ t('AUCTIONS.PAGINATION.PAGE', { page: page(), pages: totalPages }) }}</span>
+                <button type="button" [disabled]="page() >= totalPages"
+                    [attr.aria-label]="t('AUCTIONS.PAGINATION.NEXT')" (click)="goToPage(page() + 1)">
+                    <lucide-icon [img]="nextIcon" aria-hidden="true" />
+                </button>
+            </nav>
+            }
+            }
+        </section>
+    </main>
+</ng-container>

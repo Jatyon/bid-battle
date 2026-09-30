@@ -6,6 +6,7 @@
     "FORGOT_PASSWORD": "Forgot password",
     "RESET_PASSWORD": "Reset password",
     "VERIFY_EMAIL": "Account activation",
+    "HOME": "Auctions",
     "PROFILE": "Profile"
   },
   "NAVBAR": {
@@ -27,15 +28,40 @@
   },
   "SEARCH": {
     "RESULTS": "Search results",
-    "FEATURED": "Popular auctions",
-    "DEMO_BADGE": "Demo data",
+    "FEATURED": "Active auctions",
     "CLEAR": "Clear search",
     "OPEN": "Open search",
     "DIALOG": "Auction search",
     "CLOSE": "Close",
     "CURRENT_BID": "Current bid",
-    "BIDS": "bids",
-    "EMPTY": "No auctions match your search.",
+    "LOADING": "Searching auctions…",
+    "ERROR": "Could not load auctions. Please try again.",
+    "EMPTY": "No auctions match your search."
+  },
+  "AUCTIONS": {
+    "PAGE": {
+      "EYEBROW": "BidBattle · live auctions",
+      "TITLE": "Find something special",
+      "SUBTITLE": "Browse active auctions, discover interesting items, and find your next great deal.",
+      "LIVE": "Active auctions",
+      "RESULTS": "Active auction list",
+      "RESULT_COUNT": "Found: {{count}}",
+      "PAGE_COUNT": "Page {{page}} of {{pages}}"
+    },
+    "FILTERS": {
+      "SEARCH": "Search auctions",
+      "CATEGORY": "Category",
+      "ALL_CATEGORIES": "All categories",
+      "MIN_PRICE": "Min price (PLN)",
+      "MAX_PRICE": "Max price (PLN)",
+      "SORT": "Sort by",
+      "SORT_NEWEST": "Newest",
+      "SORT_ENDING": "Ending soon",
+      "SORT_PRICE_LOW": "Price: low to high",
+      "SORT_PRICE_HIGH": "Price: high to low",
+      "APPLY": "Search",
+      "RESET": "Clear filters"
+    },
     "CATEGORIES": {
       "ELECTRONICS": "Electronics",
       "FASHION": "Fashion",
@@ -47,6 +73,27 @@
       "BOOKS": "Books",
       "TOYS": "Toys",
       "OTHER": "Other"
+    },
+    "CARD": {
+      "NO_IMAGE": "No image",
+      "CURRENT_PRICE": "Current bid",
+      "TIME_LEFT": "Time left",
+      "TIME_REMAINING": "{{days}}d {{hours}}h {{minutes}}m",
+      "BIDS": "{{count}} bids",
+      "ENDED": "Ended"
+    },
+    "STATE": {
+      "LOADING": "Loading auctions…",
+      "ERROR": "Could not load auctions. Check your connection and try again.",
+      "RETRY": "Try again",
+      "EMPTY_TITLE": "No matching auctions",
+      "EMPTY": "Change your search criteria or clear the filters."
+    },
+    "PAGINATION": {
+      "LABEL": "Auction pagination",
+      "PREVIOUS": "Previous page",
+      "NEXT": "Next page",
+      "PAGE": "Page {{page}} of {{pages}}"
     }
   },
   "COMMON": {

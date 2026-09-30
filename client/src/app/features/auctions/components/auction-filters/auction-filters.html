@@ -1,0 +1,32 @@
+<ng-container *transloco="let t">
+    <form class="auction-filters" [formGroup]="filterForm" (ngSubmit)="apply()">
+        <app-input class="auction-filters__search" formControlName="search" type="search"
+            [placeholder]="t('AUCTIONS.FILTERS.SEARCH')" [ariaLabel]="t('AUCTIONS.FILTERS.SEARCH')"
+            [reserveHelperSpace]="false" />
+
+        <app-input formControlName="minimumPrice" type="number" [min]="0" [step]="0.01"
+            [placeholder]="t('AUCTIONS.FILTERS.MIN_PRICE')" [ariaLabel]="t('AUCTIONS.FILTERS.MIN_PRICE')"
+            [reserveHelperSpace]="false" />
+
+        <app-input formControlName="maximumPrice" type="number" [min]="0" [step]="0.01"
+            [placeholder]="t('AUCTIONS.FILTERS.MAX_PRICE')" [ariaLabel]="t('AUCTIONS.FILTERS.MAX_PRICE')"
+            [reserveHelperSpace]="false" />
+
+        <app-select formControlName="category" [options]="categoryOptions()"
+            [ariaLabel]="t('AUCTIONS.FILTERS.CATEGORY')" [reserveHelperSpace]="false" />
+
+        <app-select formControlName="sort" [options]="sortOptions()" [ariaLabel]="t('AUCTIONS.FILTERS.SORT')"
+            [reserveHelperSpace]="false" />
+
+        <div class="auction-filters__actions">
+            <app-button type="submit" [fullWidth]="true">
+                <lucide-icon [img]="filtersIcon" start aria-hidden="true" />
+                {{ t('AUCTIONS.FILTERS.APPLY') }}
+            </app-button>
+            <app-button type="button" variant="secondary" (clicked)="reset()">
+                <lucide-icon [img]="resetIcon" start aria-hidden="true" />
+                {{ t('AUCTIONS.FILTERS.RESET') }}
+            </app-button>
+        </div>
+    </form>
+</ng-container>

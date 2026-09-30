@@ -1,0 +1,37 @@
+<ng-container *transloco="let t">
+    <article class="auction-card">
+        <div class="auction-card__image-wrap">
+            @if (auction().mainImageUrl) {
+            <img class="auction-card__image" [src]="imageUrl(auction().mainImageUrl)" [alt]="auction().title"
+                loading="lazy" />
+            } @else {
+            <div class="auction-card__image auction-card__image--empty" aria-hidden="true">
+                <span>{{ t('AUCTIONS.CARD.NO_IMAGE') }}</span>
+            </div>
+            }
+        </div>
+
+        <div class="auction-card__body">
+            <span class="auction-card__category">
+                {{ t(categoryTranslationKey(auction().category)) }}
+            </span>
+            <h2 class="auction-card__title">{{ auction().title }}</h2>
+            <div class="auction-card__footer">
+                <div class="auction-card__price">
+                    <span>{{ t('AUCTIONS.CARD.CURRENT_PRICE') }}</span>
+                    <strong>{{ auction().currentPrice / 100 | number: '1.2-2' }} PLN</strong>
+                </div>
+                <div class="auction-card__activity">
+                    <span class="auction-card__meta-label">{{ t('AUCTIONS.CARD.TIME_LEFT') }}</span>
+                    @if (timeRemaining(auction().endTime); as remaining) {
+                    <strong class="auction-card__time">
+                        {{ t('AUCTIONS.CARD.TIME_REMAINING', remaining) }}
+                    </strong>
+                    } @else {
+                    <strong class="auction-card__time">{{ t('AUCTIONS.CARD.ENDED') }}</strong>
+                    }
+                </div>
+            </div>
+        </div>
+    </article>
+</ng-container>

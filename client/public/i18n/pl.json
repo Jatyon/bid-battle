@@ -6,6 +6,7 @@
     "FORGOT_PASSWORD": "Przypomnienie hasła",
     "RESET_PASSWORD": "Reset hasła",
     "VERIFY_EMAIL": "Aktywacja konta",
+    "HOME": "Aukcje",
     "PROFILE": "Profil"
   },
   "NAVBAR": {
@@ -27,15 +28,40 @@
   },
   "SEARCH": {
     "RESULTS": "Wyniki wyszukiwania",
-    "FEATURED": "Popularne aukcje",
-    "DEMO_BADGE": "Dane demonstracyjne",
+    "FEATURED": "Aktywne aukcje",
     "CLEAR": "Wyczyść wyszukiwanie",
     "OPEN": "Otwórz wyszukiwanie",
     "DIALOG": "Wyszukiwanie aukcji",
     "CLOSE": "Zamknij",
     "CURRENT_BID": "Aktualna cena",
-    "BIDS": "ofert",
-    "EMPTY": "Nie znaleziono aukcji pasujących do wyszukiwania.",
+    "LOADING": "Wyszukiwanie aukcji…",
+    "ERROR": "Nie udało się pobrać aukcji. Spróbuj ponownie.",
+    "EMPTY": "Nie znaleziono aukcji pasujących do wyszukiwania."
+  },
+  "AUCTIONS": {
+    "PAGE": {
+      "EYEBROW": "BidBattle · aukcje na żywo",
+      "TITLE": "Znajdź coś wyjątkowego",
+      "SUBTITLE": "Przeglądaj aktywne aukcje, odkrywaj ciekawe przedmioty i wybierz swoją następną okazję.",
+      "LIVE": "Aktywne aukcje",
+      "RESULTS": "Lista aktywnych aukcji",
+      "RESULT_COUNT": "Znaleziono: {{count}}",
+      "PAGE_COUNT": "Strona {{page}} z {{pages}}"
+    },
+    "FILTERS": {
+      "SEARCH": "Szukaj aukcji",
+      "CATEGORY": "Kategoria",
+      "ALL_CATEGORIES": "Wszystkie kategorie",
+      "MIN_PRICE": "Cena od (zł)",
+      "MAX_PRICE": "Cena do (zł)",
+      "SORT": "Sortowanie",
+      "SORT_NEWEST": "Najnowsze",
+      "SORT_ENDING": "Kończące się",
+      "SORT_PRICE_LOW": "Cena: od najniższej",
+      "SORT_PRICE_HIGH": "Cena: od najwyższej",
+      "APPLY": "Szukaj",
+      "RESET": "Wyczyść filtry"
+    },
     "CATEGORIES": {
       "ELECTRONICS": "Elektronika",
       "FASHION": "Moda",
@@ -47,6 +73,27 @@
       "BOOKS": "Książki",
       "TOYS": "Zabawki",
       "OTHER": "Inne"
+    },
+    "CARD": {
+      "NO_IMAGE": "Brak zdjęcia",
+      "CURRENT_PRICE": "Aktualna cena",
+      "TIME_LEFT": "Do końca",
+      "TIME_REMAINING": "{{days}}d {{hours}}g {{minutes}}min",
+      "BIDS": "{{count}} ofert",
+      "ENDED": "Zakończona"
+    },
+    "STATE": {
+      "LOADING": "Ładowanie aukcji…",
+      "ERROR": "Nie udało się pobrać aukcji. Sprawdź połączenie i spróbuj ponownie.",
+      "RETRY": "Spróbuj ponownie",
+      "EMPTY_TITLE": "Brak pasujących aukcji",
+      "EMPTY": "Zmień kryteria wyszukiwania lub wyczyść filtry."
+    },
+    "PAGINATION": {
+      "LABEL": "Stronicowanie aukcji",
+      "PREVIOUS": "Poprzednia strona",
+      "NEXT": "Następna strona",
+      "PAGE": "Strona {{page}} z {{pages}}"
     }
   },
   "COMMON": {

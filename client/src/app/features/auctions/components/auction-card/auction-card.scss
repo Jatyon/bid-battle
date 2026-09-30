@@ -1,0 +1,134 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.auction-card {
+  height: 100%;
+  overflow: hidden;
+  border: $border-width solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform $transition-fast,
+    box-shadow $transition-fast,
+    border-color $transition-fast;
+
+  &:hover {
+    transform: translateY(-$spacing-2xs);
+    border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+    box-shadow: var(--shadow-md);
+  }
+
+  &__image-wrap {
+    position: relative;
+    aspect-ratio: 1.46;
+    overflow: hidden;
+    background: var(--color-surface-2);
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform $transition-base;
+
+    .auction-card:hover & {
+      transform: scale(1.03);
+    }
+  }
+
+  &__image--empty {
+    display: grid;
+    place-items: center;
+    color: var(--color-text-muted);
+    font-size: $font-size-sm;
+  }
+
+  &__body {
+    display: flex;
+    min-height: 13rem;
+    flex-direction: column;
+    padding: $spacing-md;
+  }
+
+  &__category {
+    align-self: flex-start;
+    max-width: calc(100% - #{$spacing-lg});
+    overflow: hidden;
+    padding: $spacing-xs $spacing-sm;
+    border: 0;
+    border-radius: $radius-full;
+    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+    color: var(--color-primary);
+    font-size: $font-size-xs;
+    font-weight: $fw-semibold;
+    letter-spacing: 0.025em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  &__title {
+    display: -webkit-box;
+    overflow: hidden;
+    min-height: 2.7em;
+    margin-top: $spacing-sm;
+    color: var(--color-text);
+    font-size: $font-size-base;
+    font-weight: $fw-semibold;
+    line-height: $lh-base;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  &__footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: flex-end;
+    gap: $spacing-md;
+    margin-top: auto;
+    padding-top: $spacing-md;
+  }
+
+  &__price,
+  &__activity {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  &__price {
+    color: var(--color-text-secondary);
+    font-size: $font-size-xs;
+
+    strong {
+      color: var(--color-accent);
+      font-size: $font-size-xl;
+      font-weight: $fw-bold;
+      white-space: nowrap;
+    }
+  }
+
+  &__activity {
+    color: var(--color-text-secondary);
+    font-size: $font-size-xs;
+    text-align: right;
+  }
+
+  &__meta-label {
+    color: var(--color-text-muted);
+  }
+
+  &__time {
+    color: var(--color-warning);
+    font-size: $font-size-sm;
+    font-weight: $fw-bold;
+    white-space: nowrap;
+  }
+}
