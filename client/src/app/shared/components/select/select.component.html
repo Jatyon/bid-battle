@@ -1,0 +1,54 @@
+<div class="select-field" [class.select-field--error]="errorMessage()" [class.select-field--focused]="isFocused()"
+    [class.select-field--disabled]="disabled() || controlDisabled()">
+    @if (label()) {
+    <div class="select-field__label-row">
+        <label class="select-field__label" [id]="id() + '-label'" [for]="id()">
+            {{ label() }}
+            @if (required()) {
+            <span class="select-field__required" aria-label="required">*</span>
+            }
+        </label>
+        <ng-content select="[select-suffix]" />
+    </div>
+    }
+
+    <div class="select-field__wrapper">
+        <button type="button" class="select-field__trigger" [id]="id()" role="combobox" aria-autocomplete="none"
+            aria-haspopup="listbox" [attr.aria-expanded]="isOpen()" [attr.aria-controls]="listboxId()"
+            [attr.aria-activedescendant]="isOpen() && activeIndex() >= 0 ? optionId(activeIndex()) : null"
+            [attr.aria-labelledby]="label() ? id() + '-label' : null"
+            [attr.aria-label]="ariaLabel() || (!label() ? placeholder() : null)"
+            [attr.aria-describedby]="ariaDescribedByValue() || null" [disabled]="disabled() || controlDisabled()"
+            [name]="name()" (click)="toggleOptions()" (focus)="onFocus()" (blur)="onBlur()"
+            (keydown)="onKeydown($event)">
+            <span class="select-field__value" [class.select-field__value--placeholder]="!selectedOption()">
+                {{ selectedOption()?.label || placeholder() }}
+            </span>
+            <lucide-icon [img]="chevronIcon" class="select-field__chevron"
+                [class.select-field__chevron--open]="isOpen()" aria-hidden="true" />
+        </button>
+
+        <div class="select-field__options" [class.select-field__options--open]="isOpen()" [id]="listboxId()"
+            role="listbox" [attr.aria-hidden]="!isOpen()">
+            @for (option of options(); track option.value; let index = $index) {
+            <div class="select-field__option" [class.select-field__option--active]="activeIndex() === index"
+                [id]="optionId(index)" role="option" tabindex="-1" [attr.aria-selected]="value() === option.value"
+                (click)="selectOption(index)" (keydown.enter)="selectOption(index)"
+                (keydown.space)="$event.preventDefault(); selectOption(index)">
+                <span>{{ option.label }}</span>
+                @if (value() === option.value) {
+                <span class="select-field__check" aria-hidden="true">✓</span>
+                }
+            </div>
+            }
+        </div>
+    </div>
+
+    <div class="select-field__helper" [class.select-field__helper--reserved]="reserveHelperSpace()">
+        @if (errorMessage()) {
+        <span class="select-field__error" [id]="errorId()" role="alert">{{ errorMessage() }}</span>
+        } @else if (hint()) {
+        <span class="select-field__hint" [id]="hintId()">{{ hint() }}</span>
+        }
+    </div>
+</div>

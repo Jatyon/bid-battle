@@ -1,0 +1,196 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.select-field {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  &__label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__label {
+    font-size: $font-size-base;
+    font-weight: $fw-medium;
+    color: var(--color-text);
+    word-break: break-word;
+    flex: 1;
+  }
+
+  &__required {
+    color: var(--color-danger);
+  }
+
+  &__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  &__trigger {
+    display: flex;
+    width: 100%;
+    min-height: $input-line-height + ($input-padding-y * 2) + ($border-width * 2);
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+    padding: $input-padding-y $spacing-md;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: $input-font-size;
+    font-family: inherit;
+    line-height: $input-line-height;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color $transition-fast,
+      box-shadow $transition-fast,
+      background-color $transition-fast;
+    outline: none;
+    box-sizing: border-box;
+
+    &:disabled {
+      background-color: var(--color-surface-3);
+      color: var(--color-text-muted);
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--placeholder {
+      color: var(--color-text-muted);
+    }
+  }
+
+  &__chevron {
+    width: $icon-size-sm;
+    height: $icon-size-sm;
+    flex: 0 0 auto;
+    color: var(--color-text-muted);
+    transition: transform $transition-fast;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__options {
+    position: absolute;
+    top: calc(100% + #{$spacing-2xs});
+    right: 0;
+    left: 0;
+    z-index: $z-dropdown;
+    max-height: min(60vh, $select-options-max-height);
+    overflow-y: auto;
+    border: $border-width solid transparent;
+    border-radius: $radius-md;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-$spacing-xs) scale(0.98);
+    transform-origin: top center;
+    transition:
+      opacity $transition-fast,
+      transform $transition-fast,
+      border-color $transition-fast,
+      visibility 0s linear $transition-base;
+
+    &--open {
+      border-color: var(--color-border);
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+      transition:
+        opacity $transition-fast,
+        transform $transition-fast,
+        border-color $transition-fast,
+        visibility 0s;
+    }
+  }
+
+  &__option {
+    display: flex;
+    min-height: $menu-item-min-height;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-md;
+    padding: $spacing-sm $spacing-md;
+    color: var(--color-text);
+    font-size: $input-font-size;
+    line-height: $input-line-height;
+    cursor: pointer;
+    transition:
+      background-color $transition-fast,
+      color $transition-fast;
+
+    &:hover,
+    &--active {
+      background: var(--color-surface-2);
+    }
+
+    &[aria-selected='true'] {
+      color: var(--color-primary);
+      font-weight: $fw-semibold;
+    }
+  }
+
+  &__check {
+    color: var(--color-primary);
+    font-weight: $fw-bold;
+  }
+
+  &--focused &__trigger {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 $focus-ring-width color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+
+  &--error &__trigger {
+    border-color: var(--color-danger);
+  }
+
+  &--disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  &__helper {
+    display: flex;
+    align-items: flex-start;
+    min-height: 0;
+
+    &--reserved {
+      min-height: $input-line-height;
+    }
+  }
+
+  &__error {
+    color: var(--color-danger);
+    font-size: $font-size-sm;
+    line-height: 1.4;
+  }
+
+  &__hint {
+    color: var(--color-text-muted);
+    font-size: $font-size-sm;
+    line-height: 1.4;
+  }
+}
