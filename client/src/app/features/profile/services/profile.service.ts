@@ -1,7 +1,14 @@
 import { Injectable, inject } from '@angular/core';
+import { Language } from '@core/enums';
 import { User, UpdateProfileRequest } from '@core/models';
 import { ApiService } from '@core/services/api.service';
 import { Observable, map } from 'rxjs';
+
+export interface ProfilePreferences {
+  lang: Language;
+  notifyOnOutbid: boolean;
+  notifyOnAuctionEnd: boolean;
+}
 
 /** Performs authenticated profile, avatar, and account operations. */
 @Injectable({ providedIn: 'root' })
@@ -24,5 +31,17 @@ export class ProfileService {
 
   deleteAccount(): Observable<void> {
     return this.api.delete<{ message: string }>('/user').pipe(map(() => undefined));
+  }
+
+  getPreferences(): Observable<ProfilePreferences> {
+    return this.api
+      .get<ProfilePreferences>('/user/preferences')
+      .pipe(map((response) => response.data));
+  }
+
+  updatePreferences(preferences: ProfilePreferences): Observable<ProfilePreferences> {
+    return this.api
+      .put<ProfilePreferences>('/user/preferences', preferences)
+      .pipe(map((response) => response.data));
   }
 }

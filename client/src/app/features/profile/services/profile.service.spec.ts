@@ -2,9 +2,10 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@env/environment';
+import { Language } from '@core/enums';
 import { User, UpdateProfileRequest } from '@core/models';
 import { createUserFixture } from '@test/fixtures/user.fixtures';
-import { ProfileService } from './profile.service';
+import { ProfilePreferences, ProfileService } from './profile.service';
 
 const BASE_URL = environment.apiUrl;
 
@@ -80,5 +81,40 @@ describe('ProfileService', () => {
     req.flush({ data: { message: 'Account deleted' } });
 
     expect(result).toBeUndefined();
+  });
+
+  it('loads user preferences', () => {
+    const preferences: ProfilePreferences = {
+      lang: Language.PL,
+      notifyOnOutbid: false,
+      notifyOnAuctionEnd: true,
+    };
+    let result: ProfilePreferences | undefined;
+
+    service.getPreferences().subscribe((response) => (result = response));
+
+    const req = httpMock.expectOne(`${BASE_URL}/user/preferences`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ data: preferences });
+
+    expect(result).toEqual(preferences);
+  });
+
+  it('updates user preferences and emits the saved preferences', () => {
+    const preferences: ProfilePreferences = {
+      lang: Language.EN,
+      notifyOnOutbid: true,
+      notifyOnAuctionEnd: false,
+    };
+    let result: ProfilePreferences | undefined;
+
+    service.updatePreferences(preferences).subscribe((response) => (result = response));
+
+    const req = httpMock.expectOne(`${BASE_URL}/user/preferences`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(preferences);
+    req.flush({ data: preferences });
+
+    expect(result).toEqual(preferences);
   });
 });

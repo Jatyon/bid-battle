@@ -155,17 +155,30 @@
     "CANCEL": "Cancel"
   },
   "PROFILE": {
-    "NAV": {
-      "PROFILE": "Profile",
-      "MY_AUCTIONS": "My Auctions",
-      "MY_BIDS": "My Bids",
-      "PREFERENCES": "Preferences"
+    "PAGE": {
+      "TITLE": "Profile & settings",
+      "SUBTITLE": "Manage your personal information, security, and account."
     },
     "INFO": {
       "TITLE": "Profile Information",
       "EMAIL_READONLY": "Email (read-only)",
       "SAVE": "Save changes",
       "SAVE_SUCCESS": "Profile updated successfully."
+    },
+    "PREFERENCES": {
+      "TITLE": "Preferences",
+      "LOADING": "Loading preferences...",
+      "LANGUAGE": "Interface language",
+      "LANGUAGES": {
+        "PL": "Polish",
+        "EN": "English"
+      },
+      "OUTBID_TITLE": "Outbid notifications",
+      "OUTBID_DESCRIPTION": "Notify me when someone places a higher bid on an auction I participate in.",
+      "AUCTION_END_TITLE": "Auction end notifications",
+      "AUCTION_END_DESCRIPTION": "Notify me when an auction I participated in has ended.",
+      "SAVE": "Save preferences",
+      "SAVE_SUCCESS": "Preferences saved successfully."
     },
     "AVATAR": {
       "UPLOAD": "Upload photo",

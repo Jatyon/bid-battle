@@ -155,17 +155,30 @@
     "CANCEL": "Anuluj"
   },
   "PROFILE": {
-    "NAV": {
-      "PROFILE": "Profil",
-      "MY_AUCTIONS": "Moje aukcje",
-      "MY_BIDS": "Moje oferty",
-      "PREFERENCES": "Preferencje"
+    "PAGE": {
+      "TITLE": "Profil i ustawienia",
+      "SUBTITLE": "Zarządzaj swoimi danymi, zabezpieczeniami i kontem."
     },
     "INFO": {
       "TITLE": "Informacje o profilu",
       "EMAIL_READONLY": "Email (tylko do odczytu)",
       "SAVE": "Zapisz zmiany",
       "SAVE_SUCCESS": "Profil został zaktualizowany."
+    },
+    "PREFERENCES": {
+      "TITLE": "Preferencje",
+      "LOADING": "Ładowanie preferencji...",
+      "LANGUAGE": "Język interfejsu",
+      "LANGUAGES": {
+        "PL": "Polski",
+        "EN": "Angielski"
+      },
+      "OUTBID_TITLE": "Powiadomienie o przebiciu oferty",
+      "OUTBID_DESCRIPTION": "Powiadom mnie, gdy ktoś złoży wyższą ofertę w aukcji, w której licytuję.",
+      "AUCTION_END_TITLE": "Powiadomienie o zakończeniu aukcji",
+      "AUCTION_END_DESCRIPTION": "Powiadom mnie, gdy zakończy się aukcja, w której brałem udział.",
+      "SAVE": "Zapisz preferencje",
+      "SAVE_SUCCESS": "Preferencje zostały zapisane."
     },
     "AVATAR": {
       "UPLOAD": "Prześlij zdjęcie",

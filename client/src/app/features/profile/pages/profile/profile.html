@@ -1,23 +1,9 @@
 <ng-container *transloco="let t">
     <div class="profile-page">
-        <aside class="profile-page__sidebar">
-            <span class="profile-page__nav-item profile-page__nav-item--active">
-                <lucide-icon [img]="profileIcon" class="profile-page__nav-icon" />
-                {{ t('PROFILE.NAV.PROFILE') }}
-            </span>
-            <span class="profile-page__nav-item profile-page__nav-item--disabled">
-                <lucide-icon [img]="auctionsIcon" class="profile-page__nav-icon" />
-                {{ t('PROFILE.NAV.MY_AUCTIONS') }}
-            </span>
-            <span class="profile-page__nav-item profile-page__nav-item--disabled">
-                <lucide-icon [img]="bidsIcon" class="profile-page__nav-icon" />
-                {{ t('PROFILE.NAV.MY_BIDS') }}
-            </span>
-            <span class="profile-page__nav-item profile-page__nav-item--disabled">
-                <lucide-icon [img]="preferencesIcon" class="profile-page__nav-icon" />
-                {{ t('PROFILE.NAV.PREFERENCES') }}
-            </span>
-        </aside>
+        <header class="profile-page__header">
+            <h1 class="profile-page__title">{{ t('PROFILE.PAGE.TITLE') }}</h1>
+            <p class="profile-page__subtitle">{{ t('PROFILE.PAGE.SUBTITLE') }}</p>
+        </header>
 
         <div class="profile-page__content">
             <section class="profile-card">
@@ -38,13 +24,42 @@
                             }" />
                     </div>
 
-                    <app-input formControlName="email" [label]="t('PROFILE.INFO.EMAIL_READONLY')" [disabled]="true"
-                        name="email" />
+                    <div class="profile-card__row">
+                        <app-input formControlName="email" [label]="t('PROFILE.INFO.EMAIL_READONLY')" [disabled]="true"
+                            name="email" />
+                    </div>
 
                     <app-button type="submit" [loading]="isSavingProfile()" size="md" variant="primary">
                         {{ t('PROFILE.INFO.SAVE') }}
                     </app-button>
                 </form>
+            </section>
+
+            <section class="profile-card">
+                <h2 class="profile-card__title">{{ t('PROFILE.PREFERENCES.TITLE') }}</h2>
+
+                @if (isLoadingPreferences()) {
+                <p class="profile-card__description" role="status">{{ t('PROFILE.PREFERENCES.LOADING') }}</p>
+                } @else {
+                <form [formGroup]="preferencesForm" (ngSubmit)="onPreferencesSubmit()" class="profile-card__form"
+                    novalidate>
+                    <div class="profile-card__row">
+                        <app-select formControlName="lang" [label]="t('PROFILE.PREFERENCES.LANGUAGE')"
+                            [options]="languageOptions()" />
+                    </div>
+
+                    <app-switch formControlName="notifyOnOutbid" [label]="t('PROFILE.PREFERENCES.OUTBID_TITLE')"
+                        [description]="t('PROFILE.PREFERENCES.OUTBID_DESCRIPTION')" />
+
+                    <app-switch formControlName="notifyOnAuctionEnd"
+                        [label]="t('PROFILE.PREFERENCES.AUCTION_END_TITLE')"
+                        [description]="t('PROFILE.PREFERENCES.AUCTION_END_DESCRIPTION')" />
+
+                    <app-button type="submit" [loading]="isSavingPreferences()" size="md" variant="primary">
+                        {{ t('PROFILE.PREFERENCES.SAVE') }}
+                    </app-button>
+                </form>
+                }
             </section>
 
             <section class="profile-card">
