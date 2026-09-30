@@ -125,15 +125,6 @@
     font-weight: $fw-semibold;
   }
 
-  &__mock-badge {
-    padding: $spacing-3xs clamp(#{$spacing-xs}, 2cqi, #{$spacing-sm});
-    border-radius: $radius-full;
-    background: var(--color-surface-2);
-    color: var(--color-text-muted);
-    font-size: clamp(#{$font-size-xs}, 2cqi, #{$font-size-sm});
-    font-weight: $fw-medium;
-  }
-
   &__list {
     margin: 0;
     padding: 0;

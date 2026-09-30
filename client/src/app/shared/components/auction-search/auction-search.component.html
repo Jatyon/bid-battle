@@ -59,22 +59,24 @@
             [attr.aria-label]="query() ? t('SEARCH.RESULTS') : t('SEARCH.FEATURED')">
             <div class="auction-search__results-heading">
                 <span>{{ query() ? t('SEARCH.RESULTS') : t('SEARCH.FEATURED') }}</span>
-                <span class="auction-search__mock-badge">{{ t('SEARCH.DEMO_BADGE') }}</span>
             </div>
 
-            @if (results().length) {
+            @if (isLoading()) {
+            <p class="auction-search__empty" role="status">{{ t('SEARCH.LOADING') }}</p>
+            } @else if (hasError()) {
+            <p class="auction-search__empty" role="alert">{{ t('SEARCH.ERROR') }}</p>
+            } @else if (results().length) {
             <ul class="auction-search__list" role="listbox">
                 @for (auction of results(); track auction.id) {
                 <li role="presentation">
                     <button type="button" class="auction-search__result" role="option" aria-selected="false"
                         [attr.aria-label]="auction.title + ', ' + (auction.currentPrice / 100 | currency: 'PLN')"
                         (click)="selectResult(auction)">
-                        <img class="auction-search__thumbnail" [src]="auction.imageUrl" [alt]="auction.title"
+                        <img class="auction-search__thumbnail" [src]="auction.mainImageUrl" [alt]="auction.title"
                             loading="lazy" />
                         <span class="auction-search__details">
                             <span class="auction-search__title">{{ auction.title }}</span>
-                            <span class="auction-search__meta">{{ t('SEARCH.CATEGORIES.' + auction.category) }} ·
-                                {{ auction.bidsCount }} {{ t('SEARCH.BIDS') }}</span>
+                            <span class="auction-search__meta">{{ t(categoryTranslationKey(auction.category)) }}</span>
                         </span>
                         <span class="auction-search__price">
                             <span>{{ t('SEARCH.CURRENT_BID') }}</span>

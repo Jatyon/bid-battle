@@ -1,74 +1,21 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   HostListener,
   ViewChild,
-  computed,
   inject,
   signal,
 } from '@angular/core';
 import { CurrencyPipe, NgTemplateOutlet } from '@angular/common';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { LucideAngularModule, Search, X } from 'lucide-angular';
-
-interface MockAuctionSearchResult {
-  id: number;
-  title: string;
-  category: string;
-  imageUrl: string;
-  currentPrice: number;
-  bidsCount: number;
-}
-
-// Mirrors the public auction response fields returned by GET /auctions.
-const MOCK_AUCTIONS: MockAuctionSearchResult[] = [
-  {
-    id: 101,
-    title: 'Aparat fotograficzny Canon EOS',
-    category: 'ELECTRONICS',
-    imageUrl:
-      'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=160&q=80',
-    currentPrice: 184900,
-    bidsCount: 12,
-  },
-  {
-    id: 102,
-    title: 'Zegarek vintage automatyczny',
-    category: 'COLLECTIBLES',
-    imageUrl:
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=160&q=80',
-    currentPrice: 72500,
-    bidsCount: 8,
-  },
-  {
-    id: 103,
-    title: 'Słuchawki bezprzewodowe',
-    category: 'ELECTRONICS',
-    imageUrl:
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=160&q=80',
-    currentPrice: 36900,
-    bidsCount: 5,
-  },
-  {
-    id: 104,
-    title: 'Buty sportowe — edycja limitowana',
-    category: 'FASHION',
-    imageUrl:
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=160&q=80',
-    currentPrice: 21900,
-    bidsCount: 3,
-  },
-  {
-    id: 105,
-    title: 'Lampa stołowa w stylu retro',
-    category: 'HOME_GARDEN',
-    imageUrl:
-      'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=160&q=80',
-    currentPrice: 14500,
-    bidsCount: 2,
-  },
-];
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, catchError, map, of, switchMap, tap, timer } from 'rxjs';
+import { auctionCategoryTranslationKey } from '@core/enums';
+import { Auction } from '@features/auctions/models/auction.model';
+import { AuctionsService } from '@features/auctions/services/auctions.service';
 
 @Component({
   selector: 'app-auction-search',
@@ -79,22 +26,62 @@ const MOCK_AUCTIONS: MockAuctionSearchResult[] = [
 })
 export class AuctionSearchComponent {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly auctionsService = inject(AuctionsService);
+  private readonly destroyRef = inject(DestroyRef);
   @ViewChild('mobileSearchInput') private mobileSearchInput?: ElementRef<HTMLInputElement>;
+  private readonly searchRequests = new Subject<string>();
+  private hasLoadedFeatured = false;
 
   readonly searchIcon = Search;
   readonly clearIcon = X;
   readonly query = signal('');
   readonly isOpen = signal(false);
   readonly isMobileSearchOpen = signal(false);
-  readonly mockResults = MOCK_AUCTIONS;
-  readonly results = computed(() => {
-    const query = this.query().trim().toLocaleLowerCase();
-    if (!query) return this.mockResults.slice(0, 4);
+  readonly results = signal<Auction[]>([]);
+  readonly isLoading = signal(false);
+  readonly hasError = signal(false);
+  readonly categoryTranslationKey = auctionCategoryTranslationKey;
 
-    return this.mockResults
-      .filter((auction) => auction.title.toLocaleLowerCase().includes(query))
-      .slice(0, 5);
-  });
+  constructor() {
+    this.searchRequests
+      .pipe(
+        tap(() => {
+          this.results.set([]);
+          this.isLoading.set(true);
+          this.hasError.set(false);
+        }),
+        switchMap((search) =>
+          timer(300).pipe(
+            switchMap(() =>
+              this.auctionsService
+                .getActiveAuctions({
+                  page: 1,
+                  limit: 10,
+                  search: search || undefined,
+                  sortBy: 'createdAt',
+                  sortOrder: 'DESC',
+                })
+                .pipe(
+                  map((response) => ({ response, search })),
+                  catchError(() => of({ response: null, search })),
+                ),
+            ),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ response, search }) => {
+        this.isLoading.set(false);
+        if (!response) {
+          this.results.set([]);
+          this.hasError.set(true);
+          return;
+        }
+
+        this.results.set(response.items.slice(0, 5));
+        if (!search) this.hasLoadedFeatured = true;
+      });
+  }
 
   onInput(event: Event): void {
     const target = event.target;
@@ -102,10 +89,14 @@ export class AuctionSearchComponent {
 
     this.query.set(target.value);
     this.isOpen.set(true);
+    this.searchRequests.next(target.value.trim());
   }
 
   openResults(): void {
     this.isOpen.set(true);
+    if (!this.query().trim() && !this.hasLoadedFeatured && !this.isLoading()) {
+      this.searchRequests.next('');
+    }
   }
 
   openMobileSearch(): void {
@@ -123,7 +114,7 @@ export class AuctionSearchComponent {
     if (event.target === event.currentTarget) this.closeMobileSearch();
   }
 
-  selectResult(auction: MockAuctionSearchResult): void {
+  selectResult(auction: Auction): void {
     this.query.set(auction.title);
     this.isOpen.set(false);
     this.isMobileSearchOpen.set(false);
@@ -133,6 +124,7 @@ export class AuctionSearchComponent {
     this.query.set('');
     input.value = '';
     this.isOpen.set(true);
+    this.searchRequests.next('');
     input.focus();
   }
 
