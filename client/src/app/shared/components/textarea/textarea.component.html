@@ -1,0 +1,31 @@
+<div class="textarea-field" [class.textarea-field--error]="errorMessage()"
+    [class.textarea-field--focused]="isFocused()">
+    @if (label()) {
+    <div class="textarea-field__label-row">
+        <label class="textarea-field__label" [for]="id()">
+            {{ label() }}
+            @if (required()) {
+            <span class="textarea-field__required" aria-label="required">*</span>
+            }
+        </label>
+        <ng-content select="[textarea-suffix]" />
+    </div>
+    }
+
+    <div class="textarea-field__wrapper">
+        <textarea class="textarea-field__input" [id]="id()" [placeholder]="placeholder()" [disabled]="disabled()"
+            [readOnly]="readonly()" [value]="value()" [name]="name()" [attr.aria-label]="ariaLabel() || null"
+            [attr.aria-describedby]="ariaDescribedByValue() || null" [attr.maxlength]="maxlength() ?? null"
+            [attr.minlength]="minlength() ?? null" [attr.rows]="rows()" [attr.cols]="cols() ?? null"
+            [style.resize]="resizable() ? 'vertical' : 'none'" (input)="onInput($event)" (focus)="onFocus()"
+            (blur)="onBlur()"></textarea>
+    </div>
+
+    <div class="textarea-field__helper" [class.textarea-field__helper--reserved]="reserveHelperSpace()">
+        @if (errorMessage()) {
+        <span class="textarea-field__error" [id]="errorId()" role="alert">{{ errorMessage() }}</span>
+        } @else if (hint()) {
+        <span class="textarea-field__hint" [id]="hintId()">{{ hint() }}</span>
+        }
+    </div>
+</div>

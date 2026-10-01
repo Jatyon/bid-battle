@@ -1,0 +1,117 @@
+@use 'abstracts/variables' as *;
+
+.textarea-field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  width: 100%;
+
+  &__label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__label {
+    font-size: $font-size-base;
+    font-weight: $fw-medium;
+    color: var(--color-text);
+    word-break: break-word;
+    flex: 1;
+  }
+
+  &__required {
+    color: var(--color-danger);
+  }
+
+  &__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  &__input {
+    width: 100%;
+    padding: $input-padding-y $spacing-md;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    background-color: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: $input-font-size;
+    font-family: inherit;
+    line-height: $input-line-height;
+    transition:
+      border-color $transition-fast,
+      box-shadow $transition-fast,
+      background-color $transition-fast;
+    outline: none;
+    box-sizing: border-box;
+    resize: vertical;
+
+    &::placeholder {
+      color: var(--color-text-muted);
+      opacity: 1;
+    }
+
+    &:disabled {
+      background-color: var(--color-surface-3);
+      color: var(--color-text-muted);
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    &[readonly] {
+      background-color: var(--color-surface-3);
+      cursor: default;
+      border-style: dashed;
+    }
+  }
+
+  &--focused &__input {
+    border-color: var(--color-primary);
+  }
+
+  &--error &__input {
+    border-color: var(--color-danger);
+  }
+
+  &--disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  &__error {
+    font-size: $font-size-sm;
+    color: var(--color-danger);
+    animation: textareaHelperFadeIn $transition-fast ease;
+    line-height: 1.4;
+  }
+
+  &__hint {
+    font-size: $font-size-sm;
+    color: var(--color-text-muted);
+    animation: textareaHelperFadeIn $transition-fast ease;
+    line-height: 1.4;
+  }
+
+  &__helper {
+    display: flex;
+    align-items: flex-start;
+    min-height: 0;
+
+    &--reserved {
+      min-height: $input-line-height;
+    }
+  }
+}
+
+@keyframes textareaHelperFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-$spacing-xs);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
