@@ -127,6 +127,33 @@ export function IsFutureDateString(hoursToAdd: number, validationOptions?: Valid
   };
 }
 
+/**
+ * Validates that a date string is not significantly in the past.
+ * Tolerates minor clock skew between client and server (default: 5 minutes).
+ * Intended for "start immediately" scenarios where the client sends `new Date()`.
+ */
+export function IsNotTooFarInPast(toleranceMinutes = 5, validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isNotTooFarInPast',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any) {
+          if (typeof value !== 'string') return false;
+
+          const dateValue = new Date(value);
+          if (isNaN(dateValue.getTime())) return false;
+
+          const minAllowed = new Date(Date.now() - toleranceMinutes * 60_000);
+          return dateValue >= minAllowed;
+        },
+      },
+    });
+  };
+}
+
 export function IsWithinMaxDurationFromNow(maxHours: number, validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({

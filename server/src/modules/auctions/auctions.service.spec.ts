@@ -11,6 +11,7 @@ import {
   createMockFilesFixture,
 } from '@test/fixtures/auctions.fixtures';
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
+import { AppConfigService } from '@config/config.service';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto, MyAuctionResponse } from './dto';
@@ -21,6 +22,7 @@ import { AuctionsService } from './auctions.service';
 import { AuctionImage, Auction } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { DataSource, Repository } from 'typeorm';
+import { I18nService } from 'nestjs-i18n';
 
 describe('AuctionsService', () => {
   let service: AuctionsService;
@@ -31,8 +33,9 @@ describe('AuctionsService', () => {
   let fileUploadService: DeepMocked<FileUploadService>;
   let auctionScheduler: DeepMocked<AuctionScheduler>;
   let dataSource: DeepMocked<DataSource>;
+  let i18nService: DeepMocked<I18nService>;
 
-  const mockManager = { delete: jest.fn(), save: jest.fn(), findOne: jest.fn(), count: jest.fn() };
+  const mockManager = { delete: jest.fn(), save: jest.fn(), findOne: jest.fn(), count: jest.fn(), update: jest.fn() };
 
   const mockQueryRunner = {
     connect: jest.fn(),
@@ -80,6 +83,14 @@ describe('AuctionsService', () => {
           provide: DataSource,
           useValue: createMock<DataSource>(),
         },
+        {
+          provide: I18nService,
+          useValue: createMock<I18nService>(),
+        },
+        {
+          provide: AppConfigService,
+          useValue: createMock<AppConfigService>({ i18n: { fallbackLanguage: 'pl' } }),
+        },
       ],
     }).compile();
 
@@ -91,6 +102,15 @@ describe('AuctionsService', () => {
     fileUploadService = module.get(FileUploadService);
     auctionScheduler = module.get(AuctionScheduler);
     dataSource = module.get(DataSource);
+    i18nService = module.get(I18nService);
+
+    i18nService.translate.mockImplementation((key, options) => {
+      const date = (options?.args as { date?: string } | undefined)?.date ?? '1/1/2026';
+      if (key === 'auction.info.update_description') {
+        return `Updated ${date}:`;
+      }
+      return key;
+    });
 
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
@@ -620,12 +640,13 @@ describe('AuctionsService', () => {
       const updateDto = createUpdateAuctionDtoFixture({ endTime: undefined, title: 'New Title' });
 
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue({ ...mockAuction, title: 'New Title' });
+      mockTransactionWith({ ...mockAuction }, 0);
 
       const result = await service.updateAuction(1, updateDto, 1);
 
-      expect(auctionsRepository.save).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title' }));
-      expect(dataSource.transaction).not.toHaveBeenCalled();
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(mockManager.save).toHaveBeenCalledWith(Auction, expect.objectContaining({ title: 'New Title' }));
+      expect(auctionsRepository.save).not.toHaveBeenCalled();
       expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
       expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
       expect(redisService.extendAuctionTime).not.toHaveBeenCalled();
@@ -782,12 +803,13 @@ describe('AuctionsService', () => {
       const emptyDto = createUpdateAuctionDtoFixture({ title: undefined, description: undefined, endTime: undefined });
 
       auctionsRepository.findOneBy.mockResolvedValue(mockAuction);
-      auctionsRepository.save.mockResolvedValue(mockAuction);
+      mockTransactionWith({ ...mockAuction }, 0);
 
       const result = await service.updateAuction(1, emptyDto, 1);
 
-      expect(dataSource.transaction).not.toHaveBeenCalled();
-      expect(auctionsRepository.save).toHaveBeenCalledWith(mockAuction);
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(mockManager.save).toHaveBeenCalledWith(Auction, mockAuction);
+      expect(auctionsRepository.save).not.toHaveBeenCalled();
       expect(auctionScheduler.cancelAuctionEnd).not.toHaveBeenCalled();
       expect(auctionScheduler.scheduleAuctionEnd).not.toHaveBeenCalled();
       expect(redisService.extendAuctionTime).not.toHaveBeenCalled();

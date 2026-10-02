@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MailTestController } from './mail-test.controller';
 import { MailService } from './mail.service';
 import { TestMailDto } from './dto';
+import { Language } from '@core/enums';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 
 describe('MailTestController', () => {
@@ -30,7 +31,7 @@ describe('MailTestController', () => {
   describe('sendTestEmail', () => {
     const testEmailDto: TestMailDto = {
       email: 'test@example.com',
-      lang: 'pl',
+      lang: Language.PL,
     };
 
     it('should call mailService.sendTestEmail with provided lang', async () => {

@@ -3,6 +3,8 @@ export const AUCTION_START_QUEUE = 'auction-start';
 
 export const AUCTION_MAX_DURATION_HOURS = 720;
 
+export const AUCTION_MAX_IMAGES = 10;
+
 export const RECONCILIATION_BATCH_SIZE = 100;
 
 /**
