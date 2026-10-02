@@ -9,13 +9,15 @@ import {
   signal,
 } from '@angular/core';
 import { CurrencyPipe, NgTemplateOutlet } from '@angular/common';
-import { TranslocoDirective } from '@jsverse/transloco';
-import { LucideAngularModule, Search, X } from 'lucide-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, catchError, map, of, switchMap, tap, timer } from 'rxjs';
 import { auctionCategoryTranslationKey } from '@core/enums';
-import { Auction } from '@features/auctions/models/auction.model';
+import { SortOrder } from '@core/enums';
 import { AuctionsService } from '@features/auctions/services/auctions.service';
+import { Auction } from '@features/auctions/models/auction.model';
+import { AuctionSortBy } from '@features/auctions/enums';
+import { TranslocoDirective } from '@jsverse/transloco';
+import { Subject, catchError, map, of, switchMap, tap, timer } from 'rxjs';
+import { LucideAngularModule, Search, X } from 'lucide-angular';
 
 @Component({
   selector: 'app-auction-search',
@@ -58,8 +60,8 @@ export class AuctionSearchComponent {
                   page: 1,
                   limit: 10,
                   search: search || undefined,
-                  sortBy: 'createdAt',
-                  sortOrder: 'DESC',
+                  sortBy: AuctionSortBy.CREATED_AT,
+                  sortOrder: SortOrder.DESC,
                 })
                 .pipe(
                   map((response) => ({ response, search })),
@@ -94,9 +96,8 @@ export class AuctionSearchComponent {
 
   openResults(): void {
     this.isOpen.set(true);
-    if (!this.query().trim() && !this.hasLoadedFeatured && !this.isLoading()) {
+    if (!this.query().trim() && !this.hasLoadedFeatured && !this.isLoading())
       this.searchRequests.next('');
-    }
   }
 
   openMobileSearch(): void {

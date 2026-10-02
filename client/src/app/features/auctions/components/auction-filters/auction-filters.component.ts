@@ -2,12 +2,10 @@ import { ChangeDetectionStrategy, Component, inject, output } from '@angular/cor
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent, InputComponent, SelectComponent, SelectOption } from '@app/shared';
 import { AUCTION_CATEGORIES, auctionCategoryTranslationKey } from '@core/enums';
-import {
-  AuctionCategory,
-  AuctionListFilters,
-  AuctionSortBy,
-  SortOrder,
-} from '@features/auctions/models';
+import { SortOrder } from '@core/enums';
+import { AuctionCategory, AuctionListFilters } from '@features/auctions/models';
+import { AuctionSortBy } from '@features/auctions/enums';
+import { STEP_PRICE } from '@features/auctions/utils';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { LucideAngularModule, RotateCcw, SlidersHorizontal } from 'lucide-angular';
 
@@ -21,13 +19,14 @@ import { LucideAngularModule, RotateCcw, SlidersHorizontal } from 'lucide-angula
     SelectComponent,
     ButtonComponent,
   ],
-  templateUrl: './auction-filters.html',
-  styleUrl: './auction-filters.scss',
+  templateUrl: './auction-filters.component.html',
+  styleUrl: './auction-filters.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuctionFiltersComponent {
   private readonly transloco = inject(TranslocoService);
   readonly filtersApplied = output<AuctionListFilters>();
+
   readonly filterForm = new FormGroup({
     search: new FormControl('', { nonNullable: true }),
     category: new FormControl('', { nonNullable: true }),
@@ -35,8 +34,11 @@ export class AuctionFiltersComponent {
     maximumPrice: new FormControl('', { nonNullable: true }),
     sort: new FormControl('newest', { nonNullable: true }),
   });
+
   readonly filtersIcon = SlidersHorizontal;
   readonly resetIcon = RotateCcw;
+
+  readonly stepPrice = STEP_PRICE;
 
   categoryOptions(): SelectOption[] {
     return [
@@ -63,10 +65,10 @@ export class AuctionFiltersComponent {
   apply(): void {
     const values = this.filterForm.getRawValue();
     const sorts: Record<string, { sortBy: AuctionSortBy; sortOrder: SortOrder }> = {
-      newest: { sortBy: 'createdAt', sortOrder: 'DESC' },
-      endingSoon: { sortBy: 'endTime', sortOrder: 'ASC' },
-      priceLow: { sortBy: 'currentPrice', sortOrder: 'ASC' },
-      priceHigh: { sortBy: 'currentPrice', sortOrder: 'DESC' },
+      newest: { sortBy: AuctionSortBy.CREATED_AT, sortOrder: SortOrder.DESC },
+      endingSoon: { sortBy: AuctionSortBy.END_TIME, sortOrder: SortOrder.ASC },
+      priceLow: { sortBy: AuctionSortBy.CURRENT_PRICE, sortOrder: SortOrder.ASC },
+      priceHigh: { sortBy: AuctionSortBy.CURRENT_PRICE, sortOrder: SortOrder.DESC },
     };
     const sort = sorts[values.sort] ?? sorts['newest'];
 
