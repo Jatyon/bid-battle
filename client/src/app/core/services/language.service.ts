@@ -39,6 +39,10 @@ export class LanguageService {
     return this.getActiveLang();
   }
 
+  getAvailableLangs(): Set<string> {
+    return this.availableLangs;
+  }
+
   setLanguage(lang: Language): void {
     this.applyLanguage(lang, true);
   }
