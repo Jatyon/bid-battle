@@ -1,0 +1,108 @@
+<ng-container *transloco="let t">
+<div class="date-time-field" [attr.data-type]="type()" [class.date-time-field--error]="errorMessage()" [class.date-time-field--drop-up]="dropUp()"
+    [class.date-time-field--focused]="isFocused()" [class.date-time-field--disabled]="disabled() || controlDisabled()">
+    @if (label()) {
+    <div class="date-time-field__label-row">
+        <label class="date-time-field__label" [for]="id()">
+            {{ label() }}
+            @if (required()) {
+            <span class="date-time-field__required" aria-label="required">*</span>
+            }
+        </label>
+        <ng-content select="[date-time-suffix]" />
+    </div>
+    }
+
+    <div class="date-time-field__control">
+        <input class="date-time-field__input" [id]="id()" type="text" readonly [value]="displayValue()"
+            [placeholder]="placeholder()" [disabled]="disabled() || controlDisabled()" [required]="required()"
+            [name]="name()" [attr.aria-label]="ariaLabel() || label() || null"
+            [attr.aria-describedby]="ariaDescribedByValue() || null"
+            [attr.aria-invalid]="errorMessage() ? 'true' : null" aria-haspopup="dialog" [attr.aria-expanded]="isOpen()"
+            (click)="togglePicker()" (keydown.enter)="togglePicker()" />
+
+        @if (isOpen()) {
+        <div class="date-time-field__picker" role="dialog" [attr.aria-label]="label() || null">
+
+            <!-- Main body: calendar + time panel -->
+            <div class="date-time-field__picker-body">
+
+                <!-- Left: Calendar -->
+                @if (type() !== 'time') {
+                <div class="date-time-field__calendar">
+                    <div class="date-time-field__calendar-header">
+                        <button type="button" class="date-time-field__nav" aria-label="Previous month"
+                            (click)="previousMonth()">&#8249;</button>
+                        <strong class="date-time-field__month-label">{{ monthLabel() }}</strong>
+                        <button type="button" class="date-time-field__nav" aria-label="Next month"
+                            (click)="nextMonth()">&#8250;</button>
+                    </div>
+                    <div class="date-time-field__weekdays">
+                        @for (weekday of weekdayLabels(); track weekday) {
+                        <span>{{ weekday }}</span>
+                        }
+                    </div>
+                    <div class="date-time-field__days">
+                        @for (day of calendarDays(); track day.key) {
+                        <button type="button" class="date-time-field__day"
+                            [class.date-time-field__day--outside]="!day.isCurrentMonth"
+                            [class.date-time-field__day--today]="day.isToday"
+                            [class.date-time-field__day--selected]="day.key === pickerDate()"
+                            [disabled]="!isDateAllowed(day.key)" (click)="selectDate(day.key)">
+                            {{ day.number }}
+                            @if (day.isToday && day.key !== pickerDate()) {
+                            <span class="date-time-field__today-dot"></span>
+                            }
+                        </button>
+                        }
+                    </div>
+                </div>
+                }
+
+                <!-- Right: Time slots -->
+                @if (type() !== 'date') {
+                <div class="date-time-field__time-panel">
+                    <div class="date-time-field__time-heading">{{ timeLabel() || t('COMMON.AVAILABLE_TIMES') }}</div>
+                    <div class="date-time-field__time-slots" role="listbox">
+                        @for (slot of timeSlots(); track slot.value) {
+                        <app-button role="option" class="date-time-field__time-slot"
+                            [class.date-time-field__time-slot--selected]="slot.value === pickerTime()"
+                            [variant]="slot.value === pickerTime() ? 'primary' : 'ghost'"
+                            size="sm"
+                            [fullWidth]="true"
+                            [disabled]="!isTimeAllowed(slot.value)"
+                            (clicked)="selectTimeSlot(slot.value)">{{ slot.label }}</app-button>
+                        }
+                    </div>
+                </div>
+                }
+            </div>
+
+            <!-- Bottom bar -->
+            <div class="date-time-field__picker-footer">
+                <div class="date-time-field__footer-left">
+                    @if (type() !== 'time') {
+                    <div class="date-time-field__date-display">{{ pickerDateFormatted() }}</div>
+                    <app-button variant="ghost" size="sm" (clicked)="goToToday()">{{ t('COMMON.ACTIONS.TODAY') }}</app-button>
+                    }
+                </div>
+                @if (type() === 'datetime-local') {
+                <div class="date-time-field__footer-actions">
+                    <app-button variant="secondary" size="sm" [fullWidth]="true" (clicked)="cancelPicker()">{{ t('COMMON.ACTIONS.CANCEL') }}</app-button>
+                    <app-button variant="primary" size="sm" [fullWidth]="true" (clicked)="applyPicker()">{{ t('COMMON.ACTIONS.APPLY') }}</app-button>
+                </div>
+                }
+            </div>
+        </div>
+        }
+    </div>
+
+    <div class="date-time-field__helper" [class.date-time-field__helper--reserved]="reserveHelperSpace()">
+        @if (errorMessage()) {
+        <span class="date-time-field__error" [id]="errorId()" role="alert">{{ errorMessage() }}</span>
+        } @else if (hint()) {
+        <span class="date-time-field__hint" [id]="hintId()">{{ hint() }}</span>
+        }
+    </div>
+</div>
+</ng-container>
