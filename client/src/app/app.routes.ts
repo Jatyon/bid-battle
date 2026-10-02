@@ -9,13 +9,34 @@ export const routes: Routes = [
       {
         path: '',
         title: 'ROUTES.HOME',
-        loadComponent: () => import('@features/auctions').then((m) => m.AuctionListPage),
+        loadComponent: () =>
+          import('@features/auctions/pages/auction-list/auction-list').then(
+            (m) => m.AuctionListPage,
+          ),
+      },
+      {
+        path: 'sell',
+        canActivate: [authGuard],
+        title: 'ROUTES.SELL',
+        loadComponent: () =>
+          import('@features/auctions/pages/auction-create/auction-create').then(
+            (m) => m.AuctionCreatePage,
+          ),
       },
       {
         path: 'profile',
         canActivate: [authGuard],
         title: 'ROUTES.PROFILE',
         loadComponent: () => import('@features/profile').then((m) => m.ProfilePage),
+      },
+      {
+        path: 'edit/:id',
+        canActivate: [authGuard],
+        title: 'ROUTES.EDIT',
+        loadComponent: () =>
+          import('@features/auctions/pages/auction-edit/auction-edit').then(
+            (m) => m.AuctionEditPage,
+          ),
       },
     ],
   },

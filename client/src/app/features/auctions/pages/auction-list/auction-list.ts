@@ -1,13 +1,11 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  Auction,
-  AuctionListFilters,
-  AuctionSearchQuery,
-  PaginatedResponse,
-} from '@features/auctions/models';
-import { AuctionFiltersComponent, AuctionCardComponent } from '@features/auctions/components';
+import type { PaginatedResponse } from '@core/models/paginated-response.model';
+import { SortOrder } from '@core/enums';
+import { AuctionCardComponent, AuctionFiltersComponent } from '@features/auctions/components';
+import { Auction, AuctionListFilters, AuctionSearchQuery } from '@features/auctions/models';
 import { AuctionsService } from '@features/auctions/services';
+import { AuctionSortBy } from '@features/auctions/enums';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { ChevronLeft, ChevronRight, LucideAngularModule } from 'lucide-angular';
 import { EMPTY, Subject, catchError, finalize, switchMap } from 'rxjs';
@@ -29,7 +27,10 @@ export class AuctionListPage {
   readonly loading = signal(true);
   readonly hasError = signal(false);
   readonly page = signal(1);
-  readonly filters = signal<AuctionListFilters>({ sortBy: 'createdAt', sortOrder: 'DESC' });
+  readonly filters = signal<AuctionListFilters>({
+    sortBy: AuctionSortBy.CREATED_AT,
+    sortOrder: SortOrder.DESC,
+  });
   readonly pageLimit = 10;
   readonly previousIcon = ChevronLeft;
   readonly nextIcon = ChevronRight;

@@ -1,5 +1,5 @@
-import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { Observable, defer, map, of, shareReplay, timer } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })

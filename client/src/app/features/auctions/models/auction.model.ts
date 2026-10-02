@@ -1,20 +1,20 @@
-import type { AuctionCategory } from '@core/enums';
+import type { AuctionCategory, SortOrder } from '@core/enums';
+import { AuctionSortBy, AuctionStatus } from '../enums';
 
 export type { AuctionCategory } from '@core/enums';
-
-export type AuctionSortBy = 'createdAt' | 'endTime' | 'currentPrice';
-export type SortOrder = 'ASC' | 'DESC';
 
 export interface Auction {
   id: number;
   title: string;
   description: string;
+  images: string[];
   mainImageUrl: string;
   startingPrice: number;
   currentPrice: number;
+  bidCount: number;
   startTime: string;
   endTime: string;
-  status: 'PENDING' | 'ACTIVE' | 'ENDED' | 'CANCELED';
+  status: AuctionStatus;
   category: AuctionCategory;
   createdAt: string;
   owner?: {
@@ -25,11 +25,9 @@ export interface Auction {
   };
 }
 
-export interface PaginatedResponse<T> {
-  items: T[];
-  page: number;
-  limit: number;
-  total: number;
+export interface AuctionDetails extends Auction {
+  images: string[];
+  primaryImageIndex: number;
 }
 
 export interface AuctionSearchQuery {
@@ -43,6 +41,31 @@ export interface AuctionSearchQuery {
   sortOrder: SortOrder;
 }
 
+export interface CreateAuctionRequest {
+  title: string;
+  description: string;
+  startingPrice: number;
+  startTime?: string;
+  endTime: string;
+  imageUrls: string[];
+  primaryImageIndex: number;
+  category: AuctionCategory;
+}
+
+export interface UpdateAuctionRequest {
+  title?: string;
+  description?: string;
+  appendDescription?: string;
+  startingPrice?: number;
+  startTime?: string;
+  endTime?: string;
+  category?: AuctionCategory;
+}
+
+export interface UploadedAuctionImage {
+  url: string;
+}
+
 export interface AuctionListFilters {
   search?: string;
   category?: AuctionCategory;
@@ -50,4 +73,24 @@ export interface AuctionListFilters {
   maxPrice?: number;
   sortBy: AuctionSortBy;
   sortOrder: SortOrder;
+}
+
+export interface AuctionImageSelection {
+  file?: File;
+  previewUrl: string;
+}
+
+export interface AuctionFormData {
+  formValues: {
+    title: string;
+    description: string;
+    appendDescription?: string;
+    startingPrice: number | string;
+    category: AuctionCategory;
+    startImmediately: boolean;
+    startTime: string;
+    endTime: string;
+  };
+  images: AuctionImageSelection[];
+  primaryImageIndex: number;
 }

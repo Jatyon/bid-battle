@@ -1,0 +1,149 @@
+<ng-container *transloco="let t">
+    <form class="auction-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <section class="auction-form__panel">
+
+            <div class="auction-form__image-field" [class.auction-form__image-field--dragging]="isDraggingImages()"
+                (dragenter)="!hasBids() && onImagesDragEnter($event)"
+                (dragover)="!hasBids() && onImagesDragOver($event)"
+                (dragleave)="!hasBids() && onImagesDragLeave($event)" (drop)="!hasBids() && onImagesDrop($event)">
+                <div class="auction-form__field-heading">
+                    <span class="auction-form__label">{{ t('AUCTIONS.CREATE.IMAGES_TITLE') }}</span>
+                    <span class="auction-form__hint">
+                        {{ isDraggingImages() ? t('AUCTIONS.CREATE.DROP_IMAGES') : t('AUCTIONS.CREATE.IMAGES_HELP', {
+                        max: MAX_IMAGES }) }}
+                    </span>
+                </div>
+
+                <div class="auction-form__images">
+                    @for (image of images(); track image.previewUrl; let idx = $index) {
+                    <div class="auction-form__image-card"
+                        [class.auction-form__image-card--primary]="idx === primaryImageIndex()">
+                        <img [src]="image.previewUrl" alt="" class="auction-form__image-preview" />
+
+                        @if (!hasBids()) {
+                        <div class="auction-form__image-actions">
+                            
+                            @if (idx !== primaryImageIndex()) {
+                            <button type="button" class="auction-form__action-btn auction-form__action-btn--primary"
+                                (click)="setPrimaryImage(idx)" [title]="t('AUCTIONS.CREATE.ACTIONS.SET_PRIMARY')"
+                                [attr.aria-label]="t('AUCTIONS.CREATE.ACTIONS.SET_PRIMARY')">
+                                <lucide-icon [name]="primaryIcon" size="16" />
+                            </button>
+                            }
+                            <button type="button" class="auction-form__action-btn auction-form__action-btn--remove"
+                                (click)="removeImage(idx)" [title]="t('COMMON.ACTIONS.REMOVE')"
+                                [attr.aria-label]="t('COMMON.ACTIONS.REMOVE')">
+                                <lucide-icon [name]="removeIcon" size="16" />
+                            </button>
+                        </div>
+                        }
+
+                        @if (idx === primaryImageIndex()) {
+                        <div class="auction-form__primary-badge">
+                            {{ t('AUCTIONS.CREATE.PRIMARY_IMAGE') }}
+                        </div>
+                        }
+                    </div>
+                    }
+
+                    @if (!hasBids() && images().length < MAX_IMAGES) { 
+                        <label class="auction-form__add-image-card">
+                        <input type="file" multiple accept="image/jpeg,image/png" class="visually-hidden"
+                            (change)="onFilesSelected($event)" />
+                        <div class="auction-form__add-image-content">
+                            <lucide-icon [name]="plusIcon" size="24" class="auction-form__add-image-icon" />
+                            <span>{{ t('AUCTIONS.CREATE.ACTIONS.ADD_MORE') }}</span>
+                        </div>
+                        </label>
+                    }
+                </div>
+
+                @if (imageError()) {
+                <p class="auction-form__field-error" role="alert">{{ imageError() }}</p>
+                } @else {
+                <p class="auction-form__hint">{{ t('AUCTIONS.CREATE.IMAGE_FORMATS') }}</p>
+                }
+            </div>
+
+            <div class="auction-form__fields">
+                <app-input class="auction-form__full" formControlName="title"
+                    [label]="t('AUCTIONS.CREATE.FIELDS.TITLE')" [required]="true" [maxlength]="255"
+                    [placeholder]="t('AUCTIONS.CREATE.TITLE_PLACEHOLDER')" [errorMessages]="{
+                    required: t('AUCTIONS.CREATE.VALIDATION.TITLE_REQUIRED'),
+                     maxlength: t('AUCTIONS.CREATE.VALIDATION.TITLE_MAX')
+                }" />
+
+                <app-textarea class="auction-form__full" formControlName="description"
+                    [label]="t('AUCTIONS.CREATE.FIELDS.DESCRIPTION')" [required]="true" [maxlength]="5000" [rows]="5"
+                    [resizable]="false" [placeholder]="t('AUCTIONS.CREATE.DESCRIPTION_PLACEHOLDER')" [errorMessages]="{
+                    required: t('AUCTIONS.CREATE.VALIDATION.DESCRIPTION_REQUIRED'),
+                    maxlength: t('AUCTIONS.CREATE.VALIDATION.DESCRIPTION_MAX')
+                }" />
+
+                @if (hasBids()) {
+                    <app-textarea class="auction-form__full" formControlName="appendDescription"
+                        [label]="t('AUCTIONS.EDIT.APPEND_DESCRIPTION_LABEL')" [maxlength]="1000" [rows]="3"
+                        [resizable]="false" [placeholder]="t('AUCTIONS.EDIT.APPEND_DESCRIPTION_PLACEHOLDER')"
+                        [errorMessages]="{
+                        maxlength: t('AUCTIONS.EDIT.VALIDATION.APPEND_DESCRIPTION_MAX')
+                    }" />
+                }
+
+                <app-select formControlName="category" [label]="t('AUCTIONS.CREATE.FIELDS.CATEGORY')"
+                    [options]="categoryOptions()" [required]="true" [reserveHelperSpace]="false" />
+
+                <app-input formControlName="startingPrice" type="number"
+                    [label]="t('AUCTIONS.CREATE.FIELDS.STARTING_PRICE')"
+                    [placeholder]="t('AUCTIONS.CREATE.PRICE_PLACEHOLDER')" [min]="minPrice" [max]="maxPrice" [step]="stepPrice"
+                    [required]="true" [reserveHelperSpace]="false" [errorMessages]="{
+                    required: t('AUCTIONS.CREATE.VALIDATION.PRICE_REQUIRED'),
+                    min: t('AUCTIONS.CREATE.VALIDATION.PRICE_MIN'),
+                    max: t('AUCTIONS.CREATE.VALIDATION.PRICE_MAX'),
+                    pattern: t('AUCTIONS.CREATE.VALIDATION.PRICE_FORMAT')
+                }" />
+
+                @if (canEditStartTime()) {
+                    <app-switch formControlName="startImmediately" [label]="t('AUCTIONS.CREATE.START_IMMEDIATELY_LABEL')"
+                        [description]="t('AUCTIONS.CREATE.START_IMMEDIATELY_DESCRIPTION')" class="auction-form__full" />
+
+                    @if (!form.controls.startImmediately.value) {
+                    <app-date-time-picker formControlName="startTime" [type]="'datetime-local'"
+                        [label]="t('AUCTIONS.CREATE.FIELDS.START_TIME')" [min]="minStartTime" [max]="maxEndTime"
+                        [step]="timePickerStep" [hint]="t('AUCTIONS.CREATE.START_TIME_HELP')" [dateLabel]="t('COMMON.DATE')"
+                        [timeLabel]="t('COMMON.TIME')" />
+                    }
+                }
+
+                <app-date-time-picker formControlName="endTime" [type]="'datetime-local'"
+                    [label]="t('AUCTIONS.CREATE.FIELDS.END_TIME')" [min]="minEndTime()" [max]="maxEndTime"
+                    [step]="timePickerStep" [hint]="t('AUCTIONS.CREATE.END_TIME_HELP')" [required]="true"
+                    [errorMessages]="{
+                    required: t('AUCTIONS.CREATE.VALIDATION.END_TIME_REQUIRED')
+                }" [dateLabel]="t('COMMON.DATE')" [timeLabel]="t('COMMON.TIME')" />
+
+                @if (dateError()) {
+                <p class="auction-form__field-error auction-form__full" role="alert">{{ dateError() }}</p>
+                }
+            </div>
+
+            @if (submitError()) {
+            <p class="auction-form__submit-error" role="alert">{{ submitError() }}</p>
+            }
+
+            <footer class="auction-form__footer">
+                @if (isSubmitting() && progressText()) {
+                <p class="auction-form__progress" role="status" aria-live="polite">
+                    {{ progressText() }}
+                </p>
+                }
+                <app-button type="submit" size="md" [fullWidth]="true" [loading]="isSubmitting()"
+                    [disabled]="isSubmitting()">
+                    {{ submitText() }}
+                </app-button>
+                @if (!isEdit()) {
+                <p>{{ t('AUCTIONS.CREATE.FOOTER_NOTE') }}</p>
+                }
+            </footer>
+        </section>
+    </form>
+</ng-container>
