@@ -41,7 +41,8 @@
     }
   }
 
-  &__account-trigger {
+  &__account-trigger,
+  &__action-button {
     order: 2;
     display: inline-flex;
     width: $touch-target-size;
@@ -53,15 +54,26 @@
     border-radius: 50%;
     background: transparent;
     cursor: pointer;
+    color: var(--color-text-secondary);
 
     &:hover {
       background: var(--color-surface-2);
+      color: var(--color-text);
     }
 
     &:focus-visible {
       outline: $focus-ring-width solid var(--color-primary);
       outline-offset: $focus-ring-offset;
     }
+  }
+
+  &__account-trigger {
+    order: 3;
+  }
+
+  &__action-icon {
+    width: $icon-size-md;
+    height: $icon-size-md;
   }
 
   &__avatar {

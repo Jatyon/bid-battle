@@ -9,10 +9,12 @@ import {
 import { RouterLink } from '@angular/router';
 import { ThemeService } from '@core/services/theme.service';
 import { AuthService } from '@core/services/auth.service';
-import { AuctionSearchComponent } from '../auction-search/auction-search.component';
-import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
+import { LanguageService } from '@core/services/language.service';
+import { Language } from '@core/enums';
+import { AuctionSearchComponent } from '@features/auctions/components';
+import { BrandLogoComponent } from '@shared/components';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { LucideAngularModule, LogOut, Moon, Sun, UserRound } from 'lucide-angular';
+import { LucideAngularModule, LogOut, Moon, Sun, UserRound, Globe } from 'lucide-angular';
 
 @Component({
   selector: 'app-mobile-header',
@@ -33,9 +35,13 @@ export class MobileHeaderComponent {
 
   readonly currentUser = this.authService.currentUser;
   readonly isMenuOpen = signal(false);
+  readonly isLangMenuOpen = signal(false);
+  readonly availableLanguages = computed(() => this.languageService.getAvailableLangs());
   readonly logoutIcon = LogOut;
   readonly themeIcon = computed(() => (this.themeService.currentTheme() === 'dark' ? Sun : Moon));
   readonly profileIcon = UserRound;
+  readonly languageIcon = Globe;
+  private readonly languageService = inject(LanguageService);
 
   readonly initials = computed(() => {
     const user = this.currentUser();
@@ -49,18 +55,36 @@ export class MobileHeaderComponent {
 
   toggleMenu(): void {
     this.isMenuOpen.update((open) => !open);
+    if (this.isMenuOpen()) this.isLangMenuOpen.set(false);
   }
 
   closeMenu(): void {
     this.isMenuOpen.set(false);
   }
 
+  toggleLangMenu(): void {
+    this.isLangMenuOpen.update((open) => !open);
+    if (this.isLangMenuOpen()) this.isMenuOpen.set(false);
+  }
+
+  closeLangMenu(): void {
+    this.isLangMenuOpen.set(false);
+  }
+
   closeFromBackdrop(event: Event): void {
-    if (event.target === event.currentTarget) this.closeMenu();
+    if (event.target === event.currentTarget) {
+      this.closeMenu();
+      this.closeLangMenu();
+    }
   }
 
   toggleTheme(): void {
     this.themeService.toggle();
+  }
+
+  setLanguage(lang: Language): void {
+    this.languageService.setLanguage(lang);
+    this.closeLangMenu();
   }
 
   logout(): void {
@@ -71,5 +95,6 @@ export class MobileHeaderComponent {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     this.closeMenu();
+    this.closeLangMenu();
   }
 }
