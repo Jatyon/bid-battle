@@ -5,6 +5,7 @@ import { SortOrder } from '@core/enums';
 import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { Bid } from '@modules/bid/entities';
 import { BidResponse } from '@modules/bid';
+import { AppConfigService } from '@config/config.service';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, MyAuctionResponse, UpdateAuctionDto } from './dto';
@@ -12,7 +13,9 @@ import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
 import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
+import { AUCTION_MAX_IMAGES } from './auction.constants';
 import { DataSource, In, Repository } from 'typeorm';
+import { I18nService, I18nContext } from 'nestjs-i18n';
 
 @Injectable()
 export class AuctionsService {
@@ -27,6 +30,8 @@ export class AuctionsService {
     private readonly fileUploadService: FileUploadService,
     private readonly auctionScheduler: AuctionScheduler,
     private readonly dataSource: DataSource,
+    private readonly i18n: I18nService,
+    private readonly configService: AppConfigService,
   ) {}
 
   /**
@@ -339,25 +344,25 @@ export class AuctionsService {
     const auction = await this.auctionsRepository.findOneBy({ id: auctionId });
 
     if (!auction) throw new NotFoundException('error.auction.not_found');
-
     if (auction.ownerId !== userId) throw new ForbiddenException('error.auction.update_forbidden_not_owner');
-
     if (auction.status !== AuctionStatus.ACTIVE && auction.status !== AuctionStatus.PENDING) throw new BadRequestException('error.auction.update_forbidden_not_active');
 
     const requestedEndTime = updateAuctionDto.endTime ? new Date(updateAuctionDto.endTime) : undefined;
+    const requestedStartTime = updateAuctionDto.startTime ? new Date(updateAuctionDto.startTime) : undefined;
+
+    if (requestedStartTime && auction.status === AuctionStatus.ACTIVE) throw new BadRequestException('auction.error.update_forbidden_start_time_active');
 
     if (requestedEndTime) {
       const now = new Date();
-
       if (requestedEndTime <= now) throw new BadRequestException('auction.error.update_forbidden_end_time_past');
-
       if (requestedEndTime <= auction.endTime) throw new BadRequestException('auction.error.update_forbidden_end_time');
     }
 
     let updatedAuction: Auction;
     let endTimeChanged = false;
+    let startTimeChanged = false;
 
-    if (requestedEndTime && auction.status === AuctionStatus.ACTIVE) {
+    if (auction.status === AuctionStatus.ACTIVE) {
       updatedAuction = await this.dataSource.transaction(async (em) => {
         const lockedAuction = await em.findOne(Auction, {
           where: { id: auctionId },
@@ -365,48 +370,82 @@ export class AuctionsService {
         });
 
         if (!lockedAuction) throw new NotFoundException('error.auction.not_found');
-
         if (lockedAuction.status !== AuctionStatus.ACTIVE) throw new BadRequestException('error.auction.update_forbidden_not_active');
 
         const bidCount = await em.count(Bid, { where: { auctionId } });
 
-        if (bidCount > 0) throw new BadRequestException('auction.error.update_forbidden_end_time_has_bids');
+        if (bidCount > 0) {
+          if (updateAuctionDto.title) throw new BadRequestException('auction.error.update_forbidden_title_has_bids');
+          if (updateAuctionDto.category !== undefined) throw new BadRequestException('auction.error.update_forbidden_category_has_bids');
+          if (updateAuctionDto.startingPrice !== undefined) throw new BadRequestException('auction.error.update_forbidden_starting_price_has_bids');
+          if (updateAuctionDto.description) throw new BadRequestException('auction.error.update_forbidden_description_has_bids');
+          if (requestedEndTime) throw new BadRequestException('auction.error.update_forbidden_end_time_has_bids');
 
-        lockedAuction.endTime = requestedEndTime;
-
-        if (updateAuctionDto.title) lockedAuction.title = updateAuctionDto.title;
-        if (updateAuctionDto.description) lockedAuction.description = updateAuctionDto.description;
-        if (updateAuctionDto.category !== undefined) lockedAuction.category = updateAuctionDto.category ?? null;
+          if (updateAuctionDto.appendDescription) lockedAuction.description = this.buildUpdatedDescription(lockedAuction.description, updateAuctionDto.appendDescription);
+        } else {
+          const result = this.applyUpdatesToAuction(lockedAuction, updateAuctionDto, requestedStartTime, requestedEndTime);
+          endTimeChanged = result.endTimeChanged;
+          startTimeChanged = result.startTimeChanged;
+        }
 
         return em.save(Auction, lockedAuction);
       });
-      endTimeChanged = true;
     } else {
-      if (requestedEndTime) {
-        auction.endTime = requestedEndTime;
-        endTimeChanged = true;
-      }
-
-      if (updateAuctionDto.title) auction.title = updateAuctionDto.title;
-      if (updateAuctionDto.description) auction.description = updateAuctionDto.description;
-      if (updateAuctionDto.category !== undefined) auction.category = updateAuctionDto.category ?? null;
-
+      const result = this.applyUpdatesToAuction(auction, updateAuctionDto, requestedStartTime, requestedEndTime);
+      endTimeChanged = result.endTimeChanged;
+      startTimeChanged = result.startTimeChanged;
       updatedAuction = await this.auctionsRepository.save(auction);
+
+      if (startTimeChanged) {
+        await this.auctionScheduler.cancelAuctionStart(auctionId);
+        await this.auctionScheduler.scheduleAuctionStart(auctionId, updatedAuction.startTime);
+      }
     }
 
     if (endTimeChanged && updatedAuction.status === AuctionStatus.ACTIVE) {
       await this.auctionScheduler.cancelAuctionEnd(auctionId);
       await this.auctionScheduler.scheduleAuctionEnd(auctionId, updatedAuction.endTime);
 
-      const now = new Date();
-      const newDurationSeconds = Math.floor((updatedAuction.endTime.getTime() - now.getTime()) / 1000);
-
+      const newDurationSeconds = Math.floor((updatedAuction.endTime.getTime() - Date.now()) / 1000);
       if (newDurationSeconds > 0) await this.redisService.extendAuctionTime(auctionId, newDurationSeconds);
     }
 
     await this.invalidateAuctionsCache();
 
     return new AuctionResponse(updatedAuction);
+  }
+
+  /**
+   * Helper method to apply updates to an auction entity.
+   */
+  private applyUpdatesToAuction(
+    target: Auction,
+    updateAuctionDto: UpdateAuctionDto,
+    requestedStartTime?: Date,
+    requestedEndTime?: Date,
+  ): { endTimeChanged: boolean; startTimeChanged: boolean } {
+    let endTimeChanged = false;
+    let startTimeChanged = false;
+
+    if (requestedEndTime) {
+      target.endTime = requestedEndTime;
+      endTimeChanged = true;
+    }
+    if (requestedStartTime) {
+      target.startTime = requestedStartTime;
+      startTimeChanged = true;
+    }
+    if (updateAuctionDto.title) target.title = updateAuctionDto.title;
+    if (updateAuctionDto.description) target.description = updateAuctionDto.description;
+    if (updateAuctionDto.appendDescription) target.description = this.buildUpdatedDescription(target.description, updateAuctionDto.appendDescription);
+
+    if (updateAuctionDto.category !== undefined) target.category = updateAuctionDto.category ?? null;
+    if (updateAuctionDto.startingPrice !== undefined) {
+      target.startingPrice = updateAuctionDto.startingPrice;
+      target.currentPrice = updateAuctionDto.startingPrice;
+    }
+
+    return { endTimeChanged, startTimeChanged };
   }
 
   /**
@@ -444,10 +483,9 @@ export class AuctionsService {
 
     const oldFileKeysToDelete = toDelete.map((img) => this.fileUploadService.extractKeyFromUrl(img.imageUrl)).filter((key): key is string => key !== null);
 
-    const MAX_IMAGES = 10;
     const totalCount = toKeep.length + files.length;
 
-    if (totalCount > MAX_IMAGES) throw new BadRequestException({ message: 'error.auction.too_many_images_#max', args: { max: MAX_IMAGES } });
+    if (totalCount > AUCTION_MAX_IMAGES) throw new BadRequestException({ message: 'error.auction.too_many_images_#max', args: { max: AUCTION_MAX_IMAGES } });
 
     const uploadedFiles = hasNewFiles ? await this.fileUploadService.uploadMultiple(files, this.fileUploadService.getAuctionImageUploadOptions()) : [];
 
@@ -494,8 +532,7 @@ export class AuctionsService {
           await em.save(AuctionImage, newEntities);
         }
 
-        auction.mainImageUrl = allUrls[primaryIndex];
-        await em.save(Auction, auction);
+        await em.update(Auction, auctionId, { mainImageUrl: allUrls[primaryIndex] });
       });
     } catch (dbError) {
       this.logger.error(`updateAuctionImages failed for auction ${auctionId}`, dbError);
@@ -524,5 +561,20 @@ export class AuctionsService {
    */
   private async invalidatePriceCache(auctionId: number): Promise<void> {
     await this.redisService.deleteCache(`auction:${auctionId}:price`);
+  }
+
+  /**
+   * Appends a timestamped note to an existing auction description.
+   * Centralizes the formatting to avoid duplication across ACTIVE/PENDING paths.
+   *
+   * @param currentDescription - The current description to append to.
+   * @param appendText - The text to append.
+   * @returns The updated description string.
+   */
+  private buildUpdatedDescription(currentDescription: string, appendText: string): string {
+    const lang = I18nContext.current()?.lang ?? this.configService.i18n.fallbackLanguage;
+    const dateStr = new Date().toLocaleDateString(lang);
+    const updateHeader = this.i18n.translate('auction.info.update_description', { lang, args: { date: dateStr } });
+    return `${currentDescription}\n\n${updateHeader}\n${appendText}`;
   }
 }

@@ -1,0 +1,29 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+}
+
+.auction-create {
+  display: grid;
+  width: min(100%, 880px);
+  gap: $spacing-lg;
+  margin: 0 auto;
+
+  &__header {
+    display: grid;
+    gap: $spacing-xs;
+  }
+
+  &__title {
+    color: var(--color-text);
+    font-size: clamp($font-size-2xl, 5vw, $font-size-4xl);
+    line-height: $lh-tight;
+  }
+
+  &__subtitle {
+    color: var(--color-text-secondary);
+    line-height: $lh-base;
+    margin-top: $spacing-sm;
+  }
+}

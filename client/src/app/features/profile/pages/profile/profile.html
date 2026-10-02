@@ -25,7 +25,7 @@
                     </div>
 
                     <div class="profile-card__row">
-                        <app-input formControlName="email" [label]="t('PROFILE.INFO.EMAIL_READONLY')" [disabled]="true"
+                        <app-input formControlName="email" [label]="t('PROFILE.INFO.EMAIL_READONLY')"
                             name="email" />
                     </div>
 
@@ -66,6 +66,9 @@
                 <h2 class="profile-card__title">{{ t('PROFILE.PASSWORD.TITLE') }}</h2>
 
                 <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="profile-card__form" novalidate>
+                    <!-- Hidden username field for accessibility and password managers -->
+                    <input type="text" autocomplete="username" [value]="currentUser()?.email" hidden />
+
                     <div class="profile-card__row">
                         <app-input formControlName="currentPassword" type="password"
                             [label]="t('PROFILE.PASSWORD.CURRENT')" autocomplete="current-password"

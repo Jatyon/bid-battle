@@ -1,0 +1,18 @@
+<ng-container *transloco="let t">
+  <main class="auction-create">
+      <header class="auction-create__header">
+          <h1 class="auction-create__title">{{ t('AUCTIONS.CREATE.TITLE') }}</h1>
+          <p class="auction-create__subtitle">{{ t('AUCTIONS.CREATE.SUBTITLE') }}</p>
+      </header>
+      
+      <div class="auction-create__form-container">
+          <app-auction-form 
+              [isSubmitting]="isSubmitting()"
+              [submitText]="t('AUCTIONS.CREATE.SUBMIT')"
+              [progressText]="isCreating() ? t('AUCTIONS.CREATE.CREATING') : t('AUCTIONS.CREATE.UPLOADING')"
+              [submitError]="submitError()"
+              (save)="handleCreate($event)">
+          </app-auction-form>
+      </div>
+  </main>
+</ng-container>

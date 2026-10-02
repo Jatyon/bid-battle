@@ -1,0 +1,262 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+}
+
+.auction-form {
+  display: grid;
+  width: min(100%, 880px);
+  gap: $spacing-lg;
+  margin: 0 auto;
+
+  &__header {
+    display: grid;
+    gap: $spacing-xs;
+  }
+
+  &__title {
+    color: var(--color-text);
+    font-size: clamp($font-size-2xl, 5vw, $font-size-4xl);
+    line-height: $lh-tight;
+  }
+
+  &__subtitle,
+  &__footer p {
+    color: var(--color-text-secondary);
+    line-height: $lh-base;
+  }
+
+  &__subtitle {
+    margin-top: $spacing-sm;
+  }
+
+  &__form {
+    padding: $spacing-md;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-lg;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+
+    @include bp-sm {
+      padding: $spacing-lg;
+    }
+  }
+
+  &__panel {
+    display: grid;
+    gap: $spacing-md;
+  }
+
+  &__image-field {
+    display: grid;
+    gap: $spacing-sm;
+
+    &--dragging {
+      outline: $border-width dashed var(--color-primary);
+      background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+    }
+  }
+
+  &__field-heading {
+    display: grid;
+    gap: $spacing-xs;
+  }
+
+  &__fields {
+    display: grid;
+    min-width: 0;
+    gap: $spacing-md;
+
+    @include bp-md {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  &__full {
+    @include bp-md {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  &__label {
+    color: var(--color-text);
+    font-size: $font-size-base;
+    font-weight: $fw-medium;
+  }
+
+  &__textarea,
+  &__date-input {
+    width: 100%;
+    min-height: $touch-target-size;
+    padding: $spacing-input $spacing-md;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font: inherit;
+    outline: none;
+
+    &:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 $focus-ring-width color-mix(in srgb, var(--color-primary) 18%, transparent);
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--color-danger);
+    }
+  }
+
+  &__textarea {
+    min-height: 9rem;
+    resize: vertical;
+  }
+
+  &__hint,
+  &__field-error {
+    font-size: $font-size-sm;
+    line-height: $lh-base;
+  }
+
+  &__hint {
+    color: var(--color-text-muted);
+  }
+
+  &__field-error,
+  &__submit-error {
+    color: var(--color-danger);
+  }
+
+  &__add-image-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border: $border-width dashed var(--color-border);
+    border-radius: $radius-md;
+    background: var(--color-surface-2);
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background: color-mix(in srgb, var(--color-surface-2) 80%, var(--color-text));
+    }
+  }
+
+  &__add-image-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-xs;
+    color: var(--color-text-secondary);
+    font-size: $font-size-sm;
+  }
+
+  &__add-image-icon {
+    font-size: $font-size-2xl;
+  }
+
+  &__images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: $spacing-sm;
+  }
+
+  &__image-card {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    background: var(--color-surface-2);
+
+    &--primary {
+      border: $focus-ring-width solid var(--color-primary);
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__image-actions {
+    position: absolute;
+    top: $spacing-xs;
+    left: $spacing-xs;
+    right: $spacing-xs;
+    display: flex;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
+  &__action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: $icon-size-md + $spacing-xs;
+    height: $icon-size-md + $spacing-xs;
+    border: none;
+    border-radius: $radius-full;
+    background: var(--color-surface);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    
+    &--primary {
+      color: var(--color-primary);
+    }
+    
+    &--remove {
+      color: var(--color-danger);
+      margin-left: auto;
+    }
+  }
+
+  &__primary-badge {
+    position: absolute;
+    bottom: $spacing-xs;
+    left: $spacing-xs;
+    padding: $spacing-2xs $spacing-xs;
+    background: var(--color-primary);
+    color: var(--color-on-primary, #fff);
+    font-size: $font-size-xs;
+    border-radius: $radius-sm;
+  }
+
+  &__submit-error {
+    font-weight: $fw-medium;
+  }
+
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-top: $spacing-md;
+
+    app-button {
+      width: 100%;
+    }
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

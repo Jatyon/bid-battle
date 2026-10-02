@@ -9,6 +9,7 @@ import { BidResponse } from '@modules/bid';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
 import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto, MyAuctionResponse } from './dto';
+import { AUCTION_MAX_IMAGES } from './auction.constants';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
 
@@ -46,7 +47,7 @@ export class AuctionsController {
   @HttpCode(200)
   @Post('/upload-images')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('images', 10))
+  @UseInterceptors(FilesInterceptor('images', AUCTION_MAX_IMAGES))
   async uploadAuctionImages(@UploadedFiles() files: Express.Multer.File[]): Promise<UploadedFileDto[]> {
     if (!files || files.length === 0) {
       throw new BadRequestException('error.validation.file.no_file_provided');
@@ -152,7 +153,7 @@ export class AuctionsController {
   @HttpCode(200)
   @Patch(':id/images')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('images', 10))
+  @UseInterceptors(FilesInterceptor('images', AUCTION_MAX_IMAGES))
   async updateAuctionImages(
     @Param('id', ParseIntPipe) auctionId: number,
     @UploadedFiles() files: Express.Multer.File[],

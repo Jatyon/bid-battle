@@ -7,6 +7,8 @@
     "RESET_PASSWORD": "Reset hasła",
     "VERIFY_EMAIL": "Aktywacja konta",
     "HOME": "Aukcje",
+    "SELL": "Dodaj aukcję",
+    "EDIT": "Edytuj aukcję",
     "PROFILE": "Profil"
   },
   "NAVBAR": {
@@ -39,6 +41,85 @@
     "EMPTY": "Nie znaleziono aukcji pasujących do wyszukiwania."
   },
   "AUCTIONS": {
+    "CREATE": {
+      "EYEBROW": "BidBattle · wystaw przedmiot",
+      "TITLE": "Dodaj nową aukcję",
+      "SUBTITLE": "Opisz przedmiot, dodaj zdjęcia i ustal cenę początkową oraz czas trwania aukcji.",
+      "DETAILS_TITLE": "Informacje o przedmiocie",
+      "DETAILS_DESCRIPTION": "Podaj jasny tytuł i szczegółowy opis.",
+      "FIELDS": {
+        "TITLE": "Tytuł aukcji",
+        "DESCRIPTION": "Opis przedmiotu",
+        "CATEGORY": "Kategoria",
+        "STARTING_PRICE": "Cena początkowa (zł)",
+        "START_TIME": "Czas rozpoczęcia (opcjonalnie)",
+        "END_TIME": "Data zakończenia",
+        "IMAGES": "Zdjęcia"
+      },
+      "TITLE_PLACEHOLDER": "np. Słuchawki bezprzewodowe Sony",
+      "DESCRIPTION_PLACEHOLDER": "Opisz stan przedmiotu, jego cechy i zawartość zestawu…",
+      "DESCRIPTION_HELP": "Maksymalnie 5000 znaków.",
+      "IMAGES_TITLE": "Zdjęcia przedmiotu",
+      "IMAGES_HELP": "Dodaj od 1 do {{max}} zdjęć. Wybierz zdjęcie główne aukcji.",
+      "ACTIONS": {
+        "SET_PRIMARY": "Ustaw jako główne",
+        "ADD_MORE": "Dodaj kolejne"
+      },
+      "DROP_IMAGES": "Upuść zdjęcia, aby dodać je do aukcji",
+      "ADD_IMAGES": "Wybierz zdjęcia",
+      "IMAGE_FORMATS": "JPG lub PNG, maksymalnie 10 MB na plik",
+      "IMAGE_COUNT": "Dodano {{count}} z {{max}} zdjęć",
+      "IMAGE_INVALID": "Wybierz pliki JPG lub PNG nie większe niż 10 MB.",
+      "IMAGES_TOO_MANY": "Możesz dodać maksymalnie {{max}} zdjęć.",
+      "IMAGES_REQUIRED": "Dodaj co najmniej jedno zdjęcie przedmiotu.",
+      "PRIMARY_IMAGE": "Główne",
+      "MAKE_PRIMARY": "Ustaw jako główne",
+      "REMOVE_IMAGE": "Usuń zdjęcie {{name}}",
+      "PRICE_TIME_TITLE": "Cena i czas trwania",
+      "PRICE_TIME_DESCRIPTION": "Cena jest podawana w złotych; aukcja zakończy się o wybranej godzinie.",
+      "PRICE_PLACEHOLDER": "np. 25,00",
+      "START_TIME_HELP": "Pozostaw puste, aby rozpocząć aukcję od razu.",
+      "END_TIME_HELP": "Aukcja musi zakończyć się co najmniej godzinę po rozpoczęciu i w ciągu 30 dni od teraz.",
+      "START_IMMEDIATELY_LABEL": "Wystaw natychmiast",
+      "START_IMMEDIATELY_DESCRIPTION": "Zostaw włączone, aby uruchomić aukcję od razu, lub wyłącz, aby zaplanować datę startu.",
+      "START_TIME_INVALID": "Czas rozpoczęcia musi przypadać w przyszłości i nie później niż za 30 dni.",
+      "END_TIME_INVALID": "Wybierz zakończenie od 1 godziny do 30 dni od teraz.",
+      "FOOTER_NOTE": "Po utworzeniu aukcja pojawi się na liście po aktywacji.",
+      "SUBMIT": "Opublikuj aukcję",
+      "UPLOADING": "Wysyłanie zdjęć…",
+      "CREATING": "Tworzenie aukcji…",
+      "SUCCESS": "Aukcja została utworzona.",
+      "ERROR_UPLOAD": "Nie udało się wysłać zdjęć. Sprawdź pliki i spróbuj ponownie.",
+      "ERROR_CREATE": "Nie udało się utworzyć aukcji. Sprawdź dane i spróbuj ponownie.",
+      "VALIDATION": {
+        "TITLE_REQUIRED": "Podaj tytuł aukcji.",
+        "TITLE_MAX": "Tytuł może mieć maksymalnie 255 znaków.",
+        "DESCRIPTION_REQUIRED": "Podaj opis przedmiotu.",
+        "DESCRIPTION_MAX": "Opis może mieć maksymalnie 5000 znaków.",
+        "PRICE_REQUIRED": "Podaj cenę początkową.",
+        "PRICE_MIN": "Cena musi wynosić co najmniej 0,01 zł.",
+        "PRICE_MAX": "Cena jest zbyt wysoka.",
+        "PRICE_FORMAT": "Podaj kwotę z maksymalnie dwoma miejscami po przecinku.",
+        "END_TIME_REQUIRED": "Wybierz datę zakończenia aukcji."
+      }
+    },
+    "EDIT": {
+      "TITLE": "Edytuj aukcję",
+      "SUBTITLE": "Zmień dane swojej aktywnej aukcji.",
+      "SUBMIT": "Zapisz zmiany",
+      "APPEND_DESCRIPTION_LABEL": "Dodaj notatkę do opisu (Aktualizacja)",
+      "APPEND_DESCRIPTION_PLACEHOLDER": "Wpisz tekst, który chcesz dopisać do opisu…",
+      "ACTIONS": {
+        "SAVE": "Zapisz zmiany"
+      },
+      "VALIDATION": {
+        "APPEND_DESCRIPTION_MAX": "Notatka może mieć maksymalnie 1000 znaków."
+      },
+      "ERROR_LOAD": "Nie udało się załadować aukcji.",
+      "ERROR_SAVE": "Nie udało się zapisać zmian.",
+      "SUCCESS": "Aukcja została zaktualizowana.",
+      "HAS_BIDS_WARNING": "W tej aukcji złożono już oferty. Zmiana tytułu, opisu, ceny wywoławczej oraz dodawanie/usuwanie zdjęć zostały zablokowane. Możesz jedynie dodać notatkę do opisu oraz wydłużyć czas trwania aukcji."
+    },
     "PAGE": {
       "EYEBROW": "BidBattle · aukcje na żywo",
       "TITLE": "Znajdź coś wyjątkowego",
@@ -97,6 +178,9 @@
     }
   },
   "COMMON": {
+    "DATE": "Data",
+    "TIME": "Godzina",
+    "AVAILABLE_TIMES": "Dostępne godziny",
     "FORMS": {
       "FIRST_NAME": "Imię",
       "FIRST_NAME_PLACEHOLDER": "Jan",
@@ -109,9 +193,13 @@
       "PASSWORD_REPEAT": "Powtórz hasło"
     },
     "ACTIONS": {
+      "REMOVE": "Usuń",
       "BACK_TO_LOGIN": "Wróć do logowania",
       "GO_TO_LOGIN": "Przejdź do logowania",
-      "UNDERSTOOD": "Rozumiem"
+      "UNDERSTOOD": "Rozumiem",
+      "TODAY": "Dzisiaj",
+      "CANCEL": "Anuluj",
+      "APPLY": "Zastosuj"
     }
   },
   "AUTH": {

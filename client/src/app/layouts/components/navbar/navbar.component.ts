@@ -10,8 +10,8 @@ import {
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '@core/services/theme.service';
 import { AuthService } from '@core/services/auth.service';
-import { AuctionSearchComponent } from '../auction-search/auction-search.component';
-import { BrandLogoComponent } from '../brand-logo/brand-logo.component';
+import { AuctionSearchComponent } from '@features/auctions/components';
+import { BrandLogoComponent } from '@shared/components';
 import { TranslocoDirective } from '@jsverse/transloco';
 import {
   LucideAngularModule,

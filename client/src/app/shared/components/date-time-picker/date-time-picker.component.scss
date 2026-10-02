@@ -1,0 +1,384 @@
+@use 'abstracts/variables' as *;
+
+.date-time-field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  width: 100%;
+
+  &__label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__label {
+    flex: 1;
+    color: var(--color-text);
+    font-size: $font-size-base;
+    font-weight: $fw-medium;
+    word-break: break-word;
+  }
+
+  &__required {
+    color: var(--color-danger);
+  }
+
+  &__control {
+    position: relative;
+  }
+
+  // ─── Picker panel ─────────────────────────────────────────────────────────
+
+  &__picker {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + $spacing-xs);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    
+    @include bp-sm {
+      width: max-content;
+    }
+    
+    max-width: min(100vw - 2rem, 600px);
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-lg;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg, 0 12px 32px rgb(0 0 0 / 16%));
+    overflow: hidden;
+  }
+
+  &--drop-up &__picker {
+    top: auto;
+    bottom: calc(100% + $spacing-xs);
+    box-shadow: var(--shadow-lg, 0 -12px 32px rgb(0 0 0 / 16%));
+  }
+
+  &__picker-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+
+    @include bp-sm {
+      flex-direction: row;
+    }
+  }
+
+  // ─── Left: Calendar ───────────────────────────────────────────────────────
+
+  &__calendar {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    padding: $spacing-md;
+    width: 100%;
+
+    @include bp-sm {
+      min-width: 260px;
+      width: auto;
+    }
+  }
+
+  &__calendar-header {
+    display: grid;
+    grid-template-columns: $icon-button-size 1fr $icon-button-size;
+    align-items: center;
+    gap: $spacing-xs;
+    color: var(--color-text);
+    text-align: center;
+  }
+
+  &__month-label {
+    font-size: $font-size-base;
+    font-weight: $fw-semibold;
+    color: var(--color-text);
+  }
+
+  &__nav {
+    display: grid;
+    width: $icon-button-size;
+    height: $icon-button-size;
+    place-items: center;
+    border: 0;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: $font-size-xl;
+    cursor: pointer;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:hover {
+      background: var(--color-surface-2);
+      color: var(--color-primary);
+    }
+  }
+
+  &__weekdays,
+  &__days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: $spacing-2xs;
+  }
+
+  &__weekdays {
+    color: var(--color-text-muted);
+    font-size: $font-size-xs;
+    font-weight: $fw-medium;
+    text-align: center;
+  }
+
+  &__day {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    aspect-ratio: 1;
+    border: 0;
+    border-radius: $radius-full;
+    background: transparent;
+    color: var(--color-text);
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: background-color $transition-fast, color $transition-fast;
+
+    &:hover:not(:disabled) {
+      background: var(--color-surface-2);
+    }
+
+    &:disabled {
+      color: var(--color-text-muted);
+      cursor: not-allowed;
+      opacity: 0.35;
+    }
+
+    &--outside {
+      color: var(--color-text-muted);
+      opacity: 0.45;
+    }
+
+    &--selected {
+      background: var(--color-primary);
+      color: var(--color-on-primary, #fff);
+      font-weight: $fw-semibold;
+    }
+
+    &--selected:hover:not(:disabled) {
+      background: var(--color-primary);
+    }
+  }
+
+  &__today-dot {
+    display: block;
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: $radius-full;
+    background: var(--color-primary);
+  }
+
+  // ─── Right: Time slots ────────────────────────────────────────────────────
+
+  &__time-panel {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    width: 100%;
+    border-top: $border-width solid var(--color-border);
+    padding: $spacing-md $spacing-sm;
+
+    @include bp-sm {
+      width: 140px;
+      min-width: 140px;
+      border-top: none;
+      border-left: $border-width solid var(--color-border);
+    }
+  }
+
+  &__time-heading {
+    font-size: $font-size-sm;
+    font-weight: $fw-semibold;
+    color: var(--color-text);
+    padding-bottom: $spacing-xs;
+    text-align: center;
+  }
+
+  &__time-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xs;
+    overflow-y: auto;
+    max-height: 180px;
+    padding-right: 2px;
+
+    @include bp-sm {
+      display: flex;
+      flex-direction: column;
+      max-height: 232px;
+    }
+  }
+
+  &__time-slot {
+    width: 100%;
+    
+    // app-button component manages the actual visual styles (background, borders, colors, hover, disabled).
+    // The class is maintained for semantic purposes and DOM querying in TypeScript.
+  }
+
+  // ─── Bottom bar ───────────────────────────────────────────────────────────
+
+  &__picker-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+    padding: $spacing-sm $spacing-md;
+    border-top: $border-width solid var(--color-border);
+    background: var(--color-surface);
+    flex-direction: column;
+
+    @include bp-sm {
+      flex-direction: row;
+    }
+  }
+
+  &__footer-left {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+    width: 100%;
+
+    @include bp-sm {
+      width: auto;
+      justify-content: flex-start;
+    }
+  }
+
+  &__footer-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-sm;
+    width: 100%;
+
+    @include bp-sm {
+      display: flex;
+      width: auto;
+    }
+  }
+
+  &__date-display {
+    min-width: 90px;
+    padding: $spacing-compact $spacing-sm;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: $font-size-sm;
+    font-weight: $fw-normal;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  // ─── Input trigger ────────────────────────────────────────────────────────
+
+  &__input {
+    width: 100%;
+    min-height: $touch-target-size;
+    box-sizing: border-box;
+    padding: $input-padding-y $spacing-md;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    background-color: var(--color-surface-2);
+    color: var(--color-text);
+    font: inherit;
+    outline: none;
+    cursor: pointer;
+    transition:
+      border-color $transition-fast,
+      box-shadow $transition-fast,
+      background-color $transition-fast;
+
+    &:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 $focus-ring-width color-mix(in srgb, var(--color-primary) 18%, transparent);
+    }
+
+    &:disabled {
+      background-color: var(--color-surface-3);
+      color: var(--color-text-secondary);
+      cursor: not-allowed;
+    }
+  }
+
+  &--error &__input {
+    border-color: var(--color-danger);
+  }
+
+  &--disabled {
+    pointer-events: none;
+  }
+
+  &--focused &__input {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 $focus-ring-width color-mix(in srgb, var(--color-primary) 18%, transparent);
+  }
+
+  // ─── Helper / error / hint ────────────────────────────────────────────────
+
+  &__helper {
+    display: flex;
+    min-height: 0;
+    align-items: flex-start;
+
+    &--reserved {
+      min-height: $input-line-height;
+    }
+  }
+
+  &__error,
+  &__hint {
+    font-size: $font-size-sm;
+    line-height: $lh-base;
+  }
+
+  &__error {
+    color: var(--color-danger);
+  }
+
+  &__hint {
+    color: var(--color-text-muted);
+  }
+
+  // --- SPECIFIC TYPES OVERRIDES ---
+
+  &[data-type="time"] {
+    .date-time-field__time-panel {
+      @include bp-sm {
+        border-left: none;
+        width: 240px;
+      }
+    }
+    
+    .date-time-field__time-slots {
+      @include bp-sm {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        max-height: 260px;
+      }
+    }
+  }
+
+  &[data-type="date"] {
+    .date-time-field__picker-footer {
+      justify-content: center;
+    }
+  }
+}

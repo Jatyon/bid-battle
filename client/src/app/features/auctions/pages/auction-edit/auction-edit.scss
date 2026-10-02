@@ -1,0 +1,60 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+}
+
+.auction-edit {
+  display: grid;
+  width: min(100%, 880px);
+  gap: $spacing-lg;
+  margin: 0 auto;
+
+  &__loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+  }
+
+  &__header {
+    display: grid;
+    gap: $spacing-xs;
+  }
+
+  &__title {
+    color: var(--color-text);
+    font-size: clamp($font-size-2xl, 5vw, $font-size-4xl);
+    line-height: $lh-tight;
+  }
+
+  &__subtitle {
+    color: var(--color-text-secondary);
+    line-height: $lh-base;
+    margin-top: $spacing-sm;
+  }
+
+  &__warning-banner {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-md;
+    margin-bottom: $spacing-md;
+    border: $border-width solid var(--color-primary);
+    border-radius: $radius-md;
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    color: var(--color-text);
+
+    lucide-icon {
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    p {
+      margin: 0;
+      line-height: $lh-base;
+      font-size: $font-size-sm;
+      font-weight: $fw-medium;
+    }
+  }
+}

@@ -10,6 +10,7 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import {
   ControlValueAccessor,
@@ -53,6 +54,8 @@ export class SelectComponent implements ControlValueAccessor, OnInit {
   readonly ariaLabel = input<string | undefined>(undefined);
   readonly ariaDescribedBy = input<string | undefined>(undefined);
   readonly errorMessages = input<Record<string, string>>({});
+
+  readonly triggerBtn = viewChild<ElementRef<HTMLButtonElement>>('triggerBtn');
 
   readonly valueChange = output<string>();
   readonly isFocused = signal(false);
@@ -160,6 +163,7 @@ export class SelectComponent implements ControlValueAccessor, OnInit {
     this.isOpen.set(false);
     this.activeIndex.set(-1);
     this.onTouched();
+    this.triggerBtn()?.nativeElement.focus();
   }
 
   onKeydown(event: KeyboardEvent): void {
@@ -194,6 +198,7 @@ export class SelectComponent implements ControlValueAccessor, OnInit {
         if (!this.isOpen()) return;
         event.preventDefault();
         this.closeOptions();
+        this.triggerBtn()?.nativeElement.focus();
         break;
     }
   }

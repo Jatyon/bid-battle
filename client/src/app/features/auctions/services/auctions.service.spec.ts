@@ -1,9 +1,12 @@
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@env/environment';
-import { Auction, PaginatedResponse } from '../models/auction.model';
+import type { PaginatedResponse } from '@core/models/paginated-response.model';
+import { SortOrder } from '@core/enums';
+import { Auction, CreateAuctionRequest } from '../models/auction.model';
 import { AuctionsService } from './auctions.service';
+import { AuctionSortBy } from '../enums';
 
 describe('AuctionsService', () => {
   let service: AuctionsService;
@@ -31,8 +34,8 @@ describe('AuctionsService', () => {
         category: 'electronics',
         minPrice: 1000,
         maxPrice: 50000,
-        sortBy: 'endTime',
-        sortOrder: 'ASC',
+        sortBy: AuctionSortBy.END_TIME,
+        sortOrder: SortOrder.ASC,
       })
       .subscribe((value) => (result = value));
 
@@ -44,8 +47,8 @@ describe('AuctionsService', () => {
     expect(request.request.params.get('category')).toBe('electronics');
     expect(request.request.params.get('minPrice')).toBe('1000');
     expect(request.request.params.get('maxPrice')).toBe('50000');
-    expect(request.request.params.get('sortBy')).toBe('endTime');
-    expect(request.request.params.get('sortOrder')).toBe('ASC');
+    expect(request.request.params.get('sortBy')).toBe(AuctionSortBy.END_TIME.toString());
+    expect(request.request.params.get('sortOrder')).toBe(SortOrder.ASC.toString());
     request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: response });
 
     expect(result).toEqual(response);
@@ -53,7 +56,12 @@ describe('AuctionsService', () => {
 
   it('omits optional query params when they are not provided', () => {
     service
-      .getActiveAuctions({ page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'DESC' })
+      .getActiveAuctions({
+        page: 1,
+        limit: 10,
+        sortBy: AuctionSortBy.CREATED_AT,
+        sortOrder: SortOrder.DESC,
+      })
       .subscribe();
 
     const request = httpMock.expectOne((req) => req.url === `${environment.apiUrl}/auctions`);
@@ -63,5 +71,54 @@ describe('AuctionsService', () => {
       timestamp: new Date().toISOString(),
       data: { items: [], page: 1, limit: 10, total: 0 },
     });
+  });
+
+  it('uploads auction images as a multipart request', () => {
+    const firstImage = new File(['first'], 'first.jpg', { type: 'image/jpeg' });
+    const secondImage = new File(['second'], 'second.png', { type: 'image/png' });
+    let result: { url: string }[] | undefined;
+
+    service.uploadAuctionImages([firstImage, secondImage]).subscribe((images) => (result = images));
+
+    const request = httpMock.expectOne(`${environment.apiUrl}/auctions/upload-images`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body.getAll('images')).toEqual([firstImage, secondImage]);
+    request.flush({
+      statusCode: 200,
+      timestamp: new Date().toISOString(),
+      data: [{ url: '/uploads/first.jpg' }, { url: '/uploads/second.png' }],
+    });
+
+    expect(result).toEqual([{ url: '/uploads/first.jpg' }, { url: '/uploads/second.png' }]);
+  });
+
+  it('posts the auction creation request', () => {
+    const payload: CreateAuctionRequest = {
+      title: 'Camera',
+      description: 'A camera in good condition',
+      startingPrice: 2500,
+      endTime: '2026-10-01T12:00:00.000Z',
+      imageUrls: ['/uploads/camera.jpg'],
+      primaryImageIndex: 0,
+      category: 'electronics',
+    };
+    let result: Auction | undefined;
+
+    service.createAuction(payload).subscribe((auction) => (result = auction));
+
+    const request = httpMock.expectOne(`${environment.apiUrl}/auctions`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    const createdAuction = {
+      ...payload,
+      id: 55,
+      currentPrice: 2500,
+      startTime: '',
+      status: 'PENDING' as const,
+      createdAt: '',
+    };
+    request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: createdAuction });
+
+    expect(result).toEqual(createdAuction);
   });
 });

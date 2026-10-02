@@ -7,6 +7,8 @@
     "RESET_PASSWORD": "Reset password",
     "VERIFY_EMAIL": "Account activation",
     "HOME": "Auctions",
+    "SELL": "Create auction",
+    "EDIT": "Edit auction",
     "PROFILE": "Profile"
   },
   "NAVBAR": {
@@ -39,6 +41,78 @@
     "EMPTY": "No auctions match your search."
   },
   "AUCTIONS": {
+    "CREATE": {
+      "EYEBROW": "BidBattle · list an item",
+      "TITLE": "Create a new auction",
+      "SUBTITLE": "Describe your item, add photos, and set a starting price and auction duration.",
+      "DETAILS_TITLE": "Item details",
+      "DETAILS_DESCRIPTION": "Add a clear title and a detailed description.",
+      "FIELDS": {
+        "TITLE": "Auction title",
+        "DESCRIPTION": "Item description",
+        "CATEGORY": "Category",
+        "STARTING_PRICE": "Starting price (PLN)",
+        "START_TIME": "Start time (optional)",
+        "END_TIME": "End date and time",
+        "IMAGES": "Images"
+      },
+      "TITLE_PLACEHOLDER": "e.g. Sony wireless headphones",
+      "DESCRIPTION_PLACEHOLDER": "Describe the item's condition, features, and what's included…",
+      "DESCRIPTION_HELP": "Up to 5,000 characters.",
+      "IMAGES_TITLE": "Item photos",
+      "IMAGES_HELP": "Add 1 to {{max}} photos. Choose the auction's primary image.",
+      "ACTIONS": {
+        "SET_PRIMARY": "Set as primary",
+        "ADD_MORE": "Add more"
+      },
+      "DROP_IMAGES": "Drop photos here to add them to the auction",
+      "ADD_IMAGES": "Choose photos",
+      "IMAGE_FORMATS": "JPG or PNG, up to 10 MB per file",
+      "IMAGE_COUNT": "{{count}} of {{max}} photos added",
+      "IMAGE_INVALID": "Choose JPG or PNG files no larger than 10 MB.",
+      "IMAGES_TOO_MANY": "You can add up to {{max}} photos.",
+      "IMAGES_REQUIRED": "Add at least one item photo.",
+      "PRIMARY_IMAGE": "Primary",
+      "MAKE_PRIMARY": "Set as primary",
+      "REMOVE_IMAGE": "Remove photo {{name}}",
+      "PRICE_TIME_TITLE": "Price and duration",
+      "PRICE_TIME_DESCRIPTION": "Enter the price in PLN and choose when the auction ends.",
+      "PRICE_PLACEHOLDER": "e.g. 25.00",
+      "START_TIME_HELP": "Leave empty to start the auction immediately.",
+      "END_TIME_HELP": "The auction must end at least one hour after it starts and within 30 days from now.",
+      "START_TIME_INVALID": "The start time must be in the future and within the next 30 days.",
+      "END_TIME_INVALID": "Choose an end time between 1 hour and 30 days from now.",
+      "FOOTER_NOTE": "The auction will appear in the catalog once it becomes active.",
+      "SUBMIT": "Publish auction",
+      "UPLOADING": "Uploading photos…",
+      "CREATING": "Creating auction…",
+      "SUCCESS": "Auction created successfully.",
+      "ERROR_UPLOAD": "Could not upload the photos. Check the files and try again.",
+      "ERROR_CREATE": "Could not create the auction. Check the details and try again.",
+      "VALIDATION": {
+        "TITLE_REQUIRED": "Enter an auction title.",
+        "TITLE_MAX": "The title can contain up to 255 characters.",
+        "DESCRIPTION_REQUIRED": "Enter an item description.",
+        "DESCRIPTION_MAX": "The description can contain up to 5,000 characters.",
+        "PRICE_REQUIRED": "Enter a starting price.",
+        "PRICE_MIN": "The price must be at least PLN 0.01.",
+        "PRICE_MAX": "The price is too high.",
+        "PRICE_FORMAT": "Enter an amount with up to two decimal places.",
+        "END_TIME_REQUIRED": "Choose an auction end date and time."
+      }
+    },
+    "EDIT": {
+      "TITLE": "Edit auction",
+      "SUBTITLE": "Modify the details of your active auction.",
+      "SUBMIT": "Save changes",
+      "ACTIONS": {
+        "SAVE": "Save changes"
+      },
+      "ERROR_LOAD": "Could not load the auction.",
+      "ERROR_SAVE": "Could not save the changes.",
+      "SUCCESS": "Auction updated successfully.",
+      "HAS_BIDS_WARNING": "Bids have already been placed on this auction. Changing the title, description, category, starting price, and adding or removing images are disabled. You can only append a note to the description and extend the end time."
+    },
     "PAGE": {
       "EYEBROW": "BidBattle · live auctions",
       "TITLE": "Find something special",
@@ -97,6 +171,9 @@
     }
   },
   "COMMON": {
+    "DATE": "Date",
+    "TIME": "Time",
+    "AVAILABLE_TIMES": "Available times",
     "FORMS": {
       "FIRST_NAME": "First Name",
       "FIRST_NAME_PLACEHOLDER": "John",
@@ -109,9 +186,13 @@
       "PASSWORD_REPEAT": "Repeat password"
     },
     "ACTIONS": {
+      "REMOVE": "Remove",
       "BACK_TO_LOGIN": "Back to sign in",
       "GO_TO_LOGIN": "Go to sign in",
-      "UNDERSTOOD": "Got it"
+      "UNDERSTOOD": "Got it",
+      "TODAY": "Today",
+      "CANCEL": "Cancel",
+      "APPLY": "Apply"
     }
   },
   "AUTH": {

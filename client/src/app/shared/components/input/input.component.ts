@@ -94,6 +94,9 @@ export class InputComponent implements ControlValueAccessor, OnInit {
     return this.type();
   });
 
+  readonly formDisabled = signal(false);
+  readonly effectiveDisabled = computed(() => this.disabled() || this.formDisabled());
+
   /** Currently active error message. Empty string → no error shown. */
   private readonly _errorMessage = signal('');
   readonly errorMessage = this._errorMessage.asReadonly();
@@ -147,9 +150,8 @@ export class InputComponent implements ControlValueAccessor, OnInit {
     this.onTouched = fn;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setDisabledState(_isDisabled: boolean): void {
-    /* handled via disabled input() */
+  setDisabledState(isDisabled: boolean): void {
+    this.formDisabled.set(isDisabled);
   }
 
   onInput(event: Event): void {

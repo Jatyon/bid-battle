@@ -1,0 +1,35 @@
+<ng-container *transloco="let t">
+  <main class="auction-edit">
+      <header class="auction-edit__header">
+          <h1 class="auction-edit__title">{{ t('AUCTIONS.EDIT.TITLE') }}</h1>
+          <p class="auction-edit__subtitle">{{ t('AUCTIONS.EDIT.SUBTITLE') }}</p>
+      </header>
+
+      @if (isLoading()) {
+      <div class="auction-edit__loading" role="status" aria-label="Loading auction data">
+          <app-spinner size="lg" />
+      </div>
+      } @else {
+          
+      @if (hasBids()) {
+      <div class="auction-edit__warning-banner" role="alert">
+          <lucide-icon [name]="warningIcon" size="24" />
+          <p>{{ t('AUCTIONS.EDIT.HAS_BIDS_WARNING') }}</p>
+      </div>
+      }
+      
+      <div class="auction-edit__form-container">
+          <app-auction-form 
+              [initialData]="auction()"
+              [isEdit]="true"
+              [hasBids]="hasBids()"
+              [isSubmitting]="isSubmitting()"
+              [submitText]="t('AUCTIONS.EDIT.SUBMIT')"
+              [submitError]="submitError()"
+              (save)="handleUpdate($event)">
+          </app-auction-form>
+      </div>
+      
+      }
+  </main>
+</ng-container>

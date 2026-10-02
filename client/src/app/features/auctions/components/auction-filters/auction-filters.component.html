@@ -4,11 +4,11 @@
             [placeholder]="t('AUCTIONS.FILTERS.SEARCH')" [ariaLabel]="t('AUCTIONS.FILTERS.SEARCH')"
             [reserveHelperSpace]="false" />
 
-        <app-input formControlName="minimumPrice" type="number" [min]="0" [step]="0.01"
+        <app-input formControlName="minimumPrice" type="number" [min]="0" [step]="stepPrice"
             [placeholder]="t('AUCTIONS.FILTERS.MIN_PRICE')" [ariaLabel]="t('AUCTIONS.FILTERS.MIN_PRICE')"
             [reserveHelperSpace]="false" />
 
-        <app-input formControlName="maximumPrice" type="number" [min]="0" [step]="0.01"
+        <app-input formControlName="maximumPrice" type="number" [min]="0" [step]="stepPrice"
             [placeholder]="t('AUCTIONS.FILTERS.MAX_PRICE')" [ariaLabel]="t('AUCTIONS.FILTERS.MAX_PRICE')"
             [reserveHelperSpace]="false" />
 

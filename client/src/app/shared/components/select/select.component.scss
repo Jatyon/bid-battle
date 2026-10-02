@@ -61,8 +61,7 @@
 
     &:disabled {
       background-color: var(--color-surface-3);
-      color: var(--color-text-muted);
-      opacity: 0.6;
+      color: var(--color-text-secondary);
       cursor: not-allowed;
     }
   }
@@ -168,7 +167,6 @@
   }
 
   &--disabled {
-    opacity: 0.6;
     pointer-events: none;
   }
 
