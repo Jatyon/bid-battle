@@ -44,7 +44,7 @@ export class TextareaComponent implements ControlValueAccessor, OnInit {
   readonly minlength = input<number | undefined>(undefined);
   readonly rows = input<number>(4);
   readonly cols = input<number | undefined>(undefined);
-  readonly resizable = input(false);
+  readonly resizable = input(true);
   readonly required = input(false);
   readonly ariaLabel = input<string | undefined>(undefined);
   readonly ariaDescribedBy = input<string | undefined>(undefined);
@@ -57,6 +57,9 @@ export class TextareaComponent implements ControlValueAccessor, OnInit {
 
   readonly isFocused = signal(false);
   readonly value = signal('');
+
+  readonly formDisabled = signal(false);
+  readonly effectiveDisabled = computed(() => this.disabled() || this.formDisabled());
 
   private readonly _errorMessage = signal('');
   readonly errorMessage = this._errorMessage.asReadonly();
@@ -104,9 +107,8 @@ export class TextareaComponent implements ControlValueAccessor, OnInit {
     this.onTouched = fn;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setDisabledState(_isDisabled: boolean): void {
-    /* handled via disabled input() */
+  setDisabledState(isDisabled: boolean): void {
+    this.formDisabled.set(isDisabled);
   }
 
   onInput(event: Event): void {
