@@ -11,6 +11,7 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
+  BadgeComponent,
   ButtonComponent,
   DateTimePickerComponent,
   InputComponent,
@@ -19,7 +20,8 @@ import {
   SelectOption,
   SwitchComponent,
 } from '@app/shared';
-import { AUCTION_CATEGORIES, auctionCategoryTranslationKey } from '@core/enums';
+import { buildCategorySelectOptions } from '@core/enums';
+import { centsToUnits, toCents } from '@core/utils';
 import {
   MAX_IMAGES,
   MAX_IMAGE_SIZE_BYTES,
@@ -53,6 +55,7 @@ import { LucideAngularModule, Star, X, Plus } from 'lucide-angular';
     DateTimePickerComponent,
     ButtonComponent,
     SwitchComponent,
+    BadgeComponent,
   ],
   templateUrl: './auction-form.component.html',
   styleUrl: './auction-form.component.scss',
@@ -81,8 +84,8 @@ export class AuctionFormComponent {
   readonly stepPrice = STEP_PRICE;
   readonly timePickerStep = TIME_PICKER_STEP_SECONDS;
 
-  readonly minPrice = MIN_PRICE_CENTS / 100;
-  readonly maxPrice = MAX_PRICE_CENTS / 100;
+  readonly minPrice = centsToUnits(MIN_PRICE_CENTS);
+  readonly maxPrice = centsToUnits(MAX_PRICE_CENTS);
   readonly images = signal<AuctionImageSelection[]>([]);
   readonly isDraggingImages = signal(false);
   readonly primaryImageIndex = signal(0);
@@ -139,16 +142,8 @@ export class AuctionFormComponent {
     const startTime =
       scheduledStart && !isImmediate ? new Date(scheduledStart).getTime() : Date.now();
 
-    let baseMinTime = Math.max(Date.now() + MIN_END_TIME_MS, startTime + MIN_END_TIME_MS);
-
-    const initial = this.initialData();
-
-    if (this.isEdit() && initial?.endTime) {
-      const originalEndTime = new Date(initial.endTime).getTime();
-      if (originalEndTime > baseMinTime) baseMinTime = originalEndTime;
-    }
-
-    return toLocalDateTime(new Date(baseMinTime));
+    const minEndTimestamp = this.calculateMinEndTimestamp(startTime);
+    return toLocalDateTime(new Date(minEndTimestamp));
   });
 
   /**
@@ -156,10 +151,7 @@ export class AuctionFormComponent {
    * Avoids repeated re-computation on each change detection cycle.
    */
   readonly categoryOptions = computed<SelectOption[]>(() =>
-    AUCTION_CATEGORIES.map((category) => ({
-      value: category,
-      label: this.transloco.translate(auctionCategoryTranslationKey(category)),
-    })),
+    buildCategorySelectOptions(this.transloco),
   );
 
   /**
@@ -189,7 +181,7 @@ export class AuctionFormComponent {
           startImmediately: data.status !== AuctionStatus.PENDING,
           startTime: data.startTime ? toLocalDateTime(data.startTime) : '',
           endTime: toLocalDateTime(data.endTime),
-          startingPrice: (data.startingPrice / 100).toString(),
+          startingPrice: centsToUnits(data.startingPrice).toString(),
         });
 
         if (this.hasBids()) {
@@ -279,9 +271,8 @@ export class AuctionFormComponent {
 
     if (!removed) return;
 
-    if (removed.file) {
-      URL.revokeObjectURL(removed.previewUrl);
-    }
+    if (removed.file) URL.revokeObjectURL(removed.previewUrl);
+    
     this.images.set(images.filter((_, imageIndex) => imageIndex !== index));
 
     if (this.primaryImageIndex() === index) this.primaryImageIndex.set(0);
@@ -324,21 +315,14 @@ export class AuctionFormComponent {
     }
 
     const endTimestamp = new Date(values.endTime).getTime();
-    let minEndTimestamp = Math.max(now + MIN_END_TIME_MS, startTimestamp + MIN_END_TIME_MS);
-    const initial = this.initialData();
-    if (this.isEdit() && initial?.endTime) {
-      const originalEndTime = new Date(initial.endTime).getTime();
-      if (originalEndTime > minEndTimestamp) {
-        minEndTimestamp = originalEndTime;
-      }
-    }
+    const minEndTimestamp = this.calculateMinEndTimestamp(startTimestamp, now);
 
     if (endTimestamp < minEndTimestamp || endTimestamp > now + MAX_END_TIME_MS) {
       this.dateError.set(this.transloco.translate('AUCTIONS.CREATE.END_TIME_INVALID'));
       return;
     }
 
-    const startingPrice = Math.round(Number(values.startingPrice) * 100);
+    const startingPrice = toCents(values.startingPrice);
 
     if (!Number.isInteger(startingPrice) || startingPrice < 1 || startingPrice > MAX_PRICE_CENTS) {
       this.form.controls.startingPrice.setErrors({ min: true });
@@ -351,5 +335,16 @@ export class AuctionFormComponent {
       images: this.images(),
       primaryImageIndex: this.primaryImageIndex(),
     });
+  }
+
+  private calculateMinEndTimestamp(startTimeMs: number, now = Date.now()): number {
+    let minEnd = Math.max(now + MIN_END_TIME_MS, startTimeMs + MIN_END_TIME_MS);
+    const initial = this.initialData();
+
+    if (this.isEdit() && initial?.endTime) {
+      const originalEndTime = new Date(initial.endTime).getTime();
+      if (originalEndTime > minEnd) minEnd = originalEndTime;
+    }
+    return minEnd;
   }
 }

@@ -227,11 +227,6 @@
     position: absolute;
     bottom: $spacing-xs;
     left: $spacing-xs;
-    padding: $spacing-2xs $spacing-xs;
-    background: var(--color-primary);
-    color: var(--color-on-primary, #fff);
-    font-size: $font-size-xs;
-    border-radius: $radius-sm;
   }
 
   &__submit-error {
