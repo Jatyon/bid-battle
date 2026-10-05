@@ -14,7 +14,7 @@ import { BidRepository } from '@modules/bid/repositories/bid.repository';
 import { AppConfigService } from '@config/config.service';
 import { FileUploadService, IUploadedFile } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
-import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto, MyAuctionResponse } from './dto';
+import { AuctionResponse, AuctionDetailResponse, GetAuctionsQueryDto, GetMyAuctionsQueryDto, MyAuctionResponse } from './dto';
 import { AuctionCategory, AuctionSortBy, AuctionStatus } from './enums';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
@@ -361,14 +361,14 @@ describe('AuctionsService', () => {
   });
 
   describe('findMyAuctions', () => {
-    let mockPaginator: Paginator;
+    let mockQuery: GetMyAuctionsQueryDto;
     let responseSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      mockPaginator = new Paginator();
-      mockPaginator.page = 1;
-      mockPaginator.limit = 10;
-      responseSpy = jest.spyOn(mockPaginator, 'response');
+      mockQuery = new GetMyAuctionsQueryDto();
+      mockQuery.page = 1;
+      mockQuery.limit = 10;
+      responseSpy = jest.spyOn(mockQuery, 'response');
     });
 
     it('should fetch paginated auctions for an owner and map them to AuctionResponse', async () => {
@@ -377,12 +377,68 @@ describe('AuctionsService', () => {
 
       auctionsRepository.findPaginatedAuctionsByOwner.mockResolvedValue([mockAuctions, 2]);
 
-      const result = await service.findMyAuctions(mockUserId, mockPaginator);
+      const result = await service.findMyAuctions(mockUserId, mockQuery);
 
-      expect(auctionsRepository.findPaginatedAuctionsByOwner).toHaveBeenCalledWith(mockUserId, 0, 10);
+      expect(auctionsRepository.findPaginatedAuctionsByOwner).toHaveBeenCalledWith(
+        mockUserId,
+        0,
+        10,
+        expect.objectContaining({
+          sortBy: AuctionSortBy.CREATED_AT,
+          sortOrder: SortOrder.DESC,
+        }),
+      );
       expect(responseSpy).toHaveBeenCalledWith(expect.arrayContaining([expect.any(MyAuctionResponse), expect.any(MyAuctionResponse)]), 1, 10, 2);
       expect(result.items.length).toBe(2);
       expect(result.items[0]).toBeInstanceOf(MyAuctionResponse);
+    });
+
+    it('should populate highestBidder and livePrice for active auctions', async () => {
+      const mockUserId = 5;
+      const activeAuction1 = createAuctionFixture({ id: 10, status: AuctionStatus.ACTIVE, currentPrice: 100 });
+      const activeAuction2 = createAuctionFixture({ id: 11, status: AuctionStatus.ACTIVE, currentPrice: 100 });
+
+      auctionsRepository.findPaginatedAuctionsByOwner.mockResolvedValue([[activeAuction1, activeAuction2], 2]);
+
+      redisService.getLivePrice.mockImplementation((id) => Promise.resolve(id === 10 ? 250 : null));
+      redisService.getHighestBidderId.mockImplementation((id) => Promise.resolve(id === 10 ? 42 : null));
+
+      const mockUserRepo = {
+        find: jest.fn().mockResolvedValue([{ id: 42, firstName: 'Jan', lastName: 'Kowalski', avatar: 'avatar.jpg', deletedAt: null }]),
+      };
+      (dataSource.getRepository as jest.Mock).mockReturnValue(mockUserRepo);
+
+      const result = await service.findMyAuctions(mockUserId, mockQuery);
+
+      expect(result.items[0].currentPrice).toBe(250);
+      expect(result.items[0].highestBidder).toEqual({
+        id: 42,
+        firstName: 'Jan',
+        lastName: 'Kowalski',
+        avatar: 'avatar.jpg',
+      });
+      expect(result.items[1].highestBidder).toBeNull();
+    });
+
+    it('should mark highestBidder as isDeleted if user is soft-deleted', async () => {
+      const mockUserId = 5;
+      const activeAuction = createAuctionFixture({ id: 20, status: AuctionStatus.ACTIVE });
+
+      auctionsRepository.findPaginatedAuctionsByOwner.mockResolvedValue([[activeAuction], 1]);
+      redisService.getLivePrice.mockResolvedValue(300);
+      redisService.getHighestBidderId.mockResolvedValue(99);
+
+      const mockUserRepo = {
+        find: jest.fn().mockResolvedValue([{ id: 99, firstName: 'Deleted', lastName: 'User', deletedAt: new Date() }]),
+      };
+      (dataSource.getRepository as jest.Mock).mockReturnValue(mockUserRepo);
+
+      const result = await service.findMyAuctions(mockUserId, mockQuery);
+
+      expect(result.items[0].highestBidder).toEqual({
+        id: 99,
+        isDeleted: true,
+      });
     });
   });
 
