@@ -4,4 +4,5 @@ export * from './bid.gateway';
 export * from './bid.module';
 export * from './interfaces';
 export * from './entities';
+export * from './enums';
 export * from './dto';

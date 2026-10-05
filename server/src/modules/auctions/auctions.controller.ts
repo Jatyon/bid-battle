@@ -8,7 +8,17 @@ import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { BidResponse } from '@modules/bid';
 import { User } from '@modules/users';
 import { FileUploadService } from '@shared/file-upload';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, UploadedFileDto, UpdateAuctionDto, UpdateAuctionImagesDto, MyAuctionResponse } from './dto';
+import {
+  AuctionDetailResponse,
+  AuctionResponse,
+  CreateAuctionDto,
+  GetAuctionsQueryDto,
+  GetMyAuctionsQueryDto,
+  UploadedFileDto,
+  UpdateAuctionDto,
+  UpdateAuctionImagesDto,
+  MyAuctionResponse,
+} from './dto';
 import { AUCTION_MAX_IMAGES } from './auction.constants';
 import { AuctionsService } from './auctions.service';
 import { I18n, I18nContext } from 'nestjs-i18n';
@@ -19,7 +29,7 @@ export class AuctionsController {
   constructor(
     private readonly auctionsService: AuctionsService,
     private readonly fileUploadService: FileUploadService,
-  ) {}
+  ) { }
 
   @ApiOperation({
     summary: 'Upload auction images',
@@ -90,8 +100,8 @@ export class AuctionsController {
   @ApiBearerAuth('jwt-auth')
   @UseGuards(JwtAuthGuard)
   @Get('my/auctions')
-  async getMyAuctions(@Query() paginator: Paginator, @CurrentUser() user: User): Promise<PaginatorResponse<MyAuctionResponse>> {
-    return this.auctionsService.findMyAuctions(user.id, paginator);
+  async getMyAuctions(@Query() query: GetMyAuctionsQueryDto, @CurrentUser() user: User): Promise<PaginatorResponse<MyAuctionResponse>> {
+    return this.auctionsService.findMyAuctions(user.id, query);
   }
 
   @ApiOperation({

@@ -176,42 +176,55 @@ describe('AuctionsRepository', () => {
   });
 
   describe('findPaginatedAuctionsByOwner', () => {
-    it('should call inherited findAndCount with correct ownerId and pagination', async () => {
+    it('should query with ownerId, winner join, default sort and pagination', async () => {
       const ownerId = 5;
       const skip = 10;
       const take = 20;
 
       const mockAuctions = [createMock<Auction>(), createMock<Auction>()];
-      const mockResult: [Auction[], number] = [mockAuctions, 2];
-
-      jest.spyOn(repository, 'findAndCount').mockResolvedValue(mockResult);
+      const qb = buildQbMock([mockAuctions, 2]);
+      spyQb(qb);
 
       const result = await repository.findPaginatedAuctionsByOwner(ownerId, skip, take);
 
-      expect(repository.findAndCount).toHaveBeenCalledWith({
-        where: { ownerId },
-        relations: ['winner'],
-        skip,
-        take,
-        order: { createdAt: 'DESC' },
-      });
-
-      expect(result).toEqual(mockResult);
+      expect(repository.createQueryBuilder).toHaveBeenCalledWith('auction');
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith('auction.winner', 'winner');
+      expect(qb.where).toHaveBeenCalledWith('auction.ownerId = :ownerId', { ownerId });
+      expect(qb.orderBy).toHaveBeenCalledWith('auction.createdAt', SortOrder.DESC);
+      expect(qb.skip).toHaveBeenCalledWith(skip);
+      expect(qb.take).toHaveBeenCalledWith(take);
+      expect(result).toEqual([mockAuctions, 2]);
     });
 
-    it('should return empty array and zero count when owner has no auctions', async () => {
-      jest.spyOn(repository, 'findAndCount').mockResolvedValue([[], 0]);
+    it('should apply filters when provided', async () => {
+      const ownerId = 5;
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
 
-      const result = await repository.findPaginatedAuctionsByOwner(99, 0, 10);
-
-      expect(result).toEqual([[], 0]);
-      expect(repository.findAndCount).toHaveBeenCalledWith({
-        where: { ownerId: 99 },
-        relations: ['winner'],
-        skip: 0,
-        take: 10,
-        order: { createdAt: 'DESC' },
+      await repository.findPaginatedAuctionsByOwner(ownerId, 0, 10, {
+        search: 'phone',
+        status: AuctionStatus.ACTIVE,
+        category: AuctionCategory.ELECTRONICS,
+        hasWinner: true,
+        sortBy: AuctionSortBy.CURRENT_PRICE,
+        sortOrder: SortOrder.ASC,
       });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%phone%' });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.status = :status', { status: AuctionStatus.ACTIVE });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.category = :category', { category: AuctionCategory.ELECTRONICS });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.winnerId IS NOT NULL');
+      expect(qb.orderBy).toHaveBeenCalledWith('auction.currentPrice', SortOrder.ASC);
+    });
+
+    it('should filter for no winner when hasWinner is false', async () => {
+      const ownerId = 5;
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
+
+      await repository.findPaginatedAuctionsByOwner(ownerId, 0, 10, { hasWinner: false });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.winnerId IS NULL');
     });
   });
 

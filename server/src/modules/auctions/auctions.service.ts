@@ -8,7 +8,9 @@ import { BidResponse } from '@modules/bid';
 import { AppConfigService } from '@config/config.service';
 import { FileUploadService } from '@shared/file-upload';
 import { RedisService } from '@shared/redis';
-import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, MyAuctionResponse, UpdateAuctionDto } from './dto';
+import { AuctionDetailResponse, AuctionResponse, CreateAuctionDto, GetAuctionsQueryDto, GetMyAuctionsQueryDto, MyAuctionResponse, UpdateAuctionDto } from './dto';
+import { IAuctionUser, IMyAuctionFilters } from './interfaces';
+import { User } from '@modules/users/entities';
 import { AuctionsRepository } from './repositories/auctions.repository';
 import { AuctionScheduler } from './auction.scheduler';
 import { Auction, AuctionImage } from './entities';
@@ -222,16 +224,89 @@ export class AuctionsService {
   /**
    * Get auctions created by a specific user (My Auctions)
    */
-  async findMyAuctions(userId: number, paginator: Paginator): Promise<PaginatorResponse<MyAuctionResponse>> {
-    const page: number = paginator.page;
-    const limit: number = paginator.limit;
-    const skip: number = paginator.skip;
+  async findMyAuctions(userId: number, query: GetMyAuctionsQueryDto): Promise<PaginatorResponse<MyAuctionResponse>> {
+    const page: number = query.page;
+    const limit: number = query.limit;
+    const skip: number = query.skip;
 
-    const [auctions, total] = await this.auctionsRepository.findPaginatedAuctionsByOwner(userId, skip, limit);
+    const filters: IMyAuctionFilters = {
+      search: query.search,
+      status: query.status,
+      category: query.category,
+      hasWinner: query.hasWinner,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    };
 
-    const items = auctions.map((auction) => new MyAuctionResponse(auction));
+    const [auctions, total] = await this.auctionsRepository.findPaginatedAuctionsByOwner(userId, skip, limit, filters);
 
-    return paginator.response(items, page, limit, total);
+    const activeAuctions = auctions.filter((auction) => auction.status === AuctionStatus.ACTIVE);
+    const highestBidderMap = new Map<number, IAuctionUser | null>();
+
+    if (activeAuctions.length > 0) {
+      const activeAuctionData = await Promise.all(
+        activeAuctions.map(async (auction) => {
+          const [livePrice, bidderId] = await Promise.all([this.redisService.getLivePrice(auction.id), this.redisService.getHighestBidderId(auction.id)]);
+
+          if (livePrice !== null && livePrice !== undefined) auction.currentPrice = livePrice;
+
+          return { auctionId: auction.id, bidderId: bidderId ?? null };
+        }),
+      );
+
+      const missingBidderAuctionIds = activeAuctionData.filter((item) => item.bidderId === null).map((item) => item.auctionId);
+
+      let dbBidsMap = new Map<number, number>();
+
+      if (missingBidderAuctionIds.length > 0) {
+        const dbBids = await this.bidRepository.findByOrphanedIds(missingBidderAuctionIds);
+        dbBidsMap = new Map(dbBids.map((b) => [b.auctionId, b.userId]));
+      }
+
+      const auctionToBidderIdMap = new Map<number, number | null>();
+
+      for (const item of activeAuctionData) {
+        const bidderId = item.bidderId ?? dbBidsMap.get(item.auctionId) ?? null;
+        auctionToBidderIdMap.set(item.auctionId, bidderId);
+      }
+
+      const uniqueUserIds = Array.from(new Set(Array.from(auctionToBidderIdMap.values()).filter((id): id is number => id !== null)));
+
+      const userMap = new Map<number, IAuctionUser>();
+      if (uniqueUserIds.length > 0) {
+        const userRepo = this.dataSource.getRepository(User);
+        const users = await userRepo.find({
+          where: { id: In(uniqueUserIds) },
+          withDeleted: true,
+        });
+
+        for (const user of users) {
+          if (user.deletedAt) {
+            userMap.set(user.id, { id: user.id, isDeleted: true });
+          } else {
+            userMap.set(user.id, {
+              id: user.id,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              avatar: user.avatar,
+            });
+          }
+        }
+      }
+
+      for (const [auctionId, bidderId] of auctionToBidderIdMap.entries()) {
+        if (bidderId === null) highestBidderMap.set(auctionId, null);
+        else highestBidderMap.set(auctionId, userMap.get(bidderId) ?? { id: bidderId, isDeleted: true });
+      }
+    }
+
+    const items = auctions.map((auction) => {
+      if (auction.status === AuctionStatus.ACTIVE) return new MyAuctionResponse(auction, highestBidderMap.get(auction.id) ?? null);
+
+      return new MyAuctionResponse(auction);
+    });
+
+    return query.response(items, page, limit, total);
   }
 
   /**
