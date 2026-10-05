@@ -1,6 +1,7 @@
 export * from './date-time-picker/date-time-picker.component';
 export * from './dots-loader/dots-loader.component';
 export * from './brand-logo/brand-logo.component';
+export * from './pagination/pagination.component';
 export * from './textarea/textarea.component';
 export * from './spinner/spinner.component';
 export * from './button/button.component';
