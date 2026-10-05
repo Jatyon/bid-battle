@@ -6,6 +6,7 @@ export * from './spinner/spinner.component';
 export * from './button/button.component';
 export * from './select/select.component';
 export * from './switch/switch.component';
+export * from './badge/badge.component';
 export * from './toast/toast.component';
 export * from './input/input.component';
 export * from './popup';

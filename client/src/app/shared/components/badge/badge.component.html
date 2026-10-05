@@ -1,0 +1,14 @@
+<span [class]="classes()">
+    @if (dot()) {
+        <span class="badge__dot" [class.badge__dot--pulse]="pulse()" aria-hidden="true"></span>
+    }
+    <ng-content select="[start]" />
+    <span class="badge__label">
+        @if (label(); as l) {
+            {{ l }}
+        } @else {
+            <ng-content />
+        }
+    </span>
+    <ng-content select="[end]" />
+</span>

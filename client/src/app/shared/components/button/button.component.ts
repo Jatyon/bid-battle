@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output, computed } from '@angular/core';
 import { SpinnerComponent } from '../spinner/spinner.component';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'chip' | 'chip-danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 @Component({
@@ -16,6 +16,7 @@ export class ButtonComponent {
   readonly size = input<ButtonSize>('md');
   readonly loading = input(false);
   readonly disabled = input(false);
+  readonly active = input(false);
   readonly type = input<'button' | 'submit' | 'reset'>('button');
   readonly fullWidth = input(false);
 
@@ -28,6 +29,7 @@ export class ButtonComponent {
       'btn',
       `btn--${this.variant()}`,
       `btn--${this.size()}`,
+      this.active() ? 'btn--active' : '',
       this.fullWidth() ? 'btn--full' : '',
       this.loading() ? 'btn--loading' : '',
     ]
