@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { NotificationService } from '@core/services';
+import { toCents } from '@core/utils';
 import { AuctionFormData, CreateAuctionRequest } from '@features/auctions/models';
 import { AuctionsService } from '@features/auctions/services/auctions.service';
 import { AuctionFormComponent } from '@features/auctions/components';
@@ -44,7 +45,7 @@ export class AuctionCreatePage {
         ? new Date(data.formValues.startTime).getTime()
         : undefined;
     const endTimestamp = new Date(data.formValues.endTime).getTime();
-    const startingPrice = Math.round(Number(data.formValues.startingPrice) * 100);
+    const startingPrice = toCents(data.formValues.startingPrice);
 
     const requestBase: Omit<CreateAuctionRequest, 'imageUrls'> = {
       title: data.formValues.title.trim(),
@@ -61,11 +62,13 @@ export class AuctionCreatePage {
       .pipe(
         switchMap((uploadedImages) => {
           if (uploadedImages.length !== filesToUpload.length)
-            throw new Error('Uploaded image count does not match the selected files.');
+            throw new Error(
+              this.transloco.translate('AUCTIONS.CREATE.ERROR_IMAGE_COUNT_MISMATCH'),
+            );
 
           failedStage = 'create';
           this.isCreating.set(true);
-          
+
           return this.auctionsService.createAuction({
             ...requestBase,
             imageUrls: uploadedImages.map((image) => image.url),
@@ -82,14 +85,18 @@ export class AuctionCreatePage {
           this.notifications.success('AUCTIONS.CREATE.SUCCESS');
           void this.router.navigate(['/']);
         },
-        error: () => {
-          this.submitError.set(
-            this.transloco.translate(
-              failedStage === 'create'
-                ? 'AUCTIONS.CREATE.ERROR_CREATE'
-                : 'AUCTIONS.CREATE.ERROR_UPLOAD',
-            ),
-          );
+        error: (err: unknown) => {
+          if (err instanceof Error && err.message && !('status' in err)) {
+            this.submitError.set(err.message);
+          } else {
+            this.submitError.set(
+              this.transloco.translate(
+                failedStage === 'create'
+                  ? 'AUCTIONS.CREATE.ERROR_CREATE'
+                  : 'AUCTIONS.CREATE.ERROR_UPLOAD',
+              ),
+            );
+          }
         },
       });
   }

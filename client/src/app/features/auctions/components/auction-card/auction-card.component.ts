@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
-import { DecimalPipe, DOCUMENT } from '@angular/common';
+import { DOCUMENT } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { environment } from '@env/environment';
+import { BadgeComponent, PricePipe } from '@app/shared';
 import { auctionCategoryTranslationKey } from '@core/enums';
+import { resolveImageUrl } from '@core/utils';
 import { AuctionClockService } from '@features/auctions/services';
 import { Auction } from '@features/auctions/models';
 import { TranslocoDirective } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-auction-card',
-  imports: [DecimalPipe, TranslocoDirective],
+  imports: [PricePipe, TranslocoDirective, BadgeComponent],
   templateUrl: './auction-card.component.html',
   styleUrl: './auction-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,19 +41,6 @@ export class AuctionCardComponent {
   }
 
   imageUrl(value: string): string {
-    if (!value) return '';
-
-    try {
-      const base = new URL(environment.apiUrl, this.document.baseURI);
-      if (/^https?:\/\//i.test(value)) return value;
-      const path = value.startsWith('/uploads/')
-        ? value
-        : value.startsWith('uploads/')
-          ? `/${value}`
-          : `/uploads/${value.replace(/^\//, '')}`;
-      return new URL(path, base.origin).toString();
-    } catch {
-      return value;
-    }
+    return resolveImageUrl(value, this.document.baseURI);
   }
 }

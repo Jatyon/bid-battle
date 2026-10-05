@@ -39,9 +39,14 @@
                         }
 
                         @if (idx === primaryImageIndex()) {
-                        <div class="auction-form__primary-badge">
+                        <app-badge
+                            variant="primary"
+                            appearance="solid"
+                            rounded="sm"
+                            size="xs"
+                            class="auction-form__primary-badge">
                             {{ t('AUCTIONS.CREATE.PRIMARY_IMAGE') }}
-                        </div>
+                        </app-badge>
                         }
                     </div>
                     }

@@ -1,18 +1,27 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import type { PaginatedResponse } from '@core/models/paginated-response.model';
+import { BadgeComponent, PaginationComponent } from '@app/shared';
+import type { PaginatedResponse } from '@core/models';
+import { scrollToTop } from '@core/utils';
 import { SortOrder } from '@core/enums';
 import { AuctionCardComponent, AuctionFiltersComponent } from '@features/auctions/components';
 import { Auction, AuctionListFilters, AuctionSearchQuery } from '@features/auctions/models';
 import { AuctionsService } from '@features/auctions/services';
 import { AuctionSortBy } from '@features/auctions/enums';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { ChevronLeft, ChevronRight, LucideAngularModule } from 'lucide-angular';
 import { EMPTY, Subject, catchError, finalize, switchMap } from 'rxjs';
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-auction-list',
-  imports: [TranslocoDirective, LucideAngularModule, AuctionCardComponent, AuctionFiltersComponent],
+  imports: [
+    TranslocoDirective,
+    LucideAngularModule,
+    AuctionCardComponent,
+    AuctionFiltersComponent,
+    BadgeComponent,
+    PaginationComponent,
+  ],
   templateUrl: './auction-list.html',
   styleUrl: './auction-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,8 +41,6 @@ export class AuctionListPage {
     sortOrder: SortOrder.DESC,
   });
   readonly pageLimit = 10;
-  readonly previousIcon = ChevronLeft;
-  readonly nextIcon = ChevronRight;
 
   constructor() {
     this.reloadRequests
@@ -85,6 +92,7 @@ export class AuctionListPage {
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages || page === this.page()) return;
     this.page.set(page);
+    scrollToTop();
     this.loadAuctions();
   }
 

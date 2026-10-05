@@ -10,6 +10,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SpinnerComponent } from '@app/shared';
 import { NotificationService } from '@core/services';
+import { toCents } from '@core/utils';
 import { AuctionDetails, AuctionFormData, UpdateAuctionRequest } from '@features/auctions/models';
 import { AuctionFormComponent } from '@features/auctions/components';
 import { AuctionsService } from '@features/auctions/services';
@@ -83,9 +84,10 @@ export class AuctionEditPage implements OnInit {
       requestBase.title = data.formValues.title.trim();
       requestBase.description = data.formValues.description.trim();
       requestBase.category = data.formValues.category;
-      requestBase.startingPrice = Math.round(Number(data.formValues.startingPrice) * 100);
+      requestBase.startingPrice = toCents(data.formValues.startingPrice);
 
       const originalEndTimeStr = toLocalDateTime(this.auction()!.endTime);
+      
       if (data.formValues.endTime !== originalEndTimeStr) {
         const endTimestamp = new Date(data.formValues.endTime).getTime();
         requestBase.endTime = new Date(endTimestamp).toISOString();
