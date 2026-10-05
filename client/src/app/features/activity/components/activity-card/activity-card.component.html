@@ -1,0 +1,51 @@
+<ng-container *transloco="let t">
+  <article
+    class="activity-card"
+    [class.activity-card--ended]="cardModifier() === 'ended'"
+    [class.activity-card--canceled]="cardModifier() === 'canceled'"
+    [class.activity-card--won]="cardModifier() === 'won'"
+    [class.activity-card--outbid]="cardModifier() === 'outbid'"
+    [routerLink]="routerLink()"
+    role="link"
+    tabindex="0"
+  >
+    <div class="activity-card__image-container">
+      @if (fullImageUrl()) {
+        <img
+          class="activity-card__image"
+          [src]="fullImageUrl()"
+          [alt]="title()"
+          loading="lazy"
+        />
+      } @else {
+        <div class="activity-card__image activity-card__image--placeholder">
+          <span>{{ t('AUCTIONS.CARD.NO_IMAGE') }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="activity-card__content">
+      <div class="activity-card__header">
+        <div class="activity-card__meta">
+          @if (category(); as cat) {
+            <app-badge variant="primary" [uppercase]="true">
+              {{ t(categoryTranslationKey(cat)) }}
+            </app-badge>
+          }
+
+          <div class="activity-card__header-right">
+            <ng-content select="[card-header-right]" />
+          </div>
+        </div>
+
+        <h3 class="activity-card__title">{{ title() }}</h3>
+      </div>
+
+      <div class="activity-card__body">
+        <div class="activity-card__info-grid">
+          <ng-content />
+        </div>
+      </div>
+    </div>
+  </article>
+</ng-container>

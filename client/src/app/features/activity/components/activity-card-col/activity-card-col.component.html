@@ -1,0 +1,12 @@
+<span class="activity-card-col__label">{{ label() }}</span>
+@if (value()) {
+  <strong
+    class="activity-card-col__value"
+    [class.activity-card-col__value--primary]="isPrimary()"
+    [class.activity-card-col__value--date]="isDate()"
+  >
+    {{ value() }}
+  </strong>
+} @else {
+  <ng-content />
+}
