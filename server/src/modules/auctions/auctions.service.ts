@@ -34,7 +34,7 @@ export class AuctionsService {
     private readonly dataSource: DataSource,
     private readonly i18n: I18nService,
     private readonly configService: AppConfigService,
-  ) { }
+  ) {}
 
   /**
    * Creates a new auction, persists it to the database, and schedules its activation.

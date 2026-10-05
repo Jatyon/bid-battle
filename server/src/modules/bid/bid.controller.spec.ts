@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Paginator, PaginatorResponse } from '@core/models';
+import { PaginatorResponse } from '@core/models';
 import { User } from '@modules/users';
+import { GetMyBidsQueryDto, MyBidResponse } from './dto';
 import { BidController } from './bid.controller';
 import { BidService } from './bid.service';
-import { MyBidResponse } from './dto';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 
 describe('BidController', () => {
@@ -33,9 +33,9 @@ describe('BidController', () => {
     it('should call bidService.findMyBids with correct parameters and return the paginated result', async () => {
       const mockUser = { id: 123 } as User;
 
-      const mockPaginator = new Paginator();
-      mockPaginator.page = 2;
-      mockPaginator.limit = 20;
+      const mockQuery = new GetMyBidsQueryDto();
+      mockQuery.page = 2;
+      mockQuery.limit = 20;
 
       const mockServiceResponse = new PaginatorResponse<MyBidResponse>();
       mockServiceResponse.items = [];
@@ -45,10 +45,10 @@ describe('BidController', () => {
 
       bidService.findMyBids.mockResolvedValue(mockServiceResponse);
 
-      const result = await controller.getMyBids(mockPaginator, mockUser);
+      const result = await controller.getMyBids(mockQuery, mockUser);
 
       expect(bidService.findMyBids).toHaveBeenCalledTimes(1);
-      expect(bidService.findMyBids).toHaveBeenCalledWith(mockUser.id, mockPaginator);
+      expect(bidService.findMyBids).toHaveBeenCalledWith(mockUser.id, mockQuery);
 
       expect(result).toBe(mockServiceResponse);
     });
