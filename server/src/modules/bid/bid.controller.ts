@@ -10,7 +10,7 @@ import { BidService } from './bid.service';
 @ApiTags('Bids')
 @Controller('bids')
 export class BidController {
-  constructor(private readonly bidService: BidService) { }
+  constructor(private readonly bidService: BidService) {}
 
   @ApiOperation({
     summary: 'Get my bids',

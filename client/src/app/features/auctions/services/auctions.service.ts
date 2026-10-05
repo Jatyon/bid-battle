@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import type { PaginatedResponse } from '@core/models/paginated-response.model';
+import { cleanParams, normalizePageParams } from '@core/utils';
 import { ApiService } from '@core/services/api.service';
 import {
   Auction,
@@ -8,7 +9,9 @@ import {
   UploadedAuctionImage,
   AuctionDetails,
   UpdateAuctionRequest,
+  MyAuction,
 } from '@features/auctions';
+import type { MyAuctionFilters } from '@features/activity/models';
 import { Observable, map } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -16,19 +19,11 @@ export class AuctionsService {
   private readonly api = inject(ApiService);
 
   getActiveAuctions(query: AuctionSearchQuery): Observable<PaginatedResponse<Auction>> {
-    const params: Record<string, string | number> = {
-      page: query.page,
-      limit: query.limit,
-      sortBy: query.sortBy,
-      sortOrder: query.sortOrder,
-    };
-    if (query.search) params['search'] = query.search;
-    if (query.category) params['category'] = query.category;
-    if (query.minPrice !== undefined) params['minPrice'] = query.minPrice;
-    if (query.maxPrice !== undefined) params['maxPrice'] = query.maxPrice;
-
     return this.api
-      .get<PaginatedResponse<Auction>>('/auctions', params)
+      .get<PaginatedResponse<Auction>>(
+        '/auctions',
+        cleanParams(query as unknown as Record<string, unknown>),
+      )
       .pipe(map((response) => response.data));
   }
 
@@ -68,6 +63,21 @@ export class AuctionsService {
 
     return this.api
       .patch<{ message: string }>(`/auctions/${id}/images`, formData)
+      .pipe(map((response) => response.data));
+  }
+
+  getMyAuctions(params?: MyAuctionFilters | number, limit = 10): Observable<PaginatedResponse<MyAuction>> {
+    return this.api
+      .get<PaginatedResponse<MyAuction>>(
+        '/auctions/my/auctions',
+        cleanParams(normalizePageParams(params, limit)),
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  cancelAuction(id: number): Observable<Auction> {
+    return this.api
+      .delete<Auction>(`/auctions/${id}`)
       .pipe(map((response) => response.data));
   }
 }
