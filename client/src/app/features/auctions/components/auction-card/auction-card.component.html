@@ -12,14 +12,14 @@
         </div>
 
         <div class="auction-card__body">
-            <span class="auction-card__category">
+            <app-badge variant="primary" [uppercase]="true" class="auction-card__category-badge">
                 {{ t(categoryTranslationKey(auction().category)) }}
-            </span>
+            </app-badge>
             <h2 class="auction-card__title">{{ auction().title }}</h2>
             <div class="auction-card__footer">
                 <div class="auction-card__price">
                     <span>{{ t('AUCTIONS.CARD.CURRENT_PRICE') }}</span>
-                    <strong>{{ auction().currentPrice / 100 | number: '1.2-2' }} PLN</strong>
+                    <strong>{{ auction().currentPrice | price }}</strong>
                 </div>
                 <div class="auction-card__activity">
                     <span class="auction-card__meta-label">{{ t('AUCTIONS.CARD.TIME_LEFT') }}</span>

@@ -1,5 +1,5 @@
-import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@env/environment';
 import type { PaginatedResponse } from '@core/models/paginated-response.model';
@@ -120,5 +120,29 @@ describe('AuctionsService', () => {
     request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: createdAuction });
 
     expect(result).toEqual(createdAuction);
+  });
+
+  it('gets user auctions with pagination', () => {
+    let result: unknown;
+    service.getMyAuctions(2, 5).subscribe((data) => (result = data));
+
+    const request = httpMock.expectOne(`${environment.apiUrl}/auctions/my/auctions?page=2&limit=5`);
+    expect(request.request.method).toBe('GET');
+    const mockData = { items: [], page: 2, limit: 5, total: 0 };
+    request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: mockData });
+
+    expect(result).toEqual(mockData);
+  });
+
+  it('cancels an auction by id', () => {
+    let result: unknown;
+    service.cancelAuction(42).subscribe((data) => (result = data));
+
+    const request = httpMock.expectOne(`${environment.apiUrl}/auctions/42`);
+    expect(request.request.method).toBe('DELETE');
+    const mockCanceled = { id: 42, status: 'CANCELED' };
+    request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: mockCanceled });
+
+    expect(result).toEqual(mockCanceled);
   });
 });

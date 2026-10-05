@@ -29,7 +29,7 @@ export class AuctionsController {
   constructor(
     private readonly auctionsService: AuctionsService,
     private readonly fileUploadService: FileUploadService,
-  ) { }
+  ) {}
 
   @ApiOperation({
     summary: 'Upload auction images',

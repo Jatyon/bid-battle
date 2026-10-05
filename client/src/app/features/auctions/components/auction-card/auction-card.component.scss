@@ -25,7 +25,7 @@
 
   &__image-wrap {
     position: relative;
-    aspect-ratio: 1.46;
+    aspect-ratio: 1 / 1;
     overflow: hidden;
     background: var(--color-surface-2);
   }
@@ -56,21 +56,9 @@
     padding: $spacing-md;
   }
 
-  &__category {
+  &__category-badge {
     align-self: flex-start;
     max-width: calc(100% - #{$spacing-lg});
-    overflow: hidden;
-    padding: $spacing-xs $spacing-sm;
-    border: 0;
-    border-radius: $radius-full;
-    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
-    color: var(--color-primary);
-    font-size: $font-size-xs;
-    font-weight: $fw-semibold;
-    letter-spacing: 0.025em;
-    text-overflow: ellipsis;
-    text-transform: uppercase;
-    white-space: nowrap;
   }
 
   &__title {

@@ -6,10 +6,9 @@
                 <h1 class="auction-page__title">{{ t('AUCTIONS.PAGE.TITLE') }}</h1>
                 <p class="auction-page__subtitle">{{ t('AUCTIONS.PAGE.SUBTITLE') }}</p>
             </div>
-            <div class="auction-page__live-badge">
-                <span class="auction-page__live-indicator"></span>
+            <app-badge variant="success" [dot]="true" [pulse]="true" size="md">
                 {{ t('AUCTIONS.PAGE.LIVE') }}
-            </div>
+            </app-badge>
         </header>
 
         <app-auction-filters (filtersApplied)="applyFilters($event)" />
@@ -44,19 +43,12 @@
                 }
             </div>
 
-            @if (totalPages > 1) {
-            <nav class="auction-pagination" [attr.aria-label]="t('AUCTIONS.PAGINATION.LABEL')">
-                <button type="button" [disabled]="page() <= 1" [attr.aria-label]="t('AUCTIONS.PAGINATION.PREVIOUS')"
-                    (click)="goToPage(page() - 1)">
-                    <lucide-icon [img]="previousIcon" aria-hidden="true" />
-                </button>
-                <span>{{ t('AUCTIONS.PAGINATION.PAGE', { page: page(), pages: totalPages }) }}</span>
-                <button type="button" [disabled]="page() >= totalPages"
-                    [attr.aria-label]="t('AUCTIONS.PAGINATION.NEXT')" (click)="goToPage(page() + 1)">
-                    <lucide-icon [img]="nextIcon" aria-hidden="true" />
-                </button>
-            </nav>
-            }
+            <app-pagination
+                [page]="page()"
+                [totalPages]="totalPages"
+                [ariaLabel]="t('AUCTIONS.PAGINATION.LABEL')"
+                (pageChange)="goToPage($event)"
+            />
             }
         </section>
     </main>
