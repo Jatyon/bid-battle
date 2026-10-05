@@ -1,0 +1,53 @@
+<ng-container *transloco="let t">
+    <section class="activity-filters" aria-label="Filters">
+        <!-- Header: Quick Status Chips on the left, Clear button on the right -->
+        <div class="activity-filters__header">
+            <div class="activity-filters__chips" role="group">
+                @for (chip of currentStatusChips(); track chip.key) {
+                    <app-button
+                        variant="chip"
+                        [active]="status() === chip.key"
+                        (clicked)="onSelectStatus(chip.key)">
+                        {{ t(chip.labelKey) }}
+                    </app-button>
+                }
+            </div>
+
+            <app-button
+                class="activity-filters__reset-btn"
+                variant="chip-danger"
+                [disabled]="!hasActiveFilters()"
+                (clicked)="onReset()"
+                [attr.aria-label]="t('ACTIVITY.FILTERS.RESET')">
+                <lucide-icon start [img]="resetIcon" [size]="14" class="activity-filters__reset-icon" aria-hidden="true" />
+                {{ t('ACTIVITY.FILTERS.RESET') }}
+            </app-button>
+        </div>
+
+        <!-- Controls: Search, Category, Sort -->
+        <div class="activity-filters__controls">
+            <div class="activity-filters__search-wrap">
+                <app-input [formControl]="searchControl" type="search"
+                    [placeholder]="t('ACTIVITY.FILTERS.SEARCH_PLACEHOLDER')"
+                    [ariaLabel]="t('ACTIVITY.FILTERS.SEARCH_PLACEHOLDER')"
+                    [reserveHelperSpace]="false" />
+            </div>
+
+            <app-select class="activity-filters__select"
+                [formControl]="categoryControl"
+                [options]="categoryOptions()"
+                [placeholder]="t('ACTIVITY.FILTERS.CATEGORY')"
+                [ariaLabel]="t('ACTIVITY.FILTERS.CATEGORY')"
+                [reserveHelperSpace]="false"
+                (valueChange)="onCategoryChange($event)" />
+
+            <app-select class="activity-filters__select"
+                [formControl]="sortControl"
+                [options]="currentSortOptions()"
+                [placeholder]="t('ACTIVITY.FILTERS.SORT')"
+                [ariaLabel]="t('ACTIVITY.FILTERS.SORT')"
+                [reserveHelperSpace]="false"
+                (valueChange)="onSortChange($event)" />
+        </div>
+    </section>
+</ng-container>

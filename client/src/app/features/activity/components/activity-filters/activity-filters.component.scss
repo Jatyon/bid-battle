@@ -1,0 +1,136 @@
+@use 'abstracts/variables' as *;
+
+.activity-filters {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: $spacing-xl;
+  padding: $spacing-md;
+  background: var(--color-surface);
+  border: $border-width solid var(--color-border);
+  border-radius: $radius-lg;
+  box-shadow: var(--shadow-sm);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+
+    @media (max-width: 600px) {
+      flex-wrap: nowrap;
+      gap: $spacing-xs;
+    }
+
+    @media (min-width: 601px) {
+      flex-wrap: wrap;
+    }
+  }
+
+  &__chips {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex: 1 1 auto;
+
+    @media (max-width: 600px) {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      gap: $spacing-xs;
+      flex: 1 1 0%;
+      min-width: 0;
+      padding: 2px $spacing-2xs 2px 0;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+
+      app-button {
+        flex-shrink: 0;
+
+        ::ng-deep .btn--chip {
+          padding: $spacing-xs $spacing-sm;
+        }
+      }
+    }
+
+    @media (min-width: 601px) {
+      flex-wrap: wrap;
+    }
+  }
+
+  &__reset-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+
+    @media (max-width: 600px) {
+      ::ng-deep .btn--chip-danger {
+        padding: $spacing-xs $spacing-sm;
+      }
+    }
+  }
+
+  &__reset-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  &__controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-sm;
+    width: 100%;
+    align-items: center;
+
+    @media (min-width: $bp-sm) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    @media (min-width: $bp-lg) {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: $spacing-sm;
+    }
+  }
+
+  &__search-wrap {
+    width: 100%;
+    min-width: 0;
+
+    @media (min-width: $bp-sm) {
+      grid-column: 1 / -1;
+    }
+
+    @media (min-width: $bp-lg) {
+      flex: 1 1 12rem;
+      width: auto;
+    }
+
+    app-input {
+      display: block;
+      width: 100%;
+      min-width: 0;
+    }
+  }
+
+  &__select {
+    width: 100%;
+    min-width: 0;
+
+    @media (min-width: $bp-lg) {
+      flex: 0 1 13rem;
+      width: 13rem;
+    }
+  }
+}
