@@ -51,6 +51,7 @@
   &__label {
     display: inline-flex;
     align-items: center;
+    line-height: 1;
   }
 
   &--full {
@@ -112,6 +113,93 @@
 
     &:hover:not(:disabled) {
       background-color: var(--color-danger-hover);
+    }
+  }
+
+  // Chip / Pill variants
+  &--chip,
+  &--chip-danger {
+    border-radius: $radius-full;
+    border: $border-width solid var(--color-border);
+    font-weight: $fw-medium;
+    white-space: nowrap;
+    user-select: none;
+    line-height: 1.25;
+    min-height: 2.125rem;
+    padding: $spacing-xs $spacing-md;
+    font-size: $font-size-sm;
+    transition:
+      color $transition-fast,
+      background-color $transition-fast,
+      border-color $transition-fast,
+      opacity $transition-fast,
+      transform $transition-fast;
+
+    &.btn--sm {
+      padding: $spacing-compact $spacing-sm;
+      min-height: 1.875rem;
+      font-size: $font-size-xs;
+    }
+
+    &.btn--md {
+      padding: $spacing-xs $spacing-md;
+      min-height: 2.125rem;
+      font-size: $font-size-sm;
+    }
+
+    &.btn--lg {
+      padding: $spacing-sm $spacing-lg;
+      min-height: 2.5rem;
+      font-size: $font-size-base;
+    }
+  }
+
+  &--chip {
+    background-color: var(--color-surface-2);
+    color: var(--color-text-secondary);
+
+    @media (hover: hover) {
+      &:hover:not(:disabled):not(.btn--active) {
+        color: var(--color-text);
+        border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+        background-color: var(--color-surface-hover);
+      }
+    }
+
+    &.btn--active {
+      background-color: color-mix(in srgb, var(--color-primary) 15%, transparent);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+
+      &:hover:not(:disabled) {
+        background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  &--chip-danger {
+    background-color: transparent;
+    color: var(--color-text-secondary);
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: var(--color-border);
+      color: var(--color-text-muted);
+    }
+
+    &:not(:disabled) {
+      color: var(--color-danger);
+      border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-border));
+
+      @media (hover: hover) {
+        &:hover {
+          border-color: var(--color-danger);
+          background-color: color-mix(in srgb, var(--color-danger) 10%, transparent);
+        }
+      }
     }
   }
 

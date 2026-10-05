@@ -1,0 +1,33 @@
+<ng-container *transloco="let t">
+  @if (totalPages() > 1) {
+  <nav class="pagination" [attr.aria-label]="ariaLabel() || t('COMMON.PAGINATION.LABEL')">
+    <button type="button" class="pagination__btn pagination__btn--nav" [disabled]="!hasPrevious()"
+      [attr.aria-label]="t('COMMON.PAGINATION.PREVIOUS')" (click)="onPrevious()">
+      <lucide-icon [img]="prevIcon" [size]="18" aria-hidden="true" />
+    </button>
+
+    <ul class="pagination__list" role="list">
+      @for (item of items(); track item.type === 'page' ? item.page : item.key) {
+      <li class="pagination__item">
+        @if (item.type === 'page') {
+        <button type="button" class="pagination__btn pagination__btn--page"
+          [class.pagination__btn--active]="item.page === page()"
+          [attr.aria-current]="item.page === page() ? 'page' : null"
+          [attr.aria-label]="t('COMMON.PAGINATION.PAGE', { page: item.page })" (click)="onSelectPage(item.page)">
+          {{ item.page }}
+        </button>
+        } @else {
+        <span class="pagination__ellipsis" aria-hidden="true">&hellip;</span>
+        <span class="pagination__sr-only">{{ t('COMMON.PAGINATION.MORE') }}</span>
+        }
+      </li>
+      }
+    </ul>
+
+    <button type="button" class="pagination__btn pagination__btn--nav" [disabled]="!hasNext()"
+      [attr.aria-label]="t('COMMON.PAGINATION.NEXT')" (click)="onNext()">
+      <lucide-icon [img]="nextIcon" [size]="18" aria-hidden="true" />
+    </button>
+  </nav>
+  }
+</ng-container>

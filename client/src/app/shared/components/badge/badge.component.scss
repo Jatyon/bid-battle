@@ -1,0 +1,262 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: $fw-semibold;
+  line-height: 1.4;
+  white-space: nowrap;
+  transition: all $transition-fast;
+  box-sizing: border-box;
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: inherit;
+  }
+
+  // Icons
+  ::ng-deep lucide-icon,
+  ::ng-deep svg {
+    width: var(--badge-icon-size, 0.8125rem);
+    height: var(--badge-icon-size, 0.8125rem);
+    flex-shrink: 0;
+  }
+
+  // SIZES
+  &--xs {
+    --badge-icon-size: 0.6875rem;
+    gap: $spacing-2xs;
+    padding: 1px $spacing-xs;
+    font-size: $font-size-xs;
+  }
+
+  &--sm {
+    --badge-icon-size: 0.8125rem;
+    gap: $spacing-2xs;
+    padding: 2px $spacing-sm;
+    font-size: $font-size-xs;
+  }
+
+  &--md {
+    --badge-icon-size: 0.9375rem;
+    gap: $spacing-xs;
+    padding: $spacing-2xs $spacing-sm;
+    font-size: $font-size-sm;
+  }
+
+  &--lg {
+    --badge-icon-size: 1.125rem;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-md;
+    font-size: $font-size-base;
+  }
+
+  // ROUNDED
+  &--round-full {
+    border-radius: $radius-full;
+  }
+
+  &--round-md {
+    border-radius: $radius-md;
+  }
+
+  &--round-sm {
+    border-radius: $radius-sm;
+  }
+
+  // UPPERCASE
+  &--uppercase {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  // DOT
+  &__dot {
+    position: relative;
+    display: inline-block;
+    width: 0.4375rem;
+    height: 0.4375rem;
+    border-radius: $radius-full;
+    background-color: currentColor;
+    flex-shrink: 0;
+
+    &--pulse {
+      &::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: $radius-full;
+        background-color: inherit;
+        opacity: 0.6;
+        animation: badge-pulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+      }
+    }
+  }
+
+  // ----------------------------------------------------
+  // APPEARANCE & COLOR VARIANTS
+  // ----------------------------------------------------
+
+  // 1. SUBTLE (Default)
+  &--subtle {
+    &.badge--primary {
+      background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+      color: var(--color-primary);
+      border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+    }
+
+    &.badge--success {
+      background: color-mix(in srgb, var(--color-success) 14%, var(--color-surface));
+      color: var(--color-success);
+      border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent);
+    }
+
+    &.badge--warning {
+      background: color-mix(in srgb, var(--color-warning) 14%, var(--color-surface));
+      color: var(--color-warning);
+      border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+    }
+
+    &.badge--danger {
+      background: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface));
+      color: var(--color-danger);
+      border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+    }
+
+    &.badge--neutral {
+      background: var(--color-surface-2);
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+    }
+
+    &.badge--accent {
+      background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+      color: var(--color-accent);
+      border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+    }
+
+    &.badge--gold {
+      background: color-mix(in srgb, var(--color-gold) 14%, var(--color-surface));
+      color: var(--color-gold-text);
+      border: 1px solid color-mix(in srgb, var(--color-gold) 40%, transparent);
+    }
+
+    &.badge--info {
+      background: color-mix(in srgb, var(--color-info) 14%, var(--color-surface));
+      color: var(--color-info-text);
+      border: 1px solid color-mix(in srgb, var(--color-info) 35%, transparent);
+    }
+  }
+
+  // 2. SOLID
+  &--solid {
+    border: 1px solid transparent;
+
+    &.badge--primary {
+      background: var(--color-primary);
+      color: var(--color-text-primary);
+    }
+
+    &.badge--success {
+      background: var(--color-success);
+      color: var(--color-text-primary);
+    }
+
+    &.badge--warning {
+      background: var(--color-warning);
+      color: var(--color-text-primary);
+    }
+
+    &.badge--danger {
+      background: var(--color-danger);
+      color: var(--color-text-primary);
+    }
+
+    &.badge--neutral {
+      background: var(--color-text-secondary);
+      color: var(--color-text-primary);
+    }
+
+    &.badge--accent {
+      background: var(--color-accent);
+      color: var(--color-text-primary);
+    }
+
+    &.badge--gold {
+      background: var(--color-gold);
+      color: var(--color-text-primary);
+    }
+
+    &.badge--info {
+      background: var(--color-info);
+      color: var(--color-text-primary);
+    }
+  }
+
+  // 3. OUTLINE
+  &--outline {
+    background: transparent;
+
+    &.badge--primary {
+      color: var(--color-primary);
+      border: 1px solid var(--color-primary);
+    }
+
+    &.badge--success {
+      color: var(--color-success);
+      border: 1px solid var(--color-success);
+    }
+
+    &.badge--warning {
+      color: var(--color-warning);
+      border: 1px solid var(--color-warning);
+    }
+
+    &.badge--danger {
+      color: var(--color-danger);
+      border: 1px solid var(--color-danger);
+    }
+
+    &.badge--neutral {
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+    }
+
+    &.badge--accent {
+      color: var(--color-accent);
+      border: 1px solid var(--color-accent);
+    }
+
+    &.badge--gold {
+      color: var(--color-gold-text);
+      border: 1px solid var(--color-gold);
+    }
+
+    &.badge--info {
+      color: var(--color-info-text);
+      border: 1px solid var(--color-info);
+    }
+  }
+}
+
+@keyframes badge-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
