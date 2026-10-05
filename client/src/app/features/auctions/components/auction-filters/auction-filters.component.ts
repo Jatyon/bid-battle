@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent, InputComponent, SelectComponent, SelectOption } from '@app/shared';
-import { AUCTION_CATEGORIES, auctionCategoryTranslationKey } from '@core/enums';
-import { SortOrder } from '@core/enums';
+import { buildCategorySelectOptions,SortOrder } from '@core/enums';
+import { toCents } from '@core/utils';
 import { AuctionCategory, AuctionListFilters } from '@features/auctions/models';
 import { AuctionSortBy } from '@features/auctions/enums';
 import { STEP_PRICE } from '@features/auctions/utils';
@@ -40,27 +40,16 @@ export class AuctionFiltersComponent {
 
   readonly stepPrice = STEP_PRICE;
 
-  categoryOptions(): SelectOption[] {
-    return [
-      {
-        value: '',
-        label: this.transloco.translate('AUCTIONS.FILTERS.ALL_CATEGORIES'),
-      },
-      ...AUCTION_CATEGORIES.map((value) => ({
-        value,
-        label: this.transloco.translate(auctionCategoryTranslationKey(value)),
-      })),
-    ];
-  }
+  readonly categoryOptions = computed<SelectOption[]>(() =>
+    buildCategorySelectOptions(this.transloco, 'AUCTIONS.FILTERS.ALL_CATEGORIES'),
+  );
 
-  sortOptions(): SelectOption[] {
-    return [
-      { value: 'newest', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_NEWEST') },
-      { value: 'endingSoon', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_ENDING') },
-      { value: 'priceLow', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_PRICE_LOW') },
-      { value: 'priceHigh', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_PRICE_HIGH') },
-    ];
-  }
+  readonly sortOptions = computed<SelectOption[]>(() => [
+    { value: 'newest', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_NEWEST') },
+    { value: 'endingSoon', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_ENDING') },
+    { value: 'priceLow', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_PRICE_LOW') },
+    { value: 'priceHigh', label: this.transloco.translate('AUCTIONS.FILTERS.SORT_PRICE_HIGH') },
+  ]);
 
   apply(): void {
     const values = this.filterForm.getRawValue();
@@ -95,6 +84,6 @@ export class AuctionFiltersComponent {
   private toMinorUnits(value: string): number | undefined {
     if (!value.trim()) return undefined;
     const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : undefined;
+    return Number.isFinite(parsed) && parsed >= 0 ? toCents(parsed) : undefined;
   }
 }

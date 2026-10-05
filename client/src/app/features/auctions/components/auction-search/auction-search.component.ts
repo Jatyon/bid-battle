@@ -8,20 +8,21 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CurrencyPipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PricePipe } from '@app/shared';
 import { auctionCategoryTranslationKey } from '@core/enums';
 import { SortOrder } from '@core/enums';
 import { AuctionsService } from '@features/auctions/services/auctions.service';
 import { Auction } from '@features/auctions/models/auction.model';
 import { AuctionSortBy } from '@features/auctions/enums';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { Subject, catchError, map, of, switchMap, tap, timer } from 'rxjs';
+import { Subject, catchError, debounceTime, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
 import { LucideAngularModule, Search, X } from 'lucide-angular';
 
 @Component({
   selector: 'app-auction-search',
-  imports: [CurrencyPipe, NgTemplateOutlet, LucideAngularModule, TranslocoDirective],
+  imports: [PricePipe, NgTemplateOutlet, LucideAngularModule, TranslocoDirective],
   templateUrl: './auction-search.component.html',
   styleUrl: './auction-search.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,28 +48,26 @@ export class AuctionSearchComponent {
   constructor() {
     this.searchRequests
       .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
         tap(() => {
           this.results.set([]);
           this.isLoading.set(true);
           this.hasError.set(false);
         }),
         switchMap((search) =>
-          timer(300).pipe(
-            switchMap(() =>
-              this.auctionsService
-                .getActiveAuctions({
-                  page: 1,
-                  limit: 10,
-                  search: search || undefined,
-                  sortBy: AuctionSortBy.CREATED_AT,
-                  sortOrder: SortOrder.DESC,
-                })
-                .pipe(
-                  map((response) => ({ response, search })),
-                  catchError(() => of({ response: null, search })),
-                ),
+          this.auctionsService
+            .getActiveAuctions({
+              page: 1,
+              limit: 10,
+              search: search || undefined,
+              sortBy: AuctionSortBy.CREATED_AT,
+              sortOrder: SortOrder.DESC,
+            })
+            .pipe(
+              map((response) => ({ response, search })),
+              catchError(() => of({ response: null, search })),
             ),
-          ),
         ),
         takeUntilDestroyed(this.destroyRef),
       )

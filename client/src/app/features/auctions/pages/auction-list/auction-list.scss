@@ -40,28 +40,6 @@
     line-height: $lh-base;
   }
 
-  &__live-badge {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: $spacing-xs;
-    padding: $spacing-xs $spacing-sm;
-    border: $border-width solid var(--color-border);
-    border-radius: $radius-full;
-    background: var(--color-surface);
-    color: var(--color-text-secondary);
-    font-size: $font-size-sm;
-    font-weight: $fw-medium;
-  }
-
-  &__live-indicator {
-    width: $spacing-xs;
-    height: $spacing-xs;
-    border-radius: $radius-full;
-    background: var(--color-success);
-    box-shadow: 0 0 0 $spacing-3xs color-mix(in srgb, var(--color-success) 18%, transparent);
-  }
-
   .auction-results {
     min-width: 0;
 
@@ -131,37 +109,6 @@
     }
   }
 
-  .auction-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: $spacing-md;
-    margin-top: $spacing-lg;
-    color: var(--color-text-secondary);
-    font-size: $font-size-sm;
-
-    button {
-      display: grid;
-      width: $touch-target-size;
-      height: $touch-target-size;
-      place-items: center;
-      border: $border-width solid var(--color-border);
-      border-radius: $radius-sm;
-      background: var(--color-surface);
-      color: var(--color-text);
-      cursor: pointer;
-
-      &:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
-
-      &:not(:disabled):hover {
-        border-color: var(--color-primary);
-        color: var(--color-primary);
-      }
-    }
-  }
 
   @include bp-sm {
     .auction-grid {

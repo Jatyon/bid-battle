@@ -70,7 +70,7 @@
                 @for (auction of results(); track auction.id) {
                 <li role="presentation">
                     <button type="button" class="auction-search__result" role="option" aria-selected="false"
-                        [attr.aria-label]="auction.title + ', ' + (auction.currentPrice / 100 | currency: 'PLN')"
+                        [attr.aria-label]="auction.title + ', ' + (auction.currentPrice | price)"
                         (click)="selectResult(auction)">
                         <img class="auction-search__thumbnail" [src]="auction.mainImageUrl" [alt]="auction.title"
                             loading="lazy" />
@@ -80,7 +80,7 @@
                         </span>
                         <span class="auction-search__price">
                             <span>{{ t('SEARCH.CURRENT_BID') }}</span>
-                            <strong>{{ auction.currentPrice / 100 | currency: 'PLN' }}</strong>
+                            <strong>{{ auction.currentPrice | price }}</strong>
                         </span>
                     </button>
                 </li>
