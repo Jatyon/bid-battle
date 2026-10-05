@@ -1,0 +1,119 @@
+<ng-container *transloco="let t">
+    <main class="activity-page">
+        <header class="activity-page__header">
+            <h1 class="activity-page__title">{{ t('ACTIVITY.PAGE.TITLE') }}</h1>
+            <p class="activity-page__subtitle">{{ t('ACTIVITY.PAGE.SUBTITLE') }}</p>
+        </header>
+
+        <nav class="activity-page__tabs" role="tablist">
+            <button type="button" role="tab" class="activity-page__tab" [class.activity-page__tab--active]="activeTab() === 'auctions'"
+                [attr.aria-selected]="activeTab() === 'auctions'" (click)="switchTab('auctions')">
+                <lucide-icon [img]="auctionsTabIcon" [size]="18" class="activity-page__tab-icon" aria-hidden="true" />
+                <span>{{ t('ACTIVITY.TABS.AUCTIONS') }}</span>
+            </button>
+
+            <button type="button" role="tab" class="activity-page__tab" [class.activity-page__tab--active]="activeTab() === 'bids'"
+                [attr.aria-selected]="activeTab() === 'bids'" (click)="switchTab('bids')">
+                <lucide-icon [img]="bidsTabIcon" [size]="18" class="activity-page__tab-icon" aria-hidden="true" />
+                <span>{{ t('ACTIVITY.TABS.BIDS') }}</span>
+            </button>
+        </nav>
+
+        <!-- Filters Section -->
+        <app-activity-filters
+            [activeTab]="activeTab()"
+            [status]="status()"
+            [category]="category()"
+            [sort]="sort()"
+            [search]="search()"
+            [defaultSort]="defaultSort()"
+            (searchChange)="onSearchChange($event)"
+            (statusChange)="onSelectStatus($event)"
+            (categoryChange)="onCategoryChange($event)"
+            (sortChange)="onSortChange($event)"
+            (resetFilters)="resetFilters()"
+        />
+
+
+        <!-- Main Content -->
+        <section class="activity-page__content" aria-live="polite">
+            @if (loading()) {
+                <div class="activity-state" role="status">
+                    <span class="activity-state__spinner"></span>
+                    <span>{{ t('ACTIVITY.STATE.LOADING') }}</span>
+                </div>
+            } @else if (hasError()) {
+                <div class="activity-state activity-state--error" role="alert">
+                    <lucide-icon [img]="errorIcon" class="activity-state__icon" aria-hidden="true" />
+                    <p>{{ t('ACTIVITY.STATE.ERROR') }}</p>
+                    <app-button variant="secondary" size="sm" (clicked)="retry()">
+                        <lucide-icon start [img]="resetIcon" [size]="14" aria-hidden="true" />
+                        {{ t('ACTIVITY.STATE.RETRY') }}
+                    </app-button>
+                </div>
+            } @else if (hasNoFilterResults()) {
+                <div class="activity-empty">
+                    <div class="activity-empty__icon-wrap">
+                        <lucide-icon [img]="resetIcon" aria-hidden="true" />
+                    </div>
+                    <h2 class="activity-empty__title">{{ t('ACTIVITY.FILTERS.NO_RESULTS_TITLE') }}</h2>
+                    <p class="activity-empty__description">{{ t('ACTIVITY.FILTERS.NO_RESULTS_DESCRIPTION') }}</p>
+                    <app-button variant="secondary" size="md" (clicked)="resetFilters()">
+                        <lucide-icon start [img]="resetIcon" [size]="16" aria-hidden="true" />
+                        {{ t('ACTIVITY.FILTERS.RESET_BTN') }}
+                    </app-button>
+                </div>
+            } @else if (activeTab() === 'auctions') {
+                @if (auctions().length === 0) {
+                    <div class="activity-empty">
+                        <div class="activity-empty__icon-wrap">
+                            <lucide-icon [img]="auctionsTabIcon" aria-hidden="true" />
+                        </div>
+                        <h2 class="activity-empty__title">{{ t('ACTIVITY.AUCTIONS.EMPTY_TITLE') }}</h2>
+                        <p class="activity-empty__description">{{ t('ACTIVITY.AUCTIONS.EMPTY_DESCRIPTION') }}</p>
+                        <app-button variant="primary" size="md" (clicked)="navigateToSell()">
+                            {{ t('ACTIVITY.AUCTIONS.CREATE_BTN') }}
+                        </app-button>
+                    </div>
+                } @else {
+                    <div class="activity-list">
+                        @for (auction of auctions(); track auction.id) {
+                            <app-my-auction-card [auction]="auction" (auctionCanceled)="onAuctionCanceled($event)" />
+                        }
+                    </div>
+
+                    <app-pagination
+                        [page]="page()"
+                        [totalPages]="totalPages"
+                        (pageChange)="goToPage($event)"
+                    />
+                }
+            } @else if (activeTab() === 'bids') {
+                @if (bids().length === 0) {
+                    <div class="activity-empty">
+                        <div class="activity-empty__icon-wrap">
+                            <lucide-icon [img]="bidsTabIcon" aria-hidden="true" />
+                        </div>
+                        <h2 class="activity-empty__title">{{ t('ACTIVITY.BIDS.EMPTY_TITLE') }}</h2>
+                        <p class="activity-empty__description">{{ t('ACTIVITY.BIDS.EMPTY_DESCRIPTION') }}</p>
+                        <app-button variant="primary" size="md" (clicked)="navigateToBrowse()">
+                            {{ t('ACTIVITY.BIDS.BROWSE_BTN') }}
+                        </app-button>
+                    </div>
+                } @else {
+                    <div class="activity-list">
+                        @for (bid of bids(); track bid.id) {
+                            <app-my-bid-card [bid]="bid" />
+                        }
+                    </div>
+
+                    <app-pagination
+                        [page]="page()"
+                        [totalPages]="totalPages"
+                        (pageChange)="goToPage($event)"
+                    />
+                }
+            }
+        </section>
+    </main>
+</ng-container>

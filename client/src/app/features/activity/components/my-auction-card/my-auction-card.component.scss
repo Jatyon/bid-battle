@@ -1,0 +1,198 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: block;
+}
+
+.my-auction-card {
+  &__header-right {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    @media (min-width: $bp-md) {
+      gap: $spacing-xs;
+    }
+  }
+
+  &__menu-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    padding: 0;
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    position: relative;
+    transition:
+      background-color $transition-fast,
+      color $transition-fast,
+      border-color $transition-fast;
+
+    // Invisible touch target expansion (meets 44px touch guideline)
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      cursor: pointer;
+    }
+
+    lucide-icon,
+    ::ng-deep svg {
+      width: 1.125rem;
+      height: 1.125rem;
+      display: block;
+    }
+
+    @media (min-width: $bp-md) {
+      width: 1.75rem;
+      height: 1.75rem;
+
+      &::after {
+        display: none;
+      }
+
+      lucide-icon,
+      ::ng-deep svg {
+        width: 1rem;
+        height: 1rem;
+      }
+    }
+
+    &:hover,
+    &[aria-expanded='true'] {
+      background: var(--color-surface-2);
+      color: var(--color-text);
+      border-color: var(--color-primary);
+    }
+
+    &:focus-visible {
+      outline: $focus-ring-width solid var(--color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  &__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 25;
+    min-width: 9.5rem;
+    padding: $spacing-xs;
+    background: var(--color-surface);
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-md;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    animation: menu-fade-in 0.15s ease-out;
+
+    @keyframes menu-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    app-button {
+      display: block;
+      width: 100%;
+
+      ::ng-deep .btn {
+        justify-content: flex-start;
+        padding-inline: $spacing-sm;
+      }
+    }
+  }
+
+  &__winner {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    color: var(--color-success);
+    font-size: $font-size-sm;
+    font-weight: $fw-semibold;
+    line-height: 1;
+    min-width: 0;
+    max-width: 100%;
+    text-decoration: none;
+    transition: opacity $transition-fast, color $transition-fast;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &:hover:not(&--deleted) {
+      text-decoration: underline;
+      opacity: 0.85;
+    }
+
+    &:focus-visible {
+      outline: $focus-ring-width solid var(--color-primary);
+      outline-offset: $focus-ring-offset;
+      border-radius: $radius-sm;
+    }
+
+    &--bidder {
+      color: var(--color-primary);
+    }
+
+    &-avatar {
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: $radius-full;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    &-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 0.875rem;
+      height: 0.875rem;
+      flex-shrink: 0;
+
+      ::ng-deep svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+    }
+
+    &--deleted {
+      color: var(--color-text-muted);
+      font-style: italic;
+      font-weight: $fw-normal;
+
+      span {
+        display: inline-block;
+        line-height: 1;
+      }
+    }
+  }
+
+  &__no-winner {
+    color: var(--color-text-muted);
+    font-size: $font-size-sm;
+    font-style: italic;
+    line-height: 1.25;
+  }
+}

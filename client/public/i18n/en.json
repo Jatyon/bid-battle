@@ -9,7 +9,8 @@
     "HOME": "Auctions",
     "SELL": "Create auction",
     "EDIT": "Edit auction",
-    "PROFILE": "Profile"
+    "PROFILE": "Profile",
+    "ACTIVITY": "My Activity"
   },
   "NAVBAR": {
     "HOME": "Home",
@@ -88,6 +89,7 @@
       "CREATING": "Creating auction…",
       "SUCCESS": "Auction created successfully.",
       "ERROR_UPLOAD": "Could not upload the photos. Check the files and try again.",
+      "ERROR_IMAGE_COUNT_MISMATCH": "Uploaded image count does not match the selected files.",
       "ERROR_CREATE": "Could not create the auction. Check the details and try again.",
       "VALIDATION": {
         "TITLE_REQUIRED": "Enter an auction title.",
@@ -171,6 +173,13 @@
     }
   },
   "COMMON": {
+    "PAGINATION": {
+      "LABEL": "Pagination navigation",
+      "PREVIOUS": "Previous page",
+      "NEXT": "Next page",
+      "PAGE": "Page {{page}}",
+      "MORE": "More pages"
+    },
     "DATE": "Date",
     "TIME": "Time",
     "AVAILABLE_TIMES": "Available times",
@@ -335,6 +344,93 @@
       "DELETE": "Delete Account",
       "CONFIRM_TITLE": "Delete account?",
       "CONFIRM_MESSAGE": "This action cannot be undone. Your account and all associated data will be permanently removed."
+    }
+  },
+  "ACTIVITY": {
+    "PAGE": {
+      "TITLE": "My Activity",
+      "SUBTITLE": "Track your listed items and auctions where you have placed bids."
+    },
+    "TABS": {
+      "AUCTIONS": "My Auctions",
+      "BIDS": "My Bids"
+    },
+    "STATUS": {
+      "ACTIVE": "Active",
+      "ENDED": "Ended",
+      "CANCELED": "Canceled",
+      "PENDING": "Pending",
+      "LEADING": "Winning",
+      "OUTBID": "Outbid",
+      "WON": "Won",
+      "LOST": "Lost"
+    },
+    "AUCTIONS": {
+      "STARTING_PRICE": "Starting price",
+      "CURRENT_PRICE": "Current price",
+      "FINAL_PRICE": "Final price",
+      "WINNER": "Winner",
+      "HIGHEST_BIDDER": "Highest bidder",
+      "DELETED_USER": "Deleted user",
+      "NO_BIDS": "No bids",
+      "END_DATE": "Ends on",
+      "TIME_LEFT": "Time left",
+      "EMPTY_TITLE": "You haven't listed any auctions yet",
+      "EMPTY_DESCRIPTION": "List your first item for bidding and start earning.",
+      "CREATE_BTN": "Create auction",
+      "EDIT_BTN": "Edit",
+      "CANCEL_BTN": "Cancel",
+      "OPTIONS": "Auction options",
+      "VIEW_BTN": "View auction",
+      "CANCEL_CONFIRM_TITLE": "Cancel auction?",
+      "CANCEL_CONFIRM_MSG": "Are you sure you want to cancel this auction? This action cannot be undone.",
+      "CANCEL_SUCCESS": "Auction has been canceled.",
+      "CANCEL_ERROR": "Failed to cancel auction. The first bid might have already been placed."
+    },
+    "BIDS": {
+      "MY_BID": "Your bid",
+      "CURRENT_PRICE": "Highest bid",
+      "DATE": "Bid date",
+      "BID_AGAIN_BTN": "Bid again",
+      "VIEW_BTN": "Go to auction",
+      "EMPTY_TITLE": "You are not participating in any auctions",
+      "EMPTY_DESCRIPTION": "Discover great items and place your first bid.",
+      "BROWSE_BTN": "Browse auctions"
+    },
+    "FILTERS": {
+      "SEARCH_PLACEHOLDER": "Search by title...",
+      "ALL": "All",
+      "STATUS_ACTIVE": "Active",
+      "STATUS_ENDED": "Ended",
+      "STATUS_CANCELED": "Canceled",
+      "STATUS_PENDING": "Scheduled",
+      "BID_WINNING": "Winning",
+      "BID_OUTBID": "Outbid",
+      "BID_WON": "Won",
+      "BID_LOST": "Lost",
+      "ALL_CATEGORIES": "All categories",
+      "CATEGORY": "Category",
+      "SORT": "Sort by",
+      "SORT_NEWEST": "Newest",
+      "SORT_OLDEST": "Oldest",
+      "SORT_ENDING_SOON": "Ending soonest",
+      "SORT_PRICE_HIGH": "Price: high to low",
+      "SORT_PRICE_LOW": "Price: low to high",
+      "SORT_BID_HIGH": "My bid: high to low",
+      "RESET": "Clear",
+      "NO_RESULTS_TITLE": "No results found",
+      "NO_RESULTS_DESCRIPTION": "No auctions match the selected filter criteria.",
+      "RESET_BTN": "Reset filters"
+    },
+    "PAGINATION": {
+      "PAGE": "Page {{page}} of {{pages}}",
+      "PREV": "Previous page",
+      "NEXT": "Next page"
+    },
+    "STATE": {
+      "LOADING": "Loading activity…",
+      "ERROR": "Failed to load activity. Please try again.",
+      "RETRY": "Try again"
     }
   }
 }

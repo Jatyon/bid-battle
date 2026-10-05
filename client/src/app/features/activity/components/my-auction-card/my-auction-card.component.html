@@ -1,0 +1,120 @@
+<ng-container *transloco="let t">
+  <app-activity-card
+    [routerLink]="['/auctions', auction().id]"
+    [title]="auction().title"
+    [imageUrl]="auction().mainImageUrl"
+    [category]="auction().category"
+    [cardModifier]="cardModifier()"
+  >
+    <div card-header-right class="my-auction-card__header-right">
+      @switch (auction().status) {
+        @case (AuctionStatus.ACTIVE) {
+          <app-badge variant="success">
+            <lucide-icon start [img]="activeIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.ACTIVE') }}
+          </app-badge>
+        }
+        @case (AuctionStatus.ENDED) {
+          <app-badge variant="neutral">
+            <lucide-icon start [img]="endedIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.ENDED') }}
+          </app-badge>
+        }
+        @case (AuctionStatus.CANCELED) {
+          <app-badge variant="danger">
+            <lucide-icon start [img]="canceledIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.CANCELED') }}
+          </app-badge>
+        }
+        @default {
+          <app-badge variant="warning">
+            <lucide-icon start [img]="pendingIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.PENDING') }}
+          </app-badge>
+        }
+      }
+
+      @if (auction().status === AuctionStatus.ACTIVE) {
+        <div class="my-auction-card__menu-wrapper">
+          <button
+            type="button"
+            class="my-auction-card__menu-trigger"
+            (click)="toggleMenu($event)"
+            [attr.aria-expanded]="isMenuOpen()"
+            [attr.aria-label]="t('ACTIVITY.AUCTIONS.OPTIONS')"
+          >
+            <lucide-icon [img]="menuIcon" [size]="16" aria-hidden="true" />
+          </button>
+
+          @if (isMenuOpen()) {
+            <div class="my-auction-card__menu">
+              <app-button
+                variant="secondary"
+                size="sm"
+                [fullWidth]="true"
+                (clicked)="onEditClick($event)"
+              >
+                <lucide-icon start [img]="editIcon" [size]="14" aria-hidden="true" />
+                {{ t('ACTIVITY.AUCTIONS.EDIT_BTN') }}
+              </app-button>
+
+              <app-button
+                variant="danger"
+                size="sm"
+                [fullWidth]="true"
+                [loading]="isCanceling()"
+                (clicked)="handleCancelAuction($event)"
+              >
+                <lucide-icon start [img]="cancelIcon" [size]="14" aria-hidden="true" />
+                {{ t('ACTIVITY.AUCTIONS.CANCEL_BTN') }}
+              </app-button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <app-activity-card-col
+      [label]="t('ACTIVITY.AUCTIONS.STARTING_PRICE')"
+      [value]="auction().startingPrice | price"
+    />
+    <app-activity-card-col
+      [label]="auction().status === AuctionStatus.ENDED ? t('ACTIVITY.AUCTIONS.FINAL_PRICE') : t('ACTIVITY.AUCTIONS.CURRENT_PRICE')"
+      [value]="auction().currentPrice | price"
+      [isPrimary]="true"
+    />
+    <app-activity-card-col
+      [label]="t('ACTIVITY.AUCTIONS.END_DATE')"
+      [value]="auction().endTime | appDate"
+      [isDate]="true"
+    />
+    @if (auction().status === AuctionStatus.ENDED || auction().status === AuctionStatus.ACTIVE) {
+      <app-activity-card-col
+        [label]="auction().status === AuctionStatus.ENDED ? t('ACTIVITY.AUCTIONS.WINNER') : t('ACTIVITY.AUCTIONS.HIGHEST_BIDDER')"
+      >
+        @if (displayUser(); as user) {
+          @if (user.isDeleted || (!user.firstName && !user.lastName)) {
+            <div class="my-auction-card__winner my-auction-card__winner--deleted">
+              <lucide-icon [img]="deletedUserIcon" [size]="14" class="my-auction-card__winner-icon" aria-hidden="true" />
+              <span>{{ t('ACTIVITY.AUCTIONS.DELETED_USER') }}</span>
+            </div>
+          } @else {
+            <a
+              [routerLink]="['/users', user.id]"
+              (click)="$event.stopPropagation()"
+              class="my-auction-card__winner"
+              [class.my-auction-card__winner--bidder]="auction().status === AuctionStatus.ACTIVE"
+            >
+              @if (user.avatar) {
+                <img [src]="imageUrl(user.avatar)" alt="" class="my-auction-card__winner-avatar" />
+              }
+              <span>{{ user.firstName }} {{ user.lastName }}</span>
+            </a>
+          }
+        } @else {
+          <span class="my-auction-card__no-winner">{{ t('ACTIVITY.AUCTIONS.NO_BIDS') }}</span>
+        }
+      </app-activity-card-col>
+    }
+  </app-activity-card>
+</ng-container>

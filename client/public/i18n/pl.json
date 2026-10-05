@@ -9,7 +9,8 @@
     "HOME": "Aukcje",
     "SELL": "Dodaj aukcję",
     "EDIT": "Edytuj aukcję",
-    "PROFILE": "Profil"
+    "PROFILE": "Profil",
+    "ACTIVITY": "Moja aktywność"
   },
   "NAVBAR": {
     "HOME": "Strona główna",
@@ -90,6 +91,7 @@
       "CREATING": "Tworzenie aukcji…",
       "SUCCESS": "Aukcja została utworzona.",
       "ERROR_UPLOAD": "Nie udało się wysłać zdjęć. Sprawdź pliki i spróbuj ponownie.",
+      "ERROR_IMAGE_COUNT_MISMATCH": "Liczba przesłanych zdjęć nie zgadza się z wybranymi plikami.",
       "ERROR_CREATE": "Nie udało się utworzyć aukcji. Sprawdź dane i spróbuj ponownie.",
       "VALIDATION": {
         "TITLE_REQUIRED": "Podaj tytuł aukcji.",
@@ -178,6 +180,13 @@
     }
   },
   "COMMON": {
+    "PAGINATION": {
+      "LABEL": "Nawigacja stron",
+      "PREVIOUS": "Poprzednia strona",
+      "NEXT": "Następna strona",
+      "PAGE": "Strona {{page}}",
+      "MORE": "Więcej stron"
+    },
     "DATE": "Data",
     "TIME": "Godzina",
     "AVAILABLE_TIMES": "Dostępne godziny",
@@ -342,6 +351,93 @@
       "DELETE": "Usuń konto",
       "CONFIRM_TITLE": "Usunąć konto?",
       "CONFIRM_MESSAGE": "Tej operacji nie można cofnąć. Twoje konto i wszystkie powiązane dane zostaną trwale usunięte."
+    }
+  },
+  "ACTIVITY": {
+    "PAGE": {
+      "TITLE": "Moja aktywność",
+      "SUBTITLE": "Śledź swoje wystawione przedmioty oraz aukcje, w których licytujesz."
+    },
+    "TABS": {
+      "AUCTIONS": "Moje aukcje",
+      "BIDS": "Moje licytacje"
+    },
+    "STATUS": {
+      "ACTIVE": "Aktywna",
+      "ENDED": "Zakończona",
+      "CANCELED": "Anulowana",
+      "PENDING": "Oczekująca",
+      "LEADING": "Prowadzisz",
+      "OUTBID": "Przebita",
+      "WON": "Wygrana",
+      "LOST": "Przegrana"
+    },
+    "AUCTIONS": {
+      "STARTING_PRICE": "Cena wywoławcza",
+      "CURRENT_PRICE": "Aktualna cena",
+      "FINAL_PRICE": "Cena końcowa",
+      "WINNER": "Zwycięzca",
+      "HIGHEST_BIDDER": "Najwyższa oferta",
+      "DELETED_USER": "Użytkownik usunięty",
+      "NO_BIDS": "Brak ofert",
+      "END_DATE": "Zakończenie",
+      "TIME_LEFT": "Do końca",
+      "EMPTY_TITLE": "Nie wystawiłeś jeszcze żadnej aukcji",
+      "EMPTY_DESCRIPTION": "Wystaw swój pierwszy przedmiot na licytację i zarabiaj.",
+      "CREATE_BTN": "Wystaw przedmiot",
+      "EDIT_BTN": "Edytuj",
+      "CANCEL_BTN": "Anuluj",
+      "OPTIONS": "Opcje aukcji",
+      "VIEW_BTN": "Zobacz aukcję",
+      "CANCEL_CONFIRM_TITLE": "Anulować aukcję?",
+      "CANCEL_CONFIRM_MSG": "Czy na pewno chcesz anulować tę aukcję? Tej operacji nie można cofnąć.",
+      "CANCEL_SUCCESS": "Aukcja została anulowana.",
+      "CANCEL_ERROR": "Nie udało się anulować aukcji. Prawdopodobnie złożono już pierwszą ofertę."
+    },
+    "BIDS": {
+      "MY_BID": "Twoja oferta",
+      "CURRENT_PRICE": "Najwyższa oferta",
+      "DATE": "Data oferty",
+      "BID_AGAIN_BTN": "Przebij ofertę",
+      "VIEW_BTN": "Przejdź do aukcji",
+      "EMPTY_TITLE": "Nie bierzesz udziału w żadnej licytacji",
+      "EMPTY_DESCRIPTION": "Odkryj interesujące przedmioty i złóż swoją pierwszą ofertę.",
+      "BROWSE_BTN": "Przeglądaj aukcje"
+    },
+    "FILTERS": {
+      "SEARCH_PLACEHOLDER": "Szukaj po tytule...",
+      "ALL": "Wszystkie",
+      "STATUS_ACTIVE": "Trwające",
+      "STATUS_ENDED": "Zakończone",
+      "STATUS_CANCELED": "Anulowane",
+      "STATUS_PENDING": "Zaplanowane",
+      "BID_WINNING": "Prowadzę",
+      "BID_OUTBID": "Przebite",
+      "BID_WON": "Wygrane",
+      "BID_LOST": "Przegrane",
+      "ALL_CATEGORIES": "Wszystkie kategorie",
+      "CATEGORY": "Kategoria",
+      "SORT": "Sortowanie",
+      "SORT_NEWEST": "Najnowsze",
+      "SORT_OLDEST": "Najstarsze",
+      "SORT_ENDING_SOON": "Kończące się najwcześniej",
+      "SORT_PRICE_HIGH": "Cena: od najwyższej",
+      "SORT_PRICE_LOW": "Cena: od najniższej",
+      "SORT_BID_HIGH": "Moja oferta: od najwyższej",
+      "RESET": "Wyczyść",
+      "NO_RESULTS_TITLE": "Brak wyników",
+      "NO_RESULTS_DESCRIPTION": "Brak aukcji spełniających wybrane kryteria filtrów.",
+      "RESET_BTN": "Zresetuj filtry"
+    },
+    "PAGINATION": {
+      "PAGE": "Strona {{page}} z {{pages}}",
+      "PREV": "Poprzednia strona",
+      "NEXT": "Następna strona"
+    },
+    "STATE": {
+      "LOADING": "Ładowanie aktywności…",
+      "ERROR": "Wystąpił błąd podczas ładowania danych. Spróbuj ponownie.",
+      "RETRY": "Spróbuj ponownie"
     }
   }
 }

@@ -1,0 +1,36 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activity-card-col {
+  &__label {
+    color: var(--color-text-muted);
+    font-size: $font-size-xs;
+    font-weight: $fw-medium;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__value {
+    color: var(--color-text);
+    font-size: $font-size-base;
+    font-weight: $fw-bold;
+
+    &--primary {
+      color: var(--color-accent);
+      font-size: $font-size-xl;
+      font-weight: $fw-bold;
+    }
+
+    &--date {
+      color: var(--color-text);
+      font-size: $font-size-sm;
+      font-weight: $fw-medium;
+    }
+  }
+}

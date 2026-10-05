@@ -1,0 +1,64 @@
+<ng-container *transloco="let t">
+  <app-activity-card
+    [routerLink]="['/auctions', bid().auctionId]"
+    [title]="bid().auction?.title ?? '—'"
+    [imageUrl]="bid().auction?.mainImageUrl"
+    [category]="bid().auction?.category"
+    [cardModifier]="cardModifier()"
+  >
+    <div card-header-right>
+      @switch (bidState()) {
+        @case ('winning') {
+          <app-badge variant="success">
+            <lucide-icon start [img]="checkIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.LEADING') }}
+          </app-badge>
+        }
+        @case ('outbid') {
+          <app-badge variant="warning">
+            <lucide-icon start [img]="warningIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.OUTBID') }}
+          </app-badge>
+        }
+        @case ('won') {
+          <app-badge variant="gold">
+            <lucide-icon start [img]="wonIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.WON') }}
+          </app-badge>
+        }
+        @case ('lost') {
+          <app-badge variant="neutral">
+            <lucide-icon start [img]="clockIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.LOST') }}
+          </app-badge>
+        }
+        @default {
+          <app-badge variant="danger">
+            <lucide-icon start [img]="canceledIcon" aria-hidden="true" />
+            {{ t('ACTIVITY.STATUS.CANCELED') }}
+          </app-badge>
+        }
+      }
+    </div>
+
+    <app-activity-card-col
+      [label]="t('ACTIVITY.BIDS.MY_BID')"
+      [value]="bid().amount | price"
+    />
+    <app-activity-card-col
+      [label]="t('ACTIVITY.BIDS.CURRENT_PRICE')"
+      [value]="(bid().auction?.currentPrice ?? 0) | price"
+      [isPrimary]="true"
+    />
+    <app-activity-card-col
+      [label]="t('ACTIVITY.BIDS.DATE')"
+      [value]="bid().createdAt | appDate"
+      [isDate]="true"
+    />
+    <app-activity-card-col
+      [label]="t('ACTIVITY.AUCTIONS.END_DATE')"
+      [value]="bid().auction?.endTime | appDate"
+      [isDate]="true"
+    />
+  </app-activity-card>
+</ng-container>
