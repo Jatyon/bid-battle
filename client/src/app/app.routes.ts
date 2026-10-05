@@ -38,6 +38,13 @@ export const routes: Routes = [
             (m) => m.AuctionEditPage,
           ),
       },
+      {
+        path: 'activity',
+        canActivate: [authGuard],
+        title: 'ROUTES.ACTIVITY',
+        loadComponent: () =>
+          import('@features/activity/pages/activity/activity').then((m) => m.ActivityPage),
+      },
     ],
   },
 
