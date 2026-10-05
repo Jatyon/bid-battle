@@ -30,6 +30,30 @@ export interface AuctionDetails extends Auction {
   primaryImageIndex: number;
 }
 
+export interface AuctionWinner {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
+  isDeleted?: boolean;
+}
+
+export interface MyAuction {
+  id: number;
+  title: string;
+  description: string;
+  mainImageUrl: string;
+  startingPrice: number;
+  currentPrice: number;
+  startTime: string;
+  endTime: string;
+  status: AuctionStatus;
+  category: AuctionCategory;
+  winner?: AuctionWinner | null;
+  highestBidder?: AuctionWinner | null;
+  createdAt: string;
+}
+
 export interface AuctionSearchQuery {
   page: number;
   limit: number;
