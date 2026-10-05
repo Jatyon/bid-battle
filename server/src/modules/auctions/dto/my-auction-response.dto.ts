@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { type IAuctionUser } from '../interfaces';
 import { AuctionCategory, AuctionStatus } from '../enums';
+import { type IAuctionUser } from '../interfaces';
 import { Auction } from '../entities';
 
 export class MyAuctionResponse {
@@ -82,6 +82,17 @@ export class MyAuctionResponse {
   winner?: IAuctionUser | null;
 
   @ApiProperty({
+    description: 'Highest bidder user details (for active auctions)',
+    example: {
+      id: 2,
+      firstName: 'Jane',
+      lastName: 'Smith',
+    },
+    nullable: true,
+  })
+  highestBidder?: IAuctionUser | null;
+
+  @ApiProperty({
     description: 'Creation timestamp',
     example: '2024-03-07T10:00:00Z',
     type: 'string',
@@ -89,7 +100,7 @@ export class MyAuctionResponse {
   })
   createdAt: Date;
 
-  constructor(auction: Auction) {
+  constructor(auction: Auction, highestBidder?: IAuctionUser | null) {
     this.id = auction.id;
     this.title = auction.title;
     this.description = auction.description;
@@ -115,5 +126,7 @@ export class MyAuctionResponse {
         isDeleted: true,
       };
     }
+
+    if (highestBidder !== undefined) this.highestBidder = highestBidder;
   }
 }
