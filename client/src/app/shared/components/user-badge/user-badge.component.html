@@ -1,0 +1,39 @@
+<ng-container *transloco="let t">
+  @if (user(); as u) {
+    @if (u.isDeleted || (!u.firstName && !u.lastName)) {
+      <div class="user-badge user-badge--deleted" [class]="'user-badge--' + size()">
+        <app-avatar [isDeleted]="true" [size]="size()" />
+        <span>{{ t('ACTIVITY.AUCTIONS.DELETED_USER') }}</span>
+      </div>
+    } @else {
+      @if (isLink()) {
+        <a
+          [routerLink]="['/users', u.id]"
+          (click)="$event.stopPropagation()"
+          class="user-badge user-badge--link"
+          [class]="'user-badge--' + size() + ' user-badge--v-' + variant()"
+        >
+          <app-avatar
+            [imageUrl]="u.avatar"
+            [firstName]="u.firstName"
+            [lastName]="u.lastName"
+            [size]="size()"
+          />
+          <span>{{ formattedName() }}</span>
+        </a>
+      } @else {
+        <div class="user-badge" [class]="'user-badge--' + size() + ' user-badge--v-' + variant()">
+          <app-avatar
+            [imageUrl]="u.avatar"
+            [firstName]="u.firstName"
+            [lastName]="u.lastName"
+            [size]="size()"
+          />
+          <span>{{ formattedName() }}</span>
+        </div>
+      }
+    }
+  } @else {
+    <span class="user-badge__empty">—</span>
+  }
+</ng-container>
