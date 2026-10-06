@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { SortOrder } from '@core/enums';
+import { AuctionStatus } from '@modules/auctions/enums';
+import { BidSortBy, MyBidStatusFilter } from '../enums';
+import { IMyBidFilters } from '../interfaces';
 import { Bid } from '../entities';
 import { DataSource, Repository } from 'typeorm';
 
@@ -27,14 +31,44 @@ export class BidRepository extends Repository<Bid> {
     });
   }
 
-  findPaginatedBidByUser(userId: number, skip: number, take: number): Promise<[Bid[], number]> {
-    return this.findAndCount({
-      where: { userId },
-      relations: ['auction'],
-      order: { amount: 'DESC' },
-      skip,
-      take,
-    });
+  findPaginatedBidByUser(userId: number, skip: number, take: number, filters: IMyBidFilters = {}): Promise<[Bid[], number]> {
+    const { search, category, auctionStatus, bidStatus, sortBy = BidSortBy.CREATED_AT, sortOrder = SortOrder.DESC } = filters;
+
+    const qb = this.createQueryBuilder('bid').innerJoinAndSelect('bid.auction', 'auction').where('bid.userId = :userId', { userId });
+
+    if (search?.trim()) qb.andWhere('auction.title LIKE :search', { search: `%${search.trim()}%` });
+
+    if (category) qb.andWhere('auction.category = :category', { category });
+
+    if (auctionStatus) qb.andWhere('auction.status = :auctionStatus', { auctionStatus });
+
+    if (bidStatus) {
+      switch (bidStatus) {
+        case MyBidStatusFilter.WINNING:
+          qb.andWhere('auction.status = :activeStatus', { activeStatus: AuctionStatus.ACTIVE }).andWhere('bid.amount >= auction.currentPrice');
+          break;
+        case MyBidStatusFilter.OUTBID:
+          qb.andWhere('auction.status = :activeStatus', { activeStatus: AuctionStatus.ACTIVE }).andWhere('bid.amount < auction.currentPrice');
+          break;
+        case MyBidStatusFilter.WON:
+          qb.andWhere('auction.status = :endedStatus', { endedStatus: AuctionStatus.ENDED }).andWhere('auction.winnerId = :userId', { userId });
+          break;
+        case MyBidStatusFilter.LOST:
+          qb.andWhere('auction.status = :endedStatus', { endedStatus: AuctionStatus.ENDED }).andWhere('(auction.winnerId != :userId OR auction.winnerId IS NULL)', { userId });
+          break;
+      }
+    }
+
+    const allowedSortFields: Record<BidSortBy, string> = {
+      [BidSortBy.CREATED_AT]: 'bid.createdAt',
+      [BidSortBy.AMOUNT]: 'bid.amount',
+      [BidSortBy.END_TIME]: 'auction.endTime',
+      [BidSortBy.CURRENT_PRICE]: 'auction.currentPrice',
+    };
+    const sortField = allowedSortFields[sortBy] ?? 'bid.createdAt';
+    qb.orderBy(sortField, sortOrder).skip(skip).take(take);
+
+    return qb.getManyAndCount();
   }
 
   async findByOrphanedIds(orphanedIds: number[]): Promise<Bid[]> {

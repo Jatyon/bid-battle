@@ -1,7 +1,7 @@
-import { Bid } from '../../bid/entities/bid.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { AuctionResponse } from '@modules/auctions';
 import { BidResponse } from './bid-response.dto';
+import { Bid } from '../entities/bid.entity';
 
 export class MyBidResponse extends BidResponse {
   @ApiProperty({
@@ -14,6 +14,6 @@ export class MyBidResponse extends BidResponse {
   constructor(bid: Bid) {
     super(bid, false);
 
-    if (bid.auction) this.auction = new AuctionResponse(bid.auction, false, false);
+    if (bid.auction) this.auction = new AuctionResponse(bid.auction, true, false);
   }
 }
