@@ -10,6 +10,8 @@
     "SELL": "Create auction",
     "EDIT": "Edit auction",
     "PROFILE": "Profile",
+    "USER_PROFILE": "User Profile",
+    "USERS": "Find Users",
     "ACTIVITY": "My Activity"
   },
   "NAVBAR": {
@@ -173,6 +175,7 @@
     }
   },
   "COMMON": {
+    "LOADING": "Loading...",
     "PAGINATION": {
       "LABEL": "Pagination navigation",
       "PREVIOUS": "Previous page",
@@ -344,6 +347,19 @@
       "DELETE": "Delete Account",
       "CONFIRM_TITLE": "Delete account?",
       "CONFIRM_MESSAGE": "This action cannot be undone. Your account and all associated data will be permanently removed."
+    },
+    "PUBLIC": {
+      "NOT_FOUND": "Profile not found or deleted.",
+      "JOINED": "Member since",
+      "ACTIVE_AUCTIONS": "Active auctions",
+      "NO_AUCTIONS": "This user has no active auctions."
+    },
+    "USERS": {
+      "TITLE": "Find user",
+      "DESCRIPTION": "Search by first and last name to check seller's profile.",
+      "SEARCH_PLACEHOLDER": "E.g. John S...",
+      "NO_RESULTS": "No results found. Try different keywords.",
+      "START_TYPING": "Type at least 2 characters to start searching."
     }
   },
   "ACTIVITY": {
@@ -391,6 +407,7 @@
       "MY_BID": "Your bid",
       "CURRENT_PRICE": "Highest bid",
       "DATE": "Bid date",
+      "SELLER": "Seller",
       "BID_AGAIN_BTN": "Bid again",
       "VIEW_BTN": "Go to auction",
       "EMPTY_TITLE": "You are not participating in any auctions",
