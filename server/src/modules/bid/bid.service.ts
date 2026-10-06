@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
-import { Paginator, PaginatorResponse } from '@core/models';
+import { PaginatorResponse } from '@core/models';
 import { Language } from '@core/enums';
 import { RedisService, BidRejectionCode } from '@shared/redis';
+import { IAuctionState, IBidResult, IMyBidFilters } from './interfaces';
 import { BidRepository } from './repositories/bid.repository';
-import { IAuctionState, IBidResult } from './interfaces';
+import { GetMyBidsQueryDto, MyBidResponse } from './dto';
 import { calcMinIncrement } from './bid.constants';
-import { MyBidResponse } from './dto';
 import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
@@ -23,15 +23,24 @@ export class BidService {
   /**
    * Get bids placed by a specific user (My Bids)
    */
-  async findMyBids(userId: number, paginator: Paginator): Promise<PaginatorResponse<MyBidResponse>> {
-    const page: number = paginator.page;
-    const limit: number = paginator.limit;
-    const skip: number = paginator.skip;
+  async findMyBids(userId: number, query: GetMyBidsQueryDto): Promise<PaginatorResponse<MyBidResponse>> {
+    const page: number = query.page;
+    const limit: number = query.limit;
+    const skip: number = query.skip;
 
-    const [bids, total] = await this.bidRepository.findPaginatedBidByUser(userId, skip, limit);
+    const filters: IMyBidFilters = {
+      search: query.search,
+      category: query.category,
+      auctionStatus: query.auctionStatus,
+      bidStatus: query.bidStatus,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    };
+
+    const [bids, total] = await this.bidRepository.findPaginatedBidByUser(userId, skip, limit, filters);
 
     const items = bids.map((bid) => new MyBidResponse(bid));
-    return paginator.response(items, page, limit, total);
+    return query.response(items, page, limit, total);
   }
 
   /**

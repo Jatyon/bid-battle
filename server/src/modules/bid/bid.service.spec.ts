@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
-import { Paginator } from '@core/models';
 import { Language } from '@core/enums';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
 import { BidRejectionCode, RedisService } from '@shared/redis';
 import { BidRepository } from './repositories/bid.repository';
 import { calcMinIncrement } from './bid.constants';
 import { BidService } from './bid.service';
+import { GetMyBidsQueryDto } from './dto';
 import { Bid } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 import { I18nService } from 'nestjs-i18n';
@@ -65,15 +65,15 @@ describe('BidService', () => {
   });
 
   describe('findMyBids', () => {
-    let mockPaginator: Paginator;
+    let mockQuery: GetMyBidsQueryDto;
     let responseSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      mockPaginator = new Paginator();
-      mockPaginator.page = 1;
-      mockPaginator.limit = 10;
+      mockQuery = new GetMyBidsQueryDto();
+      mockQuery.page = 1;
+      mockQuery.limit = 10;
 
-      responseSpy = jest.spyOn(mockPaginator, 'response');
+      responseSpy = jest.spyOn(mockQuery, 'response');
     });
 
     it('should fetch paginated bids for a user and map them to MyBidResponse', async () => {
@@ -82,9 +82,9 @@ describe('BidService', () => {
 
       bidRepository.findPaginatedBidByUser.mockResolvedValue([mockBids, 2]);
 
-      const result = await service.findMyBids(mockUserId, mockPaginator);
+      const result = await service.findMyBids(mockUserId, mockQuery);
 
-      expect(bidRepository.findPaginatedBidByUser).toHaveBeenCalledWith(mockUserId, 0, 10);
+      expect(bidRepository.findPaginatedBidByUser).toHaveBeenCalledWith(mockUserId, 0, 10, expect.any(Object));
 
       expect(responseSpy).toHaveBeenCalledWith(
         expect.arrayContaining([expect.objectContaining({ id: 1, amount: 150 }), expect.objectContaining({ id: 2, amount: 200 })]),
@@ -100,9 +100,9 @@ describe('BidService', () => {
     it('should return empty list when user has no bids', async () => {
       bidRepository.findPaginatedBidByUser.mockResolvedValue([[], 0]);
 
-      const result = await service.findMyBids(99, mockPaginator);
+      const result = await service.findMyBids(99, mockQuery);
 
-      expect(bidRepository.findPaginatedBidByUser).toHaveBeenCalledWith(99, 0, 10);
+      expect(bidRepository.findPaginatedBidByUser).toHaveBeenCalledWith(99, 0, 10, expect.any(Object));
       expect(result.items).toEqual([]);
       expect(result.total).toBe(0);
     });

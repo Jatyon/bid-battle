@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { DataSource, SelectQueryBuilder } from 'typeorm';
+import { AuctionCategory, AuctionStatus } from '@modules/auctions/enums';
+import { MyBidStatusFilter } from '../enums';
 import { BidRepository } from './bid.repository';
 import { Bid } from '../entities';
 
@@ -68,38 +70,85 @@ describe('BidRepository', () => {
   });
 
   describe('findPaginatedBidByUser', () => {
-    it('should call findAndCount with correct parameters', async () => {
+    function buildQbMock(result: [Bid[], number] = [[], 0]) {
+      const qb = {
+        innerJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue(result),
+      };
+      return qb;
+    }
+
+    function spyQb(qb: ReturnType<typeof buildQbMock>) {
+      jest.spyOn(repository, 'createQueryBuilder').mockReturnValue(qb as unknown as SelectQueryBuilder<Bid>);
+    }
+
+    it('should query with userId, auction join, default sort and pagination', async () => {
       const mockBids = [{ id: 3, amount: 500 }] as Bid[];
       const mockResult: [Bid[], number] = [mockBids, 1];
-      const findAndCountSpy = jest.spyOn(repository, 'findAndCount').mockResolvedValue(mockResult);
+      const qb = buildQbMock(mockResult);
+      spyQb(qb);
 
       const result = await repository.findPaginatedBidByUser(5, 10, 20);
 
-      expect(findAndCountSpy).toHaveBeenCalledWith({
-        where: { userId: 5 },
-        relations: ['auction'],
-        order: { amount: 'DESC' },
-        skip: 10,
-        take: 20,
-      });
+      expect(repository.createQueryBuilder).toHaveBeenCalledWith('bid');
+      expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('bid.auction', 'auction');
+      expect(qb.where).toHaveBeenCalledWith('bid.userId = :userId', { userId: 5 });
+      expect(qb.orderBy).toHaveBeenCalledWith('bid.createdAt', 'DESC');
+      expect(qb.skip).toHaveBeenCalledWith(10);
+      expect(qb.take).toHaveBeenCalledWith(20);
       expect(result).toEqual(mockResult);
     });
 
-    it('should return empty array when user has no bids', async () => {
-      jest.spyOn(repository, 'findAndCount').mockResolvedValue([[], 0]);
+    it('should apply search, category, and auctionStatus filters', async () => {
+      const qb = buildQbMock([[], 0]);
+      spyQb(qb);
 
-      const [items, total] = await repository.findPaginatedBidByUser(99, 0, 10);
+      await repository.findPaginatedBidByUser(5, 0, 10, {
+        search: 'watch',
+        category: AuctionCategory.ELECTRONICS,
+        auctionStatus: AuctionStatus.ACTIVE,
+      });
 
-      expect(items).toEqual([]);
-      expect(total).toBe(0);
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.title LIKE :search', { search: '%watch%' });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.category = :category', { category: AuctionCategory.ELECTRONICS });
+      expect(qb.andWhere).toHaveBeenCalledWith('auction.status = :auctionStatus', { auctionStatus: AuctionStatus.ACTIVE });
     });
 
-    it('should respect skip and take for pagination', async () => {
-      const findAndCountSpy = jest.spyOn(repository, 'findAndCount').mockResolvedValue([[], 100]);
+    it('should apply WINNING and OUTBID status filters correctly', async () => {
+      const qb1 = buildQbMock([[], 0]);
+      spyQb(qb1);
 
-      await repository.findPaginatedBidByUser(1, 40, 20);
+      await repository.findPaginatedBidByUser(5, 0, 10, { bidStatus: MyBidStatusFilter.WINNING });
+      expect(qb1.andWhere).toHaveBeenCalledWith('auction.status = :activeStatus', { activeStatus: AuctionStatus.ACTIVE });
+      expect(qb1.andWhere).toHaveBeenCalledWith('bid.amount >= auction.currentPrice');
 
-      expect(findAndCountSpy).toHaveBeenCalledWith(expect.objectContaining({ skip: 40, take: 20 }));
+      const qb2 = buildQbMock([[], 0]);
+      spyQb(qb2);
+
+      await repository.findPaginatedBidByUser(5, 0, 10, { bidStatus: MyBidStatusFilter.OUTBID });
+      expect(qb2.andWhere).toHaveBeenCalledWith('auction.status = :activeStatus', { activeStatus: AuctionStatus.ACTIVE });
+      expect(qb2.andWhere).toHaveBeenCalledWith('bid.amount < auction.currentPrice');
+    });
+
+    it('should apply WON and LOST status filters correctly', async () => {
+      const qb1 = buildQbMock([[], 0]);
+      spyQb(qb1);
+
+      await repository.findPaginatedBidByUser(5, 0, 10, { bidStatus: MyBidStatusFilter.WON });
+      expect(qb1.andWhere).toHaveBeenCalledWith('auction.status = :endedStatus', { endedStatus: AuctionStatus.ENDED });
+      expect(qb1.andWhere).toHaveBeenCalledWith('auction.winnerId = :userId', { userId: 5 });
+
+      const qb2 = buildQbMock([[], 0]);
+      spyQb(qb2);
+
+      await repository.findPaginatedBidByUser(5, 0, 10, { bidStatus: MyBidStatusFilter.LOST });
+      expect(qb2.andWhere).toHaveBeenCalledWith('auction.status = :endedStatus', { endedStatus: AuctionStatus.ENDED });
+      expect(qb2.andWhere).toHaveBeenCalledWith('(auction.winnerId != :userId OR auction.winnerId IS NULL)', { userId: 5 });
     });
   });
 
