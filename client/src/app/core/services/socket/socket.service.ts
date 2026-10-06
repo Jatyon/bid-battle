@@ -1,11 +1,11 @@
 import { Injectable, InjectionToken, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { io } from 'socket.io-client';
 import { environment } from '@env/environment';
-import { TokenService } from '@core/index';
 import { SocketConnection } from './socket-connection';
+import { TokenService } from '../token.service';
+import { io } from 'socket.io-client';
 
-export type { ConnectionStatus } from './socket-connection';
+export type { ConnectionStatus } from './socket-connection.types';
 
 /** Injection token for the socket.io factory — override in tests. */
 export const SOCKET_IO_FACTORY = new InjectionToken<typeof io>('SOCKET_IO_FACTORY', {
@@ -51,7 +51,7 @@ export class SocketService implements OnDestroy {
     if (!this.isBrowser)
       throw new Error(
         `[SocketService] getOrCreate('${namespace}') was called during SSR. ` +
-          `Guard the call site with isPlatformBrowser() before invoking this method.`,
+        `Guard the call site with isPlatformBrowser() before invoking this method.`,
       );
 
     if (!this.connections.has(namespace)) {

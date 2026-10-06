@@ -1,21 +1,7 @@
 import { Signal, computed, signal } from '@angular/core';
-import { io, Socket } from 'socket.io-client';
+import { ConnectionStatus, SocketConnectionOptions } from './socket-connection.types';
 import { Observable, Subject, switchMap, take } from 'rxjs';
-
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
-
-export interface SocketConnectionOptions {
-  /** Full namespace URL, e.g. `https://api.example.com/bid` */
-  url: string;
-  /** Callback returning the current access token — called on every (re)connect to support silent refresh */
-  getToken: () => string;
-  /**
-   * Optional factory used to create the Socket instance.
-   * Defaults to `io` from socket.io-client.
-   * Override in tests to avoid real network connections.
-   */
-  socketFactory?: typeof io;
-}
+import { io, Socket } from 'socket.io-client';
 
 /**
  * Represents a single socket.io connection to a specific namespace.

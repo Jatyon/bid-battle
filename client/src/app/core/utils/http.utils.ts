@@ -5,15 +5,12 @@
 export function cleanParams(
   raw?: Record<string, unknown> | null,
 ): Record<string, string | number | boolean> {
-  if (!raw) {
-    return {};
-  }
+  if (!raw) return {};
 
   const clean: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(raw)) {
-    if (value !== undefined && value !== null && value !== '') {
+    if (value !== undefined && value !== null && value !== '')
       clean[key] = value as string | number | boolean;
-    }
   }
 
   return clean;
@@ -24,9 +21,7 @@ export function cleanParams(
  */
 export function normalizePageParams<T extends object>(
   params?: T | number,
-  limit = 10,
+  limit = 12,
 ): Record<string, unknown> {
-  return typeof params === 'number'
-    ? { page: params, limit }
-    : { page: 1, limit, ...params };
+  return typeof params === 'number' ? { page: params, limit } : { page: 1, limit, ...params };
 }
