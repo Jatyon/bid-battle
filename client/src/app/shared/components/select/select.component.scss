@@ -78,13 +78,17 @@
   }
 
   &__chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: $icon-size-sm;
     height: $icon-size-sm;
     flex: 0 0 auto;
     color: var(--color-text-muted);
     transition: transform $transition-fast;
 
-    &--open {
+    &--open,
+    .select-field__trigger[aria-expanded='true'] & {
       transform: rotate(180deg);
     }
   }

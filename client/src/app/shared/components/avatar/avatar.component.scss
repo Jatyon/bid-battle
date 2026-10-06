@@ -1,0 +1,75 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: inline-flex;
+}
+
+.app-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  &--image {
+    object-fit: cover;
+  }
+
+  &--initials {
+    background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+    color: var(--color-primary);
+    font-weight: $fw-bold;
+    user-select: none;
+  }
+
+  &--fallback, &--deleted {
+    background-color: var(--color-surface-2);
+    color: var(--color-text-muted);
+  }
+  
+  &--deleted {
+    opacity: 0.8;
+  }
+
+  // Sizes
+  &--sm {
+    width: $avatar-size-sm;
+    height: $avatar-size-sm;
+    font-size: $font-size-xs;
+    
+    lucide-icon, ::ng-deep svg { width: $icon-size-xs; height: $icon-size-xs; display: block; }
+  }
+
+  &--md {
+    width: $avatar-size-md;
+    height: $avatar-size-md;
+    font-size: $font-size-sm;
+
+    lucide-icon, ::ng-deep svg { width: $icon-size-sm; height: $icon-size-sm; display: block; }
+  }
+
+  &--lg {
+    width: $avatar-size-lg;
+    height: $avatar-size-lg;
+    font-size: $font-size-lg;
+
+    lucide-icon, ::ng-deep svg { width: $icon-size-md; height: $icon-size-md; display: block; }
+  }
+
+  &--xl {
+    width: $avatar-size-xl;
+    height: $avatar-size-xl;
+    font-size: $font-size-2xl;
+
+    lucide-icon, ::ng-deep svg { width: $logo-icon-size; height: $logo-icon-size; display: block; }
+  }
+
+  &--2xl {
+    width: calc($avatar-size-xl * 1.5);
+    height: calc($avatar-size-xl * 1.5);
+    font-size: $font-size-4xl;
+
+    lucide-icon, ::ng-deep svg { width: calc($avatar-size-lg + $spacing-md); height: calc($avatar-size-lg + $spacing-md); display: block; }
+  }
+}

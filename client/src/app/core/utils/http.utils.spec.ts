@@ -10,7 +10,7 @@ describe('http.utils', () => {
     it('filters out undefined, null, and empty string properties', () => {
       const input = {
         page: 1,
-        limit: 10,
+        limit: 12,
         search: '',
         status: undefined,
         category: null,
@@ -18,7 +18,7 @@ describe('http.utils', () => {
 
       expect(cleanParams(input)).toEqual({
         page: 1,
-        limit: 10,
+        limit: 12,
       });
     });
 
@@ -40,14 +40,14 @@ describe('http.utils', () => {
   describe('normalizePageParams', () => {
     it('normalizes number into page and limit', () => {
       expect(normalizePageParams(3, 20)).toEqual({ page: 3, limit: 20 });
-      expect(normalizePageParams(2)).toEqual({ page: 2, limit: 10 });
+      expect(normalizePageParams(2)).toEqual({ page: 2, limit: 12 });
     });
 
-    it('defaults page to 1 and limit to 10 when called with filters or undefined', () => {
-      expect(normalizePageParams()).toEqual({ page: 1, limit: 10 });
+    it('defaults page to 1 and limit to 12 when called with filters or undefined', () => {
+      expect(normalizePageParams()).toEqual({ page: 1, limit: 12 });
       expect(normalizePageParams({ search: 'camera' })).toEqual({
         page: 1,
-        limit: 10,
+        limit: 12,
         search: 'camera',
       });
     });

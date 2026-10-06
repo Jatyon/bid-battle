@@ -1,0 +1,78 @@
+@use 'abstracts/variables' as *;
+
+:host {
+  display: inline-flex;
+}
+
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-sm;
+  font-weight: $fw-semibold;
+  line-height: 1;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--color-success);
+  text-decoration: none;
+  transition: opacity $transition-fast, color $transition-fast;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &--link {
+    &:hover {
+      text-decoration: underline;
+      opacity: 0.85;
+    }
+
+    &:focus-visible {
+      outline: $focus-ring-width solid var(--color-primary);
+      outline-offset: $focus-ring-offset;
+      border-radius: $radius-sm;
+    }
+  }
+
+  &--v-default {
+    color: var(--color-text);
+  }
+
+  &--link.user-badge--v-default {
+    color: var(--color-primary);
+  }
+
+  &--v-primary {
+    color: var(--color-primary);
+  }
+
+  &--v-success {
+    color: var(--color-success);
+  }
+
+  &--v-neutral {
+    color: var(--color-text);
+  }
+
+  &--deleted {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-weight: $fw-normal;
+  }
+
+  &__empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  &--md {
+    font-size: $font-size-base;
+  }
+  
+  &--lg {
+    font-size: $font-size-lg;
+    gap: $spacing-sm;
+  }
+}
