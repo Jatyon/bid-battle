@@ -1,5 +1,10 @@
 <ng-container *transloco="let t">
-    <article class="auction-card">
+    <article
+        class="auction-card"
+        [routerLink]="['/auctions', auction().id]"
+        tabindex="0"
+        role="link"
+    >
         <div class="auction-card__image-wrap">
             @if (auction().mainImageUrl) {
             <img class="auction-card__image" [src]="imageUrl(auction().mainImageUrl)" [alt]="auction().title"
@@ -16,6 +21,17 @@
                 {{ t(categoryTranslationKey(auction().category)) }}
             </app-badge>
             <h2 class="auction-card__title">{{ auction().title }}</h2>
+            @if (auction().owner) {
+                <app-user-badge
+                    [user]="auction().owner"
+                    [abbreviateLastName]="true"
+                    [isLink]="true"
+                    size="sm"
+                    variant="neutral"
+                    class="auction-card__seller"
+                    (click)="$event.stopPropagation()"
+                ></app-user-badge>
+            }
             <div class="auction-card__footer">
                 <div class="auction-card__price">
                     <span>{{ t('AUCTIONS.CARD.CURRENT_PRICE') }}</span>

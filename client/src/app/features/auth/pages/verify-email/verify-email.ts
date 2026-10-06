@@ -1,23 +1,22 @@
 import {
   Component,
   ChangeDetectionStrategy,
-  DestroyRef,
   PLATFORM_ID,
   inject,
+  input,
   signal,
   afterNextRender,
 } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { ButtonComponent, DotsLoaderComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService } from '@core/services';
 import type { ResendVerificationRequest, VerifyEmailRequest } from '@core/models';
+import { AuthService } from '@core/services';
 import { resolveHttpError } from '@features/auth/utils';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { finalize } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 type VerifyEmailStatus = 'loading' | 'success' | 'error' | 'no-token';
 
@@ -36,14 +35,14 @@ type VerifyEmailStatus = 'loading' | 'success' | 'error' | 'no-token';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VerifyEmailPage {
+  readonly token = input<string>();
+
   private readonly platformId = inject(PLATFORM_ID);
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly authService = inject(AuthService);
   private readonly popup = inject(PopupService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly transloco = inject(TranslocoService);
-  private readonly destroyRef = inject(DestroyRef);
 
   private executed = false;
 
@@ -57,7 +56,7 @@ export class VerifyEmailPage {
 
   constructor() {
     afterNextRender(() => {
-      this.verifyFromQueryToken();
+      void this.verifyFromQueryToken();
     });
   }
 
@@ -65,7 +64,7 @@ export class VerifyEmailPage {
     void this.router.navigate(['/auth/login']);
   }
 
-  onResendSubmit(): void {
+  async onResendSubmit(): Promise<void> {
     if (this.resendForm.invalid) {
       this.resendForm.markAllAsTouched();
       return;
@@ -74,56 +73,46 @@ export class VerifyEmailPage {
     if (this.isResendLoading()) return;
     this.isResendLoading.set(true);
 
-    const request: ResendVerificationRequest = this.resendForm.getRawValue();
+    try {
+      const request: ResendVerificationRequest = this.resendForm.getRawValue();
+      await firstValueFrom(this.authService.resendVerificationEmail(request));
 
-    this.authService
-      .resendVerificationEmail(request)
-      .pipe(
-        finalize(() => this.isResendLoading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.popup.open({
-            title: this.transloco.translate('AUTH.VERIFY_EMAIL.RESEND_SUCCESS_TITLE'),
-            message: this.transloco.translate('AUTH.VERIFY_EMAIL.RESEND_SUCCESS_MESSAGE'),
-            type: 'success',
-            mode: 'info',
-            confirmText: this.transloco.translate('COMMON.ACTIONS.UNDERSTOOD'),
-          });
-        },
-        error: (err: HttpErrorResponse) => {
-          this.resendForm.controls.email.setErrors({ serverError: resolveHttpError(err) });
-        },
+      this.popup.open({
+        title: this.transloco.translate('AUTH.VERIFY_EMAIL.RESEND_SUCCESS_TITLE'),
+        message: this.transloco.translate('AUTH.VERIFY_EMAIL.RESEND_SUCCESS_MESSAGE'),
+        type: 'success',
+        mode: 'info',
+        confirmText: this.transloco.translate('COMMON.ACTIONS.UNDERSTOOD'),
       });
+    } catch (err: unknown) {
+      if (err instanceof HttpErrorResponse) this.resendForm.controls.email.setErrors({ serverError: resolveHttpError(err) });
+    } finally {
+      this.isResendLoading.set(false);
+    }
   }
 
-  private verifyFromQueryToken(): void {
+  private async verifyFromQueryToken(): Promise<void> {
     if (!isPlatformBrowser(this.platformId) || this.executed) return;
     this.executed = true;
 
-    const token = this.route.snapshot.queryParamMap.get('token');
+    const tokenVal = this.token();
 
-    if (!token) {
+    if (!tokenVal) {
       this.status.set('no-token');
       return;
     }
 
-    const request: VerifyEmailRequest = { token };
-
-    this.authService
-      .verifyEmail(request)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.status.set('success');
-        },
-        error: (err: HttpErrorResponse) => {
-          const message =
-            resolveHttpError(err) || this.transloco.translate('AUTH.VERIFY_EMAIL.ERROR_GENERIC');
-          this.errorMessage.set(message);
-          this.status.set('error');
-        },
-      });
+    try {
+      const request: VerifyEmailRequest = { token: tokenVal };
+      await firstValueFrom(this.authService.verifyEmail(request));
+      this.status.set('success');
+    } catch (err: unknown) {
+      const message =
+        err instanceof HttpErrorResponse
+          ? resolveHttpError(err) || this.transloco.translate('AUTH.VERIFY_EMAIL.ERROR_GENERIC')
+          : this.transloco.translate('AUTH.VERIFY_EMAIL.ERROR_GENERIC');
+      this.errorMessage.set(message);
+      this.status.set('error');
+    }
   }
 }

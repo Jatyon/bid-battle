@@ -2,12 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  OnInit,
   inject,
+  input,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { SpinnerComponent } from '@app/shared';
 import { NotificationService } from '@core/services';
 import { toCents } from '@core/utils';
@@ -17,7 +17,7 @@ import { AuctionsService } from '@features/auctions/services';
 import { toLocalDateTime } from '@features/auctions/utils';
 import { AuctionStatus } from '@features/auctions/enums';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Observable, finalize, catchError, of, switchMap } from 'rxjs';
+import { Observable, finalize, catchError, of, switchMap, EMPTY } from 'rxjs';
 import { LucideAngularModule, AlertTriangle } from 'lucide-angular';
 
 @Component({
@@ -27,12 +27,13 @@ import { LucideAngularModule, AlertTriangle } from 'lucide-angular';
   styleUrl: './auction-edit.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AuctionEditPage implements OnInit {
+export class AuctionEditPage {
+  readonly id = input<string>();
+
   private readonly auctionsService = inject(AuctionsService);
   private readonly notifications = inject(NotificationService);
   private readonly transloco = inject(TranslocoService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly warningIcon = AlertTriangle;
@@ -43,25 +44,29 @@ export class AuctionEditPage implements OnInit {
   readonly submitError = signal('');
   readonly hasBids = signal(false);
 
-  private auctionId = 0;
+  private get auctionId(): number {
+    return Number(this.id());
+  }
 
-  ngOnInit(): void {
-    const idParam = this.route.snapshot.paramMap.get('id');
-
-    if (!idParam) {
-      void this.router.navigate(['/']);
-      return;
-    }
-    this.auctionId = Number(idParam);
-
-    this.auctionsService
-      .getAuctionById(this.auctionId)
+  constructor() {
+    toObservable(this.id)
       .pipe(
-        finalize(() => this.isLoading.set(false)),
-        catchError(() => {
-          this.notifications.error('AUCTIONS.EDIT.ERROR_LOAD');
-          void this.router.navigate(['/']);
-          return of(null);
+        switchMap((idStr) => {
+          const numId = Number(idStr);
+          if (!numId || isNaN(numId)) {
+            void this.router.navigate(['/']);
+            return EMPTY;
+          }
+
+          this.isLoading.set(true);
+          return this.auctionsService.getAuctionById(numId).pipe(
+            finalize(() => this.isLoading.set(false)),
+            catchError(() => {
+              this.notifications.error('AUCTIONS.EDIT.ERROR_LOAD');
+              void this.router.navigate(['/']);
+              return of(null);
+            }),
+          );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -87,15 +92,14 @@ export class AuctionEditPage implements OnInit {
       requestBase.startingPrice = toCents(data.formValues.startingPrice);
 
       const originalEndTimeStr = toLocalDateTime(this.auction()!.endTime);
-      
+
       if (data.formValues.endTime !== originalEndTimeStr) {
         const endTimestamp = new Date(data.formValues.endTime).getTime();
         requestBase.endTime = new Date(endTimestamp).toISOString();
       }
     }
 
-    if (data.formValues.appendDescription)
-      requestBase.appendDescription = data.formValues.appendDescription.trim();
+    if (data.formValues.appendDescription) requestBase.appendDescription = data.formValues.appendDescription.trim();
 
     if (this.auction()?.status === AuctionStatus.PENDING) {
       const isImmediate = data.formValues.startImmediately;

@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonComponent, PaginationComponent } from '@app/shared';
 import type { PaginatedResponse } from '@core/models/paginated-response.model';
-import { SortOrder } from '@core/enums';
-import { scrollToTop } from '@core/utils';
 import type { AuctionCategory } from '@core/enums';
+import { scrollToTop } from '@core/utils';
+import { SortOrder } from '@core/enums';
 import type { ActivityTab, MyAuctionFilters, MyBid, MyBidFilters, MyBidStatusFilter } from '@features/activity/models';
 import { ActivityFiltersComponent, MyAuctionCardComponent, MyBidCardComponent } from '@features/activity/components';
 import { AuctionsService } from '@features/auctions/services';
@@ -31,13 +31,24 @@ import { EMPTY, Subject, catchError, finalize, switchMap } from 'rxjs';
   styleUrl: './activity.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ActivityPage implements OnInit {
+export class ActivityPage {
+  // Query param route inputs (populated via withComponentInputBinding)
+  /* eslint-disable @angular-eslint/no-input-rename */
+  readonly tabParam = input<string>('', { alias: 'tab' });
+  readonly pageParam = input<string>('', { alias: 'page' });
+  readonly searchParam = input<string>('', { alias: 'search' });
+  readonly statusParam = input<string>('', { alias: 'status' });
+  readonly categoryParam = input<string>('', { alias: 'category' });
+  readonly sortParam = input<string>('', { alias: 'sort' });
+  /* eslint-enable @angular-eslint/no-input-rename */
+
   private readonly auctionsService = inject(AuctionsService);
   private readonly bidsService = inject(BidsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly transloco = inject(TranslocoService);
+  private readonly queryParams = toSignal(this.route.queryParamMap);
 
   readonly reloadRequests$ = new Subject<void>();
 
@@ -50,7 +61,7 @@ export class ActivityPage implements OnInit {
   readonly loading = signal(true);
   readonly hasError = signal(false);
   readonly page = signal(1);
-  readonly pageSize = 10;
+  readonly pageSize = 12;
 
   // Filter signals
   readonly search = signal('');
@@ -82,6 +93,20 @@ export class ActivityPage implements OnInit {
       (this.activeTab() === 'auctions'
         ? this.auctions().length === 0
         : this.bids().length === 0),
+  );
+
+  readonly totalPages = computed(() => {
+    const total =
+      this.activeTab() === 'auctions'
+        ? (this.auctionsPageData()?.total ?? 0)
+        : (this.bidsPageData()?.total ?? 0);
+    return Math.ceil(total / this.pageSize) || 1;
+  });
+
+  readonly totalCount = computed(() =>
+    this.activeTab() === 'auctions'
+      ? (this.auctionsPageData()?.total ?? 0)
+      : (this.bidsPageData()?.total ?? 0),
   );
 
   constructor() {
@@ -148,41 +173,32 @@ export class ActivityPage implements OnInit {
           this.bids.set(res.items);
         }
       });
-  }
 
-  ngOnInit(): void {
-    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const tabParam = params.get('tab');
-      const tab: ActivityTab = tabParam === 'bids' ? 'bids' : 'auctions';
+    // Reactively synchronize internal state whenever route query param inputs change
+    effect(() => {
+      const qp = this.queryParams();
+      const tabVal = this.tabParam() || qp?.get('tab') || '';
+      const pageVal = this.pageParam() || qp?.get('page') || '';
+      const searchVal = this.searchParam() || qp?.get('search') || '';
+      const statusVal = this.statusParam() || qp?.get('status') || '';
+      const categoryVal = this.categoryParam() || qp?.get('category') || '';
+      const sortVal = this.sortParam() || qp?.get('sort') || '';
+
+      const tab: ActivityTab = tabVal === 'bids' ? 'bids' : 'auctions';
       this.activeTab.set(tab);
 
-      const pageParam = Number(params.get('page')) || 1;
-      this.page.set(pageParam >= 1 ? pageParam : 1);
+      const pageNum = Number(pageVal) || 1;
+      this.page.set(pageNum >= 1 ? pageNum : 1);
 
-      this.search.set(params.get('search') ?? '');
-      this.status.set(params.get('status') ?? '');
-      this.category.set(params.get('category') ?? '');
+      this.search.set(searchVal ?? '');
+      this.status.set(statusVal ?? '');
+      this.category.set(categoryVal ?? '');
 
       const defaultSort = this.getDefaultSort(tab);
-      const sortParam = params.get('sort') ?? defaultSort;
-      this.sort.set(sortParam);
+      this.sort.set(sortVal || defaultSort);
 
       this.reload();
     });
-  }
-
-  get totalPages(): number {
-    const total =
-      this.activeTab() === 'auctions'
-        ? (this.auctionsPageData()?.total ?? 0)
-        : (this.bidsPageData()?.total ?? 0);
-    return Math.ceil(total / this.pageSize) || 1;
-  }
-
-  get totalCount(): number {
-    return this.activeTab() === 'auctions'
-      ? (this.auctionsPageData()?.total ?? 0)
-      : (this.bidsPageData()?.total ?? 0);
   }
 
   switchTab(tab: ActivityTab): void {
@@ -249,7 +265,7 @@ export class ActivityPage implements OnInit {
   }
 
   goToPage(pageNumber: number): void {
-    if (pageNumber < 1 || pageNumber > this.totalPages || pageNumber === this.page()) return;
+    if (pageNumber < 1 || pageNumber > this.totalPages() || pageNumber === this.page()) return;
     scrollToTop();
     this.updateQueryParams({ page: pageNumber });
   }

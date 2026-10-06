@@ -87,10 +87,10 @@ describe('ActivityPage', () => {
     bidsService = TestBed.inject(BidsService);
 
     vi.spyOn(auctionsService, 'getMyAuctions').mockReturnValue(
-      of({ items: [], page: 1, limit: 10, total: 0 }),
+      of({ items: [], page: 1, limit: 12, total: 0 }),
     );
     vi.spyOn(bidsService, 'getMyBids').mockReturnValue(
-      of({ items: [], page: 1, limit: 10, total: 0 }),
+      of({ items: [], page: 1, limit: 12, total: 0 }),
     );
 
     vi.spyOn(window, 'scrollTo').mockImplementation(vi.fn());
@@ -113,7 +113,7 @@ describe('ActivityPage', () => {
     expect(auctionsService.getMyAuctions).toHaveBeenCalledWith(
       expect.objectContaining({
         page: 1,
-        limit: 10,
+        limit: 12,
         sortBy: 'createdAt',
         sortOrder: 'DESC',
       }),
@@ -130,7 +130,7 @@ describe('ActivityPage', () => {
     expect(bidsService.getMyBids).toHaveBeenCalledWith(
       expect.objectContaining({
         page: 1,
-        limit: 10,
+        limit: 12,
         sortBy: 'endTime',
         sortOrder: 'ASC',
       }),

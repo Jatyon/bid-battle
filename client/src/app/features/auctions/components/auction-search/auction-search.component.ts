@@ -17,6 +17,7 @@ import { AuctionsService } from '@features/auctions/services/auctions.service';
 import { Auction } from '@features/auctions/models/auction.model';
 import { AuctionSortBy } from '@features/auctions/enums';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { Router } from '@angular/router';
 import { Subject, catchError, debounceTime, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
 import { LucideAngularModule, Search, X } from 'lucide-angular';
 
@@ -30,6 +31,7 @@ import { LucideAngularModule, Search, X } from 'lucide-angular';
 export class AuctionSearchComponent {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly auctionsService = inject(AuctionsService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   @ViewChild('mobileSearchInput') private mobileSearchInput?: ElementRef<HTMLInputElement>;
   private readonly searchRequests = new Subject<string>();
@@ -59,7 +61,7 @@ export class AuctionSearchComponent {
           this.auctionsService
             .getActiveAuctions({
               page: 1,
-              limit: 10,
+              limit: 12,
               search: search || undefined,
               sortBy: AuctionSortBy.CREATED_AT,
               sortOrder: SortOrder.DESC,
@@ -118,6 +120,7 @@ export class AuctionSearchComponent {
     this.query.set(auction.title);
     this.isOpen.set(false);
     this.isMobileSearchOpen.set(false);
+    this.router.navigate(['/auctions', auction.id]);
   }
 
   clearSearch(input: HTMLInputElement): void {

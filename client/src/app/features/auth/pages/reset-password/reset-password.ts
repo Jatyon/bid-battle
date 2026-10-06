@@ -5,11 +5,12 @@ import {
   DestroyRef,
   OnInit,
   inject,
+  input,
   signal,
 } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
 import { AuthService, NotificationService } from '@core/index';
 import type { ResetPasswordRequest } from '@core/models';
@@ -19,7 +20,7 @@ import {
   strongPasswordValidators,
 } from '@features/auth/utils';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { finalize } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-reset-password',
@@ -29,17 +30,17 @@ import { finalize } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResetPasswordPage implements OnInit {
+  readonly token = input<string>();
+
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly authService = inject(AuthService);
   private readonly notifications = inject(NotificationService);
   private readonly popup = inject(PopupService);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly isLoading = signal(false);
-  readonly token = signal<string | null>(this.route.snapshot.queryParamMap.get('token'));
 
   readonly form = this.fb.group({
     password: ['', strongPasswordValidators],
@@ -54,7 +55,7 @@ export class ResetPasswordPage implements OnInit {
       );
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     const resetToken = this.token();
     if (!resetToken) {
       this.notifications.error('AUTH.RESET_PASSWORD.ERROR_NO_TOKEN');
@@ -69,21 +70,17 @@ export class ResetPasswordPage implements OnInit {
     if (this.isLoading()) return;
     this.isLoading.set(true);
 
-    const { password, passwordRepeat } = this.form.getRawValue();
-    const request: ResetPasswordRequest = { token: resetToken, password, passwordRepeat };
+    try {
+      const { password, passwordRepeat } = this.form.getRawValue();
+      const request: ResetPasswordRequest = { token: resetToken, password, passwordRepeat };
 
-    this.authService
-      .resetPassword(request)
-      .pipe(
-        finalize(() => this.isLoading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => this.openSuccessPopup(),
-        error: (err: HttpErrorResponse) => {
-          this.form.controls.password.setErrors({ serverError: resolveHttpError(err) });
-        },
-      });
+      await firstValueFrom(this.authService.resetPassword(request));
+      this.openSuccessPopup();
+    } catch (err: unknown) {
+      if (err instanceof HttpErrorResponse) this.form.controls.password.setErrors({ serverError: resolveHttpError(err) });
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   requestNewLink(): void {

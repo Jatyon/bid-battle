@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BadgeComponent, PaginationComponent } from '@app/shared';
 import type { PaginatedResponse } from '@core/models';
@@ -40,7 +40,11 @@ export class AuctionListPage {
     sortBy: AuctionSortBy.CREATED_AT,
     sortOrder: SortOrder.DESC,
   });
-  readonly pageLimit = 10;
+  readonly pageLimit = 12;
+
+  readonly totalPages = computed(() =>
+    Math.ceil((this.pageData()?.total ?? 0) / this.pageLimit),
+  );
 
   constructor() {
     this.reloadRequests
@@ -75,10 +79,6 @@ export class AuctionListPage {
     this.loadAuctions();
   }
 
-  get totalPages(): number {
-    return Math.ceil((this.pageData()?.total ?? 0) / this.pageLimit);
-  }
-
   applyFilters(filters: AuctionListFilters): void {
     this.filters.set(filters);
     this.page.set(1);
@@ -90,7 +90,7 @@ export class AuctionListPage {
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages || page === this.page()) return;
+    if (page < 1 || page > this.totalPages() || page === this.page()) return;
     this.page.set(page);
     scrollToTop();
     this.loadAuctions();

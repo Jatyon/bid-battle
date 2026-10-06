@@ -9,7 +9,7 @@ import { Observable, map } from 'rxjs';
 export class BidsService {
   private readonly api = inject(ApiService);
 
-  getMyBids(params?: MyBidFilters | number, limit = 10): Observable<PaginatedResponse<MyBid>> {
+  getMyBids(params?: MyBidFilters | number, limit = 12): Observable<PaginatedResponse<MyBid>> {
     return this.api
       .get<PaginatedResponse<MyBid>>('/bids/my', cleanParams(normalizePageParams(params, limit)))
       .pipe(map((response) => response.data));

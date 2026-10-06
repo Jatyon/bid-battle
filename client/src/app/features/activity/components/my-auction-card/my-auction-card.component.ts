@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DOCUMENT,
   ElementRef,
   HostListener,
   computed,
@@ -11,14 +10,23 @@ import {
   signal,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { AppDatePipe, BadgeComponent, ButtonComponent, PopupService, PricePipe } from '@app/shared';
+import {
+  AppDatePipe,
+  BadgeComponent,
+  ButtonComponent,
+  PopupService,
+  PricePipe,
+  UserBadgeComponent,
+} from '@app/shared';
 import { NotificationService } from '@core/services';
-import { resolveImageUrl } from '@core/utils';
 import { AuctionsService } from '@features/auctions/services';
 import type { MyAuction } from '@features/auctions/models';
 import { AuctionStatus } from '@features/auctions/enums';
-import { ActivityCardComponent, type ActivityCardModifier } from '../activity-card';
-import { ActivityCardColComponent } from '../activity-card-col';
+import {
+  ActivityCardComponent,
+  type ActivityCardModifier,
+} from '../activity-card/activity-card.component';
+import { ActivityCardColComponent } from '../activity-card-col/activity-card-col.component';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import {
   LucideAngularModule,
@@ -28,10 +36,9 @@ import {
   AlertCircle,
   Clock,
   XCircle,
-  UserX,
   MoreVertical,
 } from 'lucide-angular';
-import { finalize } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-my-auction-card',
@@ -45,6 +52,7 @@ import { finalize } from 'rxjs';
     ButtonComponent,
     ActivityCardComponent,
     ActivityCardColComponent,
+    UserBadgeComponent,
   ],
   templateUrl: './my-auction-card.component.html',
   styleUrl: './my-auction-card.component.scss',
@@ -54,7 +62,6 @@ export class MyAuctionCardComponent {
   readonly auction = input.required<MyAuction>();
   readonly auctionCanceled = output<number>();
 
-  private readonly document = inject(DOCUMENT);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly router = inject(Router);
   private readonly auctionsService = inject(AuctionsService);
@@ -83,14 +90,9 @@ export class MyAuctionCardComponent {
   readonly endedIcon = CheckCircle2;
   readonly canceledIcon = XCircle;
   readonly pendingIcon = AlertCircle;
-  readonly deletedUserIcon = UserX;
   readonly menuIcon = MoreVertical;
 
   readonly AuctionStatus = AuctionStatus;
-
-  imageUrl(value?: string | null): string {
-    return resolveImageUrl(value, this.document.baseURI);
-  }
 
   toggleMenu(event: MouseEvent): void {
     event.stopPropagation();
@@ -141,29 +143,19 @@ export class MyAuctionCardComponent {
       return;
     }
 
-    this.isCanceling.set(true);
-
-    this.auctionsService
-      .cancelAuction(this.auction().id)
-      .pipe(
-        finalize(() => {
-          this.isCanceling.set(false);
-        })
-      )
-      .subscribe({
-        next: () => {
-          this.notifications.success(
-            this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_SUCCESS')
-          );
-          this.auctionCanceled.emit(this.auction().id);
-        },
-        error: (err: unknown) => {
-          const message =
-            err instanceof Error && err.message
-              ? err.message
-              : this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_ERROR');
-          this.notifications.error(message);
-        },
-      });
+    try {
+      this.isCanceling.set(true);
+      await firstValueFrom(this.auctionsService.cancelAuction(this.auction().id));
+      this.notifications.success(this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_SUCCESS'));
+      this.auctionCanceled.emit(this.auction().id);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_ERROR');
+      this.notifications.error(message);
+    } finally {
+      this.isCanceling.set(false);
+    }
   }
 }

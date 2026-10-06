@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { BadgeComponent, PricePipe } from '@app/shared';
+import { RouterLink } from '@angular/router';
+import { BadgeComponent, PricePipe, UserBadgeComponent } from '@app/shared';
 import { auctionCategoryTranslationKey } from '@core/enums';
 import { resolveImageUrl } from '@core/utils';
 import { AuctionClockService } from '@features/auctions/services';
@@ -10,7 +11,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-auction-card',
-  imports: [PricePipe, TranslocoDirective, BadgeComponent],
+  imports: [PricePipe, TranslocoDirective, BadgeComponent, UserBadgeComponent, RouterLink],
   templateUrl: './auction-card.component.html',
   styleUrl: './auction-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -82,11 +82,15 @@
                         }
                     </div>
 
-                    <app-pagination
-                        [page]="page()"
-                        [totalPages]="totalPages"
-                        (pageChange)="goToPage($event)"
-                    />
+                    @defer (on viewport) {
+                        <app-pagination
+                            [page]="page()"
+                            [totalPages]="totalPages()"
+                            (pageChange)="goToPage($event)"
+                        />
+                    } @placeholder {
+                        <div class="pagination-placeholder"></div>
+                    }
                 }
             } @else if (activeTab() === 'bids') {
                 @if (bids().length === 0) {
@@ -107,11 +111,15 @@
                         }
                     </div>
 
-                    <app-pagination
-                        [page]="page()"
-                        [totalPages]="totalPages"
-                        (pageChange)="goToPage($event)"
-                    />
+                    @defer (on viewport) {
+                        <app-pagination
+                            [page]="page()"
+                            [totalPages]="totalPages()"
+                            (pageChange)="goToPage($event)"
+                        />
+                    } @placeholder {
+                        <div class="pagination-placeholder"></div>
+                    }
                 }
             }
         </section>
