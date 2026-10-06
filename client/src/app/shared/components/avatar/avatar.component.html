@@ -1,0 +1,15 @@
+@if (isDeleted()) {
+  <div class="app-avatar app-avatar--deleted" [ngClass]="sizeClass()">
+    <lucide-icon [img]="userXIcon" aria-hidden="true" />
+  </div>
+} @else if (resolvedUrl()) {
+  <img [src]="resolvedUrl()" [alt]="alt()" class="app-avatar app-avatar--image" [ngClass]="sizeClass()" />
+} @else if (initials()) {
+  <div class="app-avatar app-avatar--initials" [ngClass]="sizeClass()">
+    {{ initials() }}
+  </div>
+} @else {
+  <div class="app-avatar app-avatar--fallback" [ngClass]="sizeClass()">
+    <lucide-icon [img]="userIcon" aria-hidden="true" />
+  </div>
+}
