@@ -39,6 +39,13 @@ export interface MyBidAuction {
   status: AuctionStatus;
   category: AuctionCategory;
   createdAt: string;
+  owner?: {
+    id: number;
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+    isDeleted?: boolean;
+  };
 }
 
 export interface MyBid {

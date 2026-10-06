@@ -20,11 +20,11 @@ describe('BidsService', () => {
 
   it('gets user bids with pagination', () => {
     let result: unknown;
-    service.getMyBids(1, 10).subscribe((data) => (result = data));
+    service.getMyBids(1, 12).subscribe((data) => (result = data));
 
-    const request = httpMock.expectOne(`${environment.apiUrl}/bids/my?page=1&limit=10`);
+    const request = httpMock.expectOne(`${environment.apiUrl}/bids/my?page=1&limit=12`);
     expect(request.request.method).toBe('GET');
-    const mockData = { items: [], page: 1, limit: 10, total: 0 };
+    const mockData = { items: [], page: 1, limit: 12, total: 0 };
     request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: mockData });
 
     expect(result).toEqual(mockData);

@@ -93,24 +93,13 @@
         [label]="auction().status === AuctionStatus.ENDED ? t('ACTIVITY.AUCTIONS.WINNER') : t('ACTIVITY.AUCTIONS.HIGHEST_BIDDER')"
       >
         @if (displayUser(); as user) {
-          @if (user.isDeleted || (!user.firstName && !user.lastName)) {
-            <div class="my-auction-card__winner my-auction-card__winner--deleted">
-              <lucide-icon [img]="deletedUserIcon" [size]="14" class="my-auction-card__winner-icon" aria-hidden="true" />
-              <span>{{ t('ACTIVITY.AUCTIONS.DELETED_USER') }}</span>
-            </div>
-          } @else {
-            <a
-              [routerLink]="['/users', user.id]"
-              (click)="$event.stopPropagation()"
-              class="my-auction-card__winner"
-              [class.my-auction-card__winner--bidder]="auction().status === AuctionStatus.ACTIVE"
-            >
-              @if (user.avatar) {
-                <img [src]="imageUrl(user.avatar)" alt="" class="my-auction-card__winner-avatar" />
-              }
-              <span>{{ user.firstName }} {{ user.lastName }}</span>
-            </a>
-          }
+          <app-user-badge
+            [user]="user"
+            [abbreviateLastName]="true"
+            [isLink]="true"
+            size="sm"
+            [variant]="auction().status === AuctionStatus.ACTIVE ? 'primary' : 'success'"
+          ></app-user-badge>
         } @else {
           <span class="my-auction-card__no-winner">{{ t('ACTIVITY.AUCTIONS.NO_BIDS') }}</span>
         }
