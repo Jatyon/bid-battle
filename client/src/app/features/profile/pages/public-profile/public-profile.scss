@@ -1,0 +1,141 @@
+@use 'abstracts/variables' as *;
+
+.public-profile-container {
+  max-width: $container-max-width;
+  margin: 0 auto;
+  padding: $spacing-lg;
+
+  .loading-state,
+  .error-state,
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc($spacing-xl * 2) $spacing-lg;
+    text-align: center;
+    color: var(--color-text-secondary);
+
+    .icon {
+      width: $avatar-size-lg;
+      height: $avatar-size-lg;
+      margin-bottom: $spacing-md;
+      color: var(--color-text-muted);
+    }
+  }
+
+  .loading-state.minimal {
+    padding: $spacing-lg;
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+    padding: $spacing-lg;
+    background: var(--color-surface);
+    border: $border-width solid var(--color-border);
+    border-radius: $radius-lg;
+    margin-bottom: $spacing-lg;
+    box-shadow: var(--shadow-sm);
+
+    @media (max-width: $bp-md) {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .avatar-container {
+      flex-shrink: 0;
+
+      .public-avatar {
+        ::ng-deep .app-avatar {
+          border: $decoration-bar-height solid var(--color-bg);
+          box-shadow: 0 0 0 $border-width var(--color-border);
+        }
+      }
+    }
+
+    .profile-info {
+      .user-name {
+        margin: 0 0 $spacing-sm 0;
+        font-size: $font-size-4xl;
+        color: var(--color-text);
+        font-weight: $fw-bold;
+      }
+
+      .meta-info {
+        display: flex;
+        gap: $spacing-lg;
+        flex-wrap: wrap;
+
+        @media (max-width: $bp-md) {
+          justify-content: center;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+          color: var(--color-text-secondary);
+          font-size: $font-size-base;
+
+          .icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: $icon-size-sm;
+            height: $icon-size-sm;
+            color: var(--color-text-muted);
+
+            ::ng-deep svg {
+              width: 100%;
+              height: 100%;
+            }
+
+            &.fill-star {
+              color: var(--color-gold);
+              fill: currentColor;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .auctions-section {
+    .section-header {
+      margin-bottom: $spacing-lg;
+      padding-bottom: $spacing-md;
+      border-bottom: $border-width solid var(--color-border);
+
+      h2 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        font-size: $font-size-2xl;
+        color: var(--color-text);
+
+        .icon {
+          width: $spinner-size-md;
+          height: $spinner-size-md;
+          color: var(--color-primary);
+        }
+      }
+    }
+
+    .auctions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax($search-min-column-width, 1fr));
+      gap: $spacing-lg;
+      margin-bottom: $spacing-lg;
+    }
+
+    .pagination-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: $spacing-xl;
+    }
+  }
+}
+

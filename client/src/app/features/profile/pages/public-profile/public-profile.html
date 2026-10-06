@@ -1,0 +1,77 @@
+<div class="public-profile-container" *transloco="let t">
+  @if (loadingProfile()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>{{ t('COMMON.LOADING') }}</p>
+    </div>
+  } @else if (profileError()) {
+    <div class="error-state">
+      <lucide-icon [name]="errorIcon" class="icon"></lucide-icon>
+      <p>{{ t('PROFILE.PUBLIC.NOT_FOUND') }}</p>
+    </div>
+  } @else if (profile()) {
+    <div class="profile-header">
+      <div class="avatar-container">
+        <app-avatar
+          [imageUrl]="profile()!.avatar"
+          [firstName]="profile()!.firstName"
+          [lastName]="profile()!.lastNameInitial"
+          size="2xl"
+          class="public-avatar"
+        ></app-avatar>
+      </div>
+      <div class="profile-info">
+        <h1 class="user-name">{{ profile()!.firstName }} {{ profile()!.lastNameInitial }}</h1>
+        <div class="meta-info">
+          <div class="meta-item">
+            <lucide-icon [name]="calendarIcon" class="icon"></lucide-icon>
+            <span
+              >{{ t('PROFILE.PUBLIC.JOINED') }}
+              {{ profile()!.joinedAt | appDate: { dateStyle: 'medium' } }}</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="auctions-section">
+      <div class="section-header">
+        <h2>
+          <lucide-icon [name]="packageIcon" class="icon"></lucide-icon>
+          {{ t('PROFILE.PUBLIC.ACTIVE_AUCTIONS') }}
+        </h2>
+      </div>
+
+      @if (loadingAuctions()) {
+        <div class="loading-state minimal">
+          <div class="spinner"></div>
+        </div>
+      } @else {
+        <div class="auctions-grid">
+          @for (auction of auctions(); track auction.id) {
+            <app-auction-card [auction]="auction"></app-auction-card>
+          } @empty {
+            <div class="empty-state">
+              <lucide-icon [name]="packageIcon" class="icon"></lucide-icon>
+              <p>{{ t('PROFILE.PUBLIC.NO_AUCTIONS') }}</p>
+            </div>
+          }
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="pagination-wrapper">
+            @defer (on viewport) {
+              <app-pagination
+                [page]="page()"
+                [totalPages]="totalPages()"
+                (pageChange)="goToPage($event)"
+              ></app-pagination>
+            } @placeholder {
+              <div class="pagination-placeholder"></div>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</div>
