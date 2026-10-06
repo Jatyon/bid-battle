@@ -20,11 +20,11 @@ import {
   TouchedChangeEvent,
 } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { ButtonComponent } from '@shared/components';
+import { ButtonComponent } from '../button/button.component';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { filter } from 'rxjs';
 
-export type DateTimePickerType = 'date' | 'time' | 'datetime-local';
+type DateTimePickerType = 'date' | 'time' | 'datetime-local';
 
 interface CalendarDay {
   key: string;
@@ -51,7 +51,6 @@ function parseMonthKey(value: string): Date {
   templateUrl: './date-time-picker.component.html',
   styleUrl: './date-time-picker.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [TranslocoDirective, ButtonComponent],
 })
 export class DateTimePickerComponent implements ControlValueAccessor, OnInit {
@@ -174,10 +173,12 @@ export class DateTimePickerComponent implements ControlValueAccessor, OnInit {
     const minuteStep = Math.max(1, Math.floor((this.step() ?? 1800) / 60));
     const use24h = this.use24h();
     const slots: { value: string; label: string }[] = [];
+
     for (let h = 0; h < 24; h++) {
       for (let m = 0; m < 60; m += minuteStep) {
         const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         let label: string;
+
         if (use24h) {
           label = value; // e.g. "09:00"
         } else {
@@ -194,6 +195,7 @@ export class DateTimePickerComponent implements ControlValueAccessor, OnInit {
   readonly pickerDateFormatted = computed(() => {
     const key = this.pickerDate();
     if (!key) return '';
+    
     const date = new Date(`${key}T00:00:00`);
     return new Intl.DateTimeFormat(this.locale(), {
       month: 'short',

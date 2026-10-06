@@ -19,13 +19,9 @@ import {
   TouchedChangeEvent,
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { SelectOption } from './select.types';
 import { filter } from 'rxjs';
 import { ChevronDown, LucideAngularModule } from 'lucide-angular';
-
-export interface SelectOption {
-  value: string;
-  label: string;
-}
 
 @Component({
   selector: 'app-select',

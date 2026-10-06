@@ -3,17 +3,17 @@ import { scrollToTop } from '@core/utils';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { ChevronLeft, ChevronRight, LucideAngularModule } from 'lucide-angular';
 
-export interface PaginationItemPage {
+interface PaginationItemPage {
   readonly type: 'page';
   readonly page: number;
 }
 
-export interface PaginationItemEllipsis {
+interface PaginationItemEllipsis {
   readonly type: 'ellipsis';
   readonly key: string;
 }
 
-export type PaginationItem = PaginationItemPage | PaginationItemEllipsis;
+type PaginationItem = PaginationItemPage | PaginationItemEllipsis;
 
 export function computePaginationItems(currentPage: number, totalPages: number): PaginationItem[] {
   if (totalPages <= 1) return [];
@@ -33,7 +33,6 @@ export function computePaginationItems(currentPage: number, totalPages: number):
 
   if (currentPage <= 3) right = Math.min(totalPages - 1, 4);
   else if (currentPage >= totalPages - 2) left = Math.max(2, totalPages - 3);
-
 
   // First page always present
   items.push({ type: 'page', page: 1 });
