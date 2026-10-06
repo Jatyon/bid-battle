@@ -15,6 +15,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'users',
+        title: 'ROUTES.USERS',
+        loadComponent: () => import('@features/profile').then((m) => m.UsersSearchPage),
+      },
+      {
+        path: 'users/:id',
+        title: 'ROUTES.USER_PROFILE',
+        loadComponent: () => import('@features/profile').then((m) => m.PublicProfilePage),
+      },
+      {
         path: 'sell',
         canActivate: [authGuard],
         title: 'ROUTES.SELL',

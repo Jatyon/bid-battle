@@ -1,0 +1,51 @@
+<div class="users-search-container" *transloco="let t">
+  <div class="search-header">
+    <h1>{{ t('PROFILE.USERS.TITLE') }}</h1>
+    <p>{{ t('PROFILE.USERS.DESCRIPTION') }}</p>
+    
+    <div class="search-bar">
+      <app-input
+        [formControl]="searchControl"
+        [placeholder]="t('PROFILE.USERS.SEARCH_PLACEHOLDER')"
+      ></app-input>
+    </div>
+  </div>
+
+  <div class="search-content">
+    @if (loading()) {
+      <div class="state-container">
+        <div class="spinner"></div>
+      </div>
+    } @else if (users().length > 0) {
+      <div class="users-grid">
+        @for (user of users(); track user.id) {
+          <a [routerLink]="['/users', user.id]" class="user-card">
+            <app-avatar
+              [imageUrl]="user.avatar"
+              [firstName]="user.firstName"
+              [lastName]="user.lastNameInitial"
+              size="xl"
+            ></app-avatar>
+            <div class="user-card__info">
+              <h3>{{ user.firstName }} {{ user.lastNameInitial }}</h3>
+              <div class="user-card__meta">
+                <lucide-icon [name]="calendarIcon" class="meta-icon" aria-hidden="true"></lucide-icon>
+                <span>{{ t('PROFILE.PUBLIC.JOINED') }} {{ user.joinedAt | appDate }}</span>
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+    } @else if (hasSearched()) {
+      <div class="state-container">
+        <lucide-icon [name]="userIcon" class="state-icon" aria-hidden="true"></lucide-icon>
+        <p>{{ t('PROFILE.USERS.NO_RESULTS') }}</p>
+      </div>
+    } @else {
+      <div class="state-container">
+        <lucide-icon [name]="searchIcon" class="state-icon" aria-hidden="true"></lucide-icon>
+        <p>{{ t('PROFILE.USERS.START_TYPING') }}</p>
+      </div>
+    }
+  </div>
+</div>

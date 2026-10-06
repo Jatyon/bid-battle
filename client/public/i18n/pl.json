@@ -10,6 +10,8 @@
     "SELL": "Dodaj aukcję",
     "EDIT": "Edytuj aukcję",
     "PROFILE": "Profil",
+    "USER_PROFILE": "Profil użytkownika",
+    "USERS": "Szukaj użytkowników",
     "ACTIVITY": "Moja aktywność"
   },
   "NAVBAR": {
@@ -180,6 +182,7 @@
     }
   },
   "COMMON": {
+    "LOADING": "Ładowanie...",
     "PAGINATION": {
       "LABEL": "Nawigacja stron",
       "PREVIOUS": "Poprzednia strona",
@@ -351,6 +354,19 @@
       "DELETE": "Usuń konto",
       "CONFIRM_TITLE": "Usunąć konto?",
       "CONFIRM_MESSAGE": "Tej operacji nie można cofnąć. Twoje konto i wszystkie powiązane dane zostaną trwale usunięte."
+    },
+    "PUBLIC": {
+      "NOT_FOUND": "Nie znaleziono profilu lub został usunięty.",
+      "JOINED": "Użytkownik od",
+      "ACTIVE_AUCTIONS": "Aktywne aukcje",
+      "NO_AUCTIONS": "Ten użytkownik nie posiada aktywnych aukcji."
+    },
+    "USERS": {
+      "TITLE": "Znajdź użytkownika",
+      "DESCRIPTION": "Wyszukaj po imieniu i nazwisku, aby sprawdzić profil sprzedawcy.",
+      "SEARCH_PLACEHOLDER": "Np. Jan K...",
+      "NO_RESULTS": "Brak wyników. Spróbuj innych słów.",
+      "START_TYPING": "Wpisz co najmniej 2 znaki, aby rozpocząć wyszukiwanie."
     }
   },
   "ACTIVITY": {
@@ -398,6 +414,7 @@
       "MY_BID": "Twoja oferta",
       "CURRENT_PRICE": "Najwyższa oferta",
       "DATE": "Data oferty",
+      "SELLER": "Sprzedający",
       "BID_AGAIN_BTN": "Przebij ofertę",
       "VIEW_BTN": "Przejdź do aukcji",
       "EMPTY_TITLE": "Nie bierzesz udziału w żadnej licytacji",

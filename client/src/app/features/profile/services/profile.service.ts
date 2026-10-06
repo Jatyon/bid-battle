@@ -1,14 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { Language } from '@core/enums';
 import { User, UpdateProfileRequest } from '@core/models';
 import { ApiService } from '@core/services/api.service';
+import { ProfilePreferences, PublicProfile } from '../models';
 import { Observable, map } from 'rxjs';
-
-export interface ProfilePreferences {
-  lang: Language;
-  notifyOnOutbid: boolean;
-  notifyOnAuctionEnd: boolean;
-}
 
 /** Performs authenticated profile, avatar, and account operations. */
 @Injectable({ providedIn: 'root' })
@@ -42,6 +36,16 @@ export class ProfileService {
   updatePreferences(preferences: ProfilePreferences): Observable<ProfilePreferences> {
     return this.api
       .put<ProfilePreferences>('/user/preferences', preferences)
+      .pipe(map((response) => response.data));
+  }
+
+  getPublicProfile(userId: number): Observable<PublicProfile> {
+    return this.api.get<PublicProfile>(`/users/${userId}`).pipe(map((response) => response.data));
+  }
+
+  searchUsers(query: string): Observable<PublicProfile[]> {
+    return this.api
+      .get<PublicProfile[]>('/users', { q: query, limit: 10 })
       .pipe(map((response) => response.data));
   }
 }

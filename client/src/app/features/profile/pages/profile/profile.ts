@@ -25,7 +25,8 @@ import {
   resolveHttpError,
   strongPasswordValidators,
 } from '@features/auth/utils';
-import { ProfilePreferences, ProfileService } from '@features/profile/services';
+import { ProfilePreferences } from '@features/profile/models';
+import { ProfileService } from '@features/profile/services';
 import { AvatarUploadComponent } from '@features/profile/components';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';

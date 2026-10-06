@@ -23,8 +23,7 @@
     padding: 0 clamp(#{$spacing-md}, 2.5vw, #{$spacing-xl});
     display: grid;
     grid-template-columns:
-      minmax(0, 1fr) minmax($search-min-column-width, min(40vw, $search-max-width))
-      minmax(0, 1fr);
+      minmax(0, 1fr) minmax($search-min-column-width, min(40vw, $search-max-width)) minmax(0, 1fr);
     align-items: center;
     gap: $spacing-lg;
   }
@@ -146,6 +145,7 @@
     padding: $spacing-xs;
     border-radius: $radius-md;
     color: var(--color-text);
+    line-height: 1;
 
     &:hover {
       background-color: var(--color-surface-2);
@@ -156,6 +156,19 @@
   &__menu-icon {
     width: $icon-size-xs;
     height: $icon-size-xs;
+    flex-shrink: 0;
+  }
+
+  &__user-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    transition: transform $transition-fast;
+
+    .navbar__user-trigger[aria-expanded='true'] & {
+      transform: rotate(180deg);
+    }
   }
 
   &__avatar {
@@ -183,9 +196,11 @@
     display: none;
     font-size: $font-size-base;
     font-weight: $fw-medium;
+    line-height: 1;
 
     @include bp-xl {
-      display: inline;
+      display: inline-flex;
+      align-items: center;
     }
   }
 

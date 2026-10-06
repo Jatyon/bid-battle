@@ -1,0 +1,128 @@
+@use 'abstracts/variables' as *;
+
+.users-search-container {
+  max-width: $profile-content-max-width;
+  margin: 0 auto;
+  padding: $spacing-xl;
+
+  @media (max-width: $bp-sm) {
+    padding: $spacing-md;
+  }
+}
+
+.search-header {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+
+  h1 {
+    font-size: $font-size-3xl;
+    font-weight: $fw-bold;
+    color: var(--color-text);
+    margin-bottom: $spacing-xs;
+  }
+
+  p {
+    color: var(--color-text-secondary);
+    font-size: $font-size-base;
+    margin-bottom: $spacing-xl;
+  }
+}
+
+.search-bar {
+  max-width: $search-max-width;
+  margin: 0 auto;
+}
+
+.search-content {
+  min-height: $search-results-max-height;
+}
+
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc($spacing-xl * 2) $spacing-xl;
+  color: var(--color-text-muted);
+  text-align: center;
+
+  .state-icon {
+    width: $avatar-size-lg;
+    height: $avatar-size-lg;
+    margin-bottom: $spacing-md;
+    color: var(--color-text-muted);
+  }
+
+  p {
+    font-size: $font-size-lg;
+    font-weight: $fw-medium;
+  }
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax($search-min-column-width, 1fr));
+  gap: $spacing-lg;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  background: var(--color-surface);
+  border: $border-width solid var(--color-border);
+  border-radius: $radius-lg;
+  text-decoration: none;
+  transition: transform $transition-fast, box-shadow $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    transform: translateY(-$spacing-2xs);
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
+  &:focus-visible {
+    outline: $focus-ring-width solid var(--color-primary);
+    outline-offset: $focus-ring-offset;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2xs;
+    min-width: 0;
+
+    h3 {
+      font-size: $font-size-lg;
+      font-weight: $fw-bold;
+      color: var(--color-text);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    color: var(--color-text-secondary);
+    font-size: $font-size-sm;
+    font-weight: $fw-medium;
+
+    .meta-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: $font-size-base;
+      height: $font-size-base;
+
+      ::ng-deep svg {
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+}

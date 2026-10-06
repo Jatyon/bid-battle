@@ -63,6 +63,7 @@ export interface AuctionSearchQuery {
   maxPrice?: number;
   sortBy: AuctionSortBy;
   sortOrder: SortOrder;
+  sellerId?: number;
 }
 
 export interface CreateAuctionRequest {

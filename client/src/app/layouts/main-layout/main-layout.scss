@@ -1,26 +1,30 @@
 @use 'abstracts/variables' as *;
 
 :host {
-  display: block;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
   background-color: var(--color-bg);
 }
 
 .main-layout {
-  display: block;
-  min-height: 100vh;
-  max-width: $container-max-width;
-  margin: 0 auto;
-  padding: $spacing-lg $spacing-md
-    calc(#{$spacing-lg} + #{$mobile-nav-height} + env(safe-area-inset-bottom, 0));
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
 
-  @include bp-md {
-    padding: $spacing-lg $spacing-lg
-      calc(#{$spacing-lg} + #{$mobile-nav-height} + env(safe-area-inset-bottom, 0));
-  }
+  &__inner {
+    max-width: $container-max-width;
+    margin: 0 auto;
+    padding: $spacing-lg $spacing-md calc(#{$spacing-lg} + #{$mobile-nav-height} + env(safe-area-inset-bottom, 0));
 
-  @include bp-lg {
-    min-height: calc(100vh - #{$navbar-height});
-    padding-bottom: $spacing-lg;
+    @include bp-md {
+      padding: $spacing-lg $spacing-lg calc(#{$spacing-lg} + #{$mobile-nav-height} + env(safe-area-inset-bottom, 0));
+    }
+
+    @include bp-lg {
+      min-height: calc(100vh - #{$navbar-height});
+      padding-bottom: $spacing-lg;
+    }
   }
 }
