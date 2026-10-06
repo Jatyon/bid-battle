@@ -42,4 +42,13 @@ export class GetAuctionsQueryDto extends BasePaginatedSearchDto {
   @IsOptional()
   @IsEnum(AuctionSortBy, { message: 'error.validation.sort_by_invalid' })
   sortBy?: AuctionSortBy = AuctionSortBy.CREATED_AT;
+
+  @ApiPropertyOptional({
+    description: 'Filter by seller ID',
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'error.validation.seller_id_must_be_number' })
+  sellerId?: number;
 }

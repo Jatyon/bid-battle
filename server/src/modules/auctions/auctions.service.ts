@@ -146,6 +146,7 @@ export class AuctionsService {
       maxPrice: query.maxPrice,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
+      sellerId: query.sellerId,
     };
 
     const cacheKey = this.buildAuctionsCacheKey(page, limit, filters);
@@ -174,19 +175,21 @@ export class AuctionsService {
   private buildAuctionsCacheKey(page: number, limit: number, filters: Record<string, unknown>): string {
     const parts: string[] = [`auctions:active:${page}:${limit}`];
 
-    const { search, category, minPrice, maxPrice, sortBy, sortOrder } = filters as {
+    const { search, category, minPrice, maxPrice, sortBy, sortOrder, sellerId } = filters as {
       search?: string;
       category?: string;
       minPrice?: number;
       maxPrice?: number;
       sortBy?: string;
       sortOrder?: string;
+      sellerId?: number;
     };
 
     if (search) parts.push(`s=${encodeURIComponent(search.trim())}`);
     if (category) parts.push(`cat=${category}`);
     if (minPrice) parts.push(`min=${minPrice}`);
     if (maxPrice) parts.push(`max=${maxPrice}`);
+    if (sellerId) parts.push(`seller=${sellerId}`);
     if (sortBy && String(sortBy) !== String(AuctionSortBy.CREATED_AT)) parts.push(`by=${sortBy}`);
     if (sortOrder && String(sortOrder) !== String(SortOrder.DESC)) parts.push(`ord=${sortOrder}`);
 

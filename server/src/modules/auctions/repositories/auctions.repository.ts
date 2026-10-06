@@ -11,7 +11,7 @@ export class AuctionsRepository extends Repository<Auction> {
   }
 
   findActiveAuctions(skip: number, take: number, filters: IAuctionFilters = {}): Promise<[Auction[], number]> {
-    const { search, category, minPrice, maxPrice, sortBy = AuctionSortBy.CREATED_AT, sortOrder = SortOrder.DESC } = filters;
+    const { search, category, minPrice, maxPrice, sortBy = AuctionSortBy.CREATED_AT, sortOrder = SortOrder.DESC, sellerId } = filters;
 
     const qb = this.createQueryBuilder('auction')
       .leftJoinAndSelect('auction.owner', 'owner')
@@ -25,6 +25,8 @@ export class AuctionsRepository extends Repository<Auction> {
     if (minPrice) qb.andWhere('auction.currentPrice >= :minPrice', { minPrice });
 
     if (maxPrice) qb.andWhere('auction.currentPrice <= :maxPrice', { maxPrice });
+
+    if (sellerId) qb.andWhere('auction.ownerId = :sellerId', { sellerId });
 
     qb.orderBy(`auction.${sortBy}`, sortOrder).skip(skip).take(take);
 

@@ -8,6 +8,7 @@ export interface IAuctionFilters {
   maxPrice?: number;
   sortBy?: AuctionSortBy;
   sortOrder?: SortOrder;
+  sellerId?: number;
 }
 
 export interface IMyAuctionFilters {
