@@ -1,14 +1,13 @@
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService } from '@core/services';
 import type { ForgotPasswordRequest } from '@core/models';
+import { AuthService } from '@core/services';
 import { resolveHttpError } from '@features/auth/utils';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { finalize } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-forgot-password',
@@ -22,7 +21,6 @@ export class ForgotPasswordPage {
   private readonly authService = inject(AuthService);
   private readonly popup = inject(PopupService);
   private readonly transloco = inject(TranslocoService);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly isLoading = signal(false);
 
@@ -30,7 +28,7 @@ export class ForgotPasswordPage {
     email: ['', [Validators.required, Validators.email]],
   });
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -39,20 +37,15 @@ export class ForgotPasswordPage {
     if (this.isLoading()) return;
     this.isLoading.set(true);
 
-    const request: ForgotPasswordRequest = this.form.getRawValue();
-
-    this.authService
-      .forgotPassword(request)
-      .pipe(
-        finalize(() => this.isLoading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => this.openSuccessPopup(),
-        error: (err: HttpErrorResponse) => {
-          this.form.controls.email.setErrors({ serverError: resolveHttpError(err) });
-        },
-      });
+    try {
+      const request: ForgotPasswordRequest = this.form.getRawValue();
+      await firstValueFrom(this.authService.forgotPassword(request));
+      this.openSuccessPopup();
+    } catch (err: unknown) {
+      if (err instanceof HttpErrorResponse) this.form.controls.email.setErrors({ serverError: resolveHttpError(err) });
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   private openSuccessPopup(): void {

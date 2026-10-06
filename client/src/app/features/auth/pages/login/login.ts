@@ -1,13 +1,12 @@
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { ButtonComponent, InputComponent } from '@app/shared';
 import { NotificationService, OAuthProvider, OAuthService } from '@core/index';
 import { AuthService } from '@core/services/auth.service';
 import type { LoginRequest } from '@core/models';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { finalize } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -22,7 +21,6 @@ export class LoginPage {
   private readonly oauthService = inject(OAuthService);
   private readonly notifications = inject(NotificationService);
   private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly isLoading = signal(false);
   readonly isOAuthLoading = signal<OAuthProvider | null>(null);
@@ -32,7 +30,7 @@ export class LoginPage {
     password: ['', Validators.required],
   });
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -42,40 +40,29 @@ export class LoginPage {
 
     this.isLoading.set(true);
 
-    const credentials: LoginRequest = this.form.getRawValue();
-
-    this.authService
-      .login(credentials)
-      .pipe(
-        finalize(() => this.isLoading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => this.router.navigate(['/']),
-        error: () => {
-          // HTTP error toast is handled globally by errorInterceptor
-        },
-      });
+    try {
+      const credentials: LoginRequest = this.form.getRawValue();
+      await firstValueFrom(this.authService.login(credentials));
+      void this.router.navigate(['/']);
+    } catch {
+      // HTTP error toast is handled globally by errorInterceptor
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
-  onOAuthLogin(provider: OAuthProvider): void {
+  async onOAuthLogin(provider: OAuthProvider): Promise<void> {
     if (this.isOAuthLoading()) return;
     this.isOAuthLoading.set(provider);
 
-    this.oauthService
-      .login(provider)
-      .pipe(
-        finalize(() => this.isOAuthLoading.set(null)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.notifications.success('AUTH.LOGIN.SUCCESS');
-          this.router.navigate(['/']);
-        },
-        error: () => {
-          // HTTP error toast is handled globally by errorInterceptor
-        },
-      });
+    try {
+      await firstValueFrom(this.oauthService.login(provider));
+      this.notifications.success('AUTH.LOGIN.SUCCESS');
+      void this.router.navigate(['/']);
+    } catch {
+      // HTTP error toast is handled globally by errorInterceptor
+    } finally {
+      this.isOAuthLoading.set(null);
+    }
   }
 }

@@ -7,19 +7,19 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink, Router } from '@angular/router';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
-import { AuthService } from '@core/services';
 import type { RegisterRequest } from '@core/models';
+import { AuthService } from '@core/services';
 import {
   passwordRepeatMatchValidator,
   resolveHttpError,
   strongPasswordValidators,
 } from '@features/auth/utils';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { finalize } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-register',
@@ -54,7 +54,7 @@ export class RegisterPage implements OnInit {
       );
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -63,21 +63,18 @@ export class RegisterPage implements OnInit {
     if (this.isLoading()) return;
     this.isLoading.set(true);
 
-    const { firstName, lastName, email, password, passwordRepeat } = this.form.getRawValue();
-    const request: RegisterRequest = { firstName, lastName, email, password, passwordRepeat };
+    try {
+      const { firstName, lastName, email, password, passwordRepeat } = this.form.getRawValue();
+      const request: RegisterRequest = { firstName, lastName, email, password, passwordRepeat };
 
-    this.authService
-      .register(request)
-      .pipe(
-        finalize(() => this.isLoading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => this.openInfoPopup(),
-        error: (err: HttpErrorResponse) => {
-          this.form.controls.email.setErrors({ serverError: resolveHttpError(err) });
-        },
-      });
+      await firstValueFrom(this.authService.register(request));
+      this.openInfoPopup();
+    } catch (err: unknown) {
+      if (err instanceof HttpErrorResponse) this.form.controls.email.setErrors({ serverError: resolveHttpError(err) });
+
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   private openInfoPopup(): void {
