@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonComponent, PaginationComponent } from '@app/shared';
 import type { PaginatedResponse } from '@core/models/paginated-response.model';
@@ -48,6 +48,7 @@ export class ActivityPage {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly transloco = inject(TranslocoService);
+  private readonly queryParams = toSignal(this.route.queryParamMap);
 
   readonly reloadRequests$ = new Subject<void>();
 
@@ -175,12 +176,13 @@ export class ActivityPage {
 
     // Reactively synchronize internal state whenever route query param inputs change
     effect(() => {
-      const tabVal = this.tabParam();
-      const pageVal = this.pageParam();
-      const searchVal = this.searchParam();
-      const statusVal = this.statusParam();
-      const categoryVal = this.categoryParam();
-      const sortVal = this.sortParam();
+      const qp = this.queryParams();
+      const tabVal = this.tabParam() || qp?.get('tab') || '';
+      const pageVal = this.pageParam() || qp?.get('page') || '';
+      const searchVal = this.searchParam() || qp?.get('search') || '';
+      const statusVal = this.statusParam() || qp?.get('status') || '';
+      const categoryVal = this.categoryParam() || qp?.get('category') || '';
+      const sortVal = this.sortParam() || qp?.get('sort') || '';
 
       const tab: ActivityTab = tabVal === 'bids' ? 'bids' : 'auctions';
       this.activeTab.set(tab);
