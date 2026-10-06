@@ -66,7 +66,7 @@ export class AuctionsService {
       .pipe(map((response) => response.data));
   }
 
-  getMyAuctions(params?: MyAuctionFilters | number, limit = 10): Observable<PaginatedResponse<MyAuction>> {
+  getMyAuctions(params?: MyAuctionFilters | number, limit = 12): Observable<PaginatedResponse<MyAuction>> {
     return this.api
       .get<PaginatedResponse<MyAuction>>(
         '/auctions/my/auctions',

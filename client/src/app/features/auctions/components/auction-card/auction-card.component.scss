@@ -12,6 +12,7 @@
   border-radius: $radius-md;
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
   transition:
     transform $transition-fast,
     box-shadow $transition-fast,
@@ -21,6 +22,11 @@
     transform: translateY(-$spacing-2xs);
     border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
     box-shadow: var(--shadow-md);
+  }
+
+  &:focus-visible {
+    outline: $focus-ring-width solid var(--color-primary);
+    outline-offset: $focus-ring-offset;
   }
 
   &__image-wrap {
@@ -73,6 +79,12 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+
+  &__seller {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-top: $spacing-xs;
   }
 
   &__footer {

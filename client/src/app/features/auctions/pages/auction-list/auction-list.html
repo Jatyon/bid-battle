@@ -34,7 +34,7 @@
             } @else {
             <div class="auction-results__heading">
                 <p>{{ t('AUCTIONS.PAGE.RESULT_COUNT', { count: pageData()?.total ?? 0 }) }}</p>
-                <span>{{ t('AUCTIONS.PAGE.PAGE_COUNT', { page: page(), pages: totalPages }) }}</span>
+                <span>{{ t('AUCTIONS.PAGE.PAGE_COUNT', { page: page(), pages: totalPages() }) }}</span>
             </div>
 
             <div class="auction-grid">
@@ -43,12 +43,16 @@
                 }
             </div>
 
-            <app-pagination
-                [page]="page()"
-                [totalPages]="totalPages"
-                [ariaLabel]="t('AUCTIONS.PAGINATION.LABEL')"
-                (pageChange)="goToPage($event)"
-            />
+            @defer (on viewport) {
+                <app-pagination
+                    [page]="page()"
+                    [totalPages]="totalPages()"
+                    [ariaLabel]="t('AUCTIONS.PAGINATION.LABEL')"
+                    (pageChange)="goToPage($event)"
+                />
+            } @placeholder {
+                <div class="pagination-placeholder"></div>
+            }
             }
         </section>
     </main>
