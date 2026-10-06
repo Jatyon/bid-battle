@@ -2,10 +2,11 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@env/environment';
-import { Language } from '@core/enums';
 import { User, UpdateProfileRequest } from '@core/models';
+import { Language } from '@core/enums';
 import { createUserFixture } from '@test/fixtures/user.fixtures';
-import { ProfilePreferences, ProfileService } from './profile.service';
+import { ProfileService } from './profile.service';
+import { ProfilePreferences } from '../models';
 
 const BASE_URL = environment.apiUrl;
 
