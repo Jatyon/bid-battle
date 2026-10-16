@@ -22,11 +22,28 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status !== 401) return throwError(() => error);
 
+      // If another concurrent request already refreshed the access token while this request
+      // was in-flight, immediately retry with the newer token instead of refreshing again.
+      const currentToken = tokenService.accessToken();
+      const authHeader = req.headers.get('Authorization');
+      const reqToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+      if (currentToken && reqToken && currentToken !== reqToken) {
+        const retried = req.clone({
+          setHeaders: { Authorization: `Bearer ${currentToken}` },
+          context: req.context.set(SKIP_REFRESH_ON_401, true),
+        });
+        return next(retried);
+      }
+
       if (tokenService.isRefreshing()) {
         return tokenService.waitForToken().pipe(
           switchMap((newToken) => {
             if (!newToken) return throwError(() => error);
-            const retried = req.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } });
+            const retried = req.clone({
+              setHeaders: { Authorization: `Bearer ${newToken}` },
+              context: req.context.set(SKIP_REFRESH_ON_401, true),
+            });
             return next(retried);
           }),
         );
@@ -43,6 +60,7 @@ export const refreshInterceptor: HttpInterceptorFn = (req, next) => {
 
           const retried = req.clone({
             setHeaders: { Authorization: `Bearer ${accessToken}` },
+            context: req.context.set(SKIP_REFRESH_ON_401, true),
           });
           return next(retried);
         }),

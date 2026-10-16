@@ -1,6 +1,6 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRouteSnapshot, Router } from '@angular/router';
 import {
   User,
   AuthTokens,
@@ -12,10 +12,12 @@ import {
   ResendVerificationRequest,
   ChangePasswordRequest,
 } from '@core/models';
+import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
+import { SocketService } from './socket/socket.service';
 import { StorageService } from './storage.service';
 import { TokenService } from './token.service';
 import { ApiService } from './api.service';
-import { Observable, map, noop, tap } from 'rxjs';
+import { Observable, catchError, map, noop, tap, throwError } from 'rxjs';
 
 interface AuthState {
   user: User | null;
@@ -39,6 +41,8 @@ export class AuthService {
   private readonly tokenService = inject(TokenService);
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);
+  private readonly socketService = inject(SocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly state = signal<AuthState>({
     user: this.storage.getJson<User>(STORAGE_USER_KEY),
@@ -60,6 +64,7 @@ export class AuthService {
     this.tokenService.setAccessToken(accessToken);
     this.storage.setJson(STORAGE_USER_KEY, user);
     this.state.update((s) => ({ ...s, user }));
+    this.socketService.reconnectAll();
   }
 
   /**
@@ -124,12 +129,46 @@ export class AuthService {
    * `accessToken` has been lost.
    */
   silentRefresh(): Observable<boolean> {
+    if (this.tokenService.isRefreshing?.())
+      return this.tokenService.waitForToken().pipe(map((token) => !!token));
+
+    this.tokenService.startRefresh?.();
+
     return this.api.post<AuthTokens>('/auth/refresh', {}, SKIP_REFRESH_CONTEXT).pipe(
       map((response) => {
-        this.refreshAccessToken(response.data.accessToken);
+        const { accessToken } = response.data;
+        this.tokenService.resolveRefresh?.(accessToken);
+        this.refreshAccessToken(accessToken);
         return true;
       }),
+      catchError((error) => {
+        this.tokenService.rejectRefresh?.();
+        return throwError(() => error);
+      }),
     );
+  }
+
+  /**
+   * Checks whether the currently active route hierarchy requires authentication.
+   * Traverses the active route snapshot hierarchy looking for:
+   *  - `data.requiresAuth: true`
+   *  - route configurations with `canActivate` containing `authGuard`
+   */
+  isCurrentRouteProtected(): boolean {
+    return this.isRouteProtected(this.router.routerState.snapshot?.root);
+  }
+
+  private isRouteProtected(route?: ActivatedRouteSnapshot | null): boolean {
+    if (!route) return false;
+    if (route.data?.['requiresAuth']) return true;
+    if (
+      route.routeConfig?.canActivate?.some(
+        (guard) => typeof guard === 'function' && guard.name === 'authGuard',
+      )
+    ) {
+      return true;
+    }
+    return route.children.some((child) => this.isRouteProtected(child));
   }
 
   /**
@@ -140,7 +179,13 @@ export class AuthService {
    * regardless of whether the API call succeeds, so the user is never
    * stuck in a half-logged-in state due to a network error.
    *
-   * @param redirect  When true (default) navigates to /auth/login after clearing state.
+   * When `redirect` is true (default):
+   *  - If the user is on a protected route (e.g. /profile, /sell, /activity),
+   *    they are redirected to /auth/login.
+   *  - If the user is on a public route (e.g. /auctions/:id, /), they remain
+   *    on the current page as a guest.
+   *
+   * @param redirect  When true (default) navigates to /auth/login if current route is protected.
    */
   logout(redirect = true): void {
     this.tokenService.clearAccessToken();
@@ -150,10 +195,19 @@ export class AuthService {
     // Fire-and-forget — invalidates the HttpOnly refresh-token cookie server-side.
     // Errors are intentionally swallowed: the local session is already gone and
     // there is nothing the user or the app can do about a failed logout request.
-    this.api.post('/auth/logout', {}).subscribe({
+    this.api.post('/auth/logout', {}).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: noop,
     });
 
-    if (redirect) this.router.navigate(['/auth/login']);
+    const isProtected = this.isCurrentRouteProtected();
+
+    if (isProtected) {
+      this.socketService.disconnectSockets();
+      if (redirect) {
+        void this.router.navigate(['/auth/login']);
+      }
+    } else {
+      this.socketService.reconnectAll();
+    }
   }
 }

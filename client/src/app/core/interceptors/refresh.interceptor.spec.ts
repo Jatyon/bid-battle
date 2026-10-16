@@ -180,4 +180,29 @@ describe('refreshInterceptor', () => {
       expect(capturedStatus).toBe(401);
     });
   });
+
+  describe('concurrent refresh race condition', () => {
+    it('should immediately retry with new token without calling startRefresh if token was already refreshed', () => {
+      tokenService.accessToken.mockReturnValue('already-refreshed-token');
+      tokenService.isRefreshing.mockReturnValue(false);
+
+      let response: unknown;
+      http
+        .get('/api/data', { headers: { Authorization: 'Bearer stale-token' } })
+        .subscribe((res) => (response = res));
+
+      httpMock
+        .expectOne('/api/data')
+        .flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
+
+      const retried = httpMock.expectOne('/api/data');
+      expect(retried.request.headers.get('Authorization')).toBe('Bearer already-refreshed-token');
+      expect(retried.request.context.get(SKIP_REFRESH_ON_401)).toBe(true);
+      retried.flush({ raceResolved: true });
+
+      expect(response).toEqual({ raceResolved: true });
+      expect(tokenService.startRefresh).not.toHaveBeenCalled();
+      expect(apiService.post).not.toHaveBeenCalled();
+    });
+  });
 });

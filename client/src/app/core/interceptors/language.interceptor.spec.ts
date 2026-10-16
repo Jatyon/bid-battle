@@ -1,6 +1,6 @@
 import { HttpRequest, HttpResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { LanguageService } from '@core/services/language.service';
+import { LanguageService } from '@core/services';
 import { Language } from '@core/enums';
 import { languageInterceptor } from './language.interceptor';
 import { firstValueFrom, of } from 'rxjs';

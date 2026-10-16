@@ -2,7 +2,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { AuthService, TokenService } from '@core/index';
-import { catchError, map, throwError } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 
 /**
  * Protects routes that require an authenticated user.
@@ -16,7 +16,7 @@ import { catchError, map, throwError } from 'rxjs';
  *     to /auth/login on failure (expired / missing cookie).
  *  3. Neither token nor user → user was never logged in → redirect to /auth/login.
  */
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (_, state) => {
   const authService = inject(AuthService);
   const tokenService = inject(TokenService);
   const platformId = inject(PLATFORM_ID);
@@ -26,14 +26,19 @@ export const authGuard: CanActivateFn = () => {
 
   if (authService.isAuthenticated()) return true;
 
-  if (!authService.currentUser()) return router.createUrlTree(['/auth/login']);
+  if (!authService.currentUser())
+    return router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } });
 
   return authService.silentRefresh().pipe(
-    map((success) => (success ? true : router.createUrlTree(['/auth/login']))),
-    catchError((refreshError) => {
+    map((success) =>
+      success
+        ? true
+        : router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } }),
+    ),
+    catchError(() => {
       tokenService.rejectRefresh();
-      authService.logout();
-      return throwError(() => refreshError);
+      authService.logout(false);
+      return of(router.createUrlTree(['/auth/login'], { queryParams: { returnUrl: state.url } }));
     }),
   );
 };

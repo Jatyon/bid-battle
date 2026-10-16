@@ -1,6 +1,6 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { LanguageService } from '@core/services/language.service';
+import { LanguageService } from '@core/services';
 
 /**
  * Sends the active UI language to the API so backend i18n matches the frontend.
