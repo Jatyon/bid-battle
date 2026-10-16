@@ -280,4 +280,39 @@ describe('MailService', () => {
       });
     });
   });
+
+  describe('sendAuctionOutbidEmail', () => {
+    it('should correctly build context and call sendBulkEmail', async () => {
+      const email = 'outbid@example.com';
+      const lang = 'en';
+      const userName = 'John Doe';
+      const auctionTitle = 'Vintage Watch';
+      const newPrice = 300;
+      const auctionId = 42;
+
+      jest.spyOn(i18nService, 't').mockReturnValue('Translated subject - Auction Outbid');
+      jest.spyOn(service as any, 'getFooterTranslations').mockReturnValue({ rights: 'All rights reserved' });
+      const sendBulkSpy = jest.spyOn(service as any, 'sendBulkEmail').mockResolvedValue(undefined);
+
+      await service.sendAuctionOutbidEmail(email, lang, userName, auctionTitle, newPrice, auctionId);
+
+      expect(i18nService.t).toHaveBeenCalledWith('mail.subjects.auction-outbid', { lang });
+      expect(service['getFooterTranslations']).toHaveBeenCalledWith(lang);
+
+      expect(sendBulkSpy).toHaveBeenCalledWith({
+        to: email,
+        subject: 'Translated subject - Auction Outbid',
+        template: `./${lang}/auction-outbid`,
+        context: {
+          appName: mockConfig.app.name,
+          appUrl: mockConfig.app.frontendHost,
+          footer: { rights: 'All rights reserved' },
+          userName,
+          auctionTitle,
+          newPrice,
+          auctionUrl: `${mockConfig.app.frontendHost}/auctions/${auctionId}`,
+        },
+      });
+    });
+  });
 });
