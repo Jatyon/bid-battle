@@ -196,10 +196,10 @@ describe('WsJwtGuard', () => {
       expect(client.data.user).toBeUndefined();
     });
 
-    it('should throw WsException and clear client.data.user when authService user validation returns null', async () => {
+    it('should throw WsException and clear client.data.user when authService session validation fails', async () => {
       const client = createMockSocket('Bearer valid-token', mockUserPayload);
       jwtService.verifyAsync.mockResolvedValue(mockPayload);
-      authService.validateJwtUser.mockResolvedValue(null as never);
+      authService.validateJwtSession.mockRejectedValue(new Error('Session revoked'));
 
       await expect(guard.revalidateSocket(client)).rejects.toThrow(WsException);
       expect(client.data.user).toBeUndefined();
@@ -208,7 +208,7 @@ describe('WsJwtGuard', () => {
     it('should attach payload to client.data.user and return it on successful deep validation', async () => {
       const client = createMockSocket('Bearer valid-token');
       jwtService.verifyAsync.mockResolvedValue(mockPayload);
-      authService.validateJwtUser.mockResolvedValue(mockUserPayload as never);
+      authService.validateJwtSession.mockResolvedValue(undefined);
 
       const result = await guard.revalidateSocket(client);
 

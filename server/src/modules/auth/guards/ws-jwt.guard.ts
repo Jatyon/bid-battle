@@ -80,9 +80,9 @@ export class WsJwtGuard implements CanActivate {
   }
 
   /**
-   * Deeply re-validates the JWT token and the user's existence in the database.
-   * Essential for sensitive operations (like placing bids) to ensure the session
-   * hasn't been revoked (e.g., after a password change) while the socket remained open.
+   * Re-validates the JWT token in-memory and checks session revocation via Redis Cache.
+   * Essential for high-frequency sensitive operations (like placing bids) to ensure the session
+   * hasn't been revoked (e.g., after a password change) without querying MySQL.
    *
    * @param client - The socket instance to re-validate.
    * @returns The fresh JWT payload.
@@ -106,9 +106,9 @@ export class WsJwtGuard implements CanActivate {
       throw new WsException(await this.i18n.translate('auth.errors.invalid_token', { lang }));
     }
 
-    const user = await this.authService.validateJwtUser(payload);
-
-    if (!user) {
+    try {
+      await this.authService.validateJwtSession(payload);
+    } catch {
       client.data.user = undefined;
       throw new WsException(await this.i18n.translate('error.Unauthorized', { lang }));
     }
@@ -140,13 +140,15 @@ export class WsJwtGuard implements CanActivate {
    * @returns The extracted token string or null.
    */
   private extractTokenFromHandshake(client: IAuthSocket): string | null {
+    const authPayloadToken = client.handshake.auth?.token as string | undefined;
+
+    if (authPayloadToken) return authPayloadToken;
+
     const authHeader = client.handshake.headers?.authorization;
 
-    if (authHeader && typeof authHeader === 'string') {
-      const [type, token] = authHeader.split(' ');
-      return type === 'Bearer' ? token : null;
-    }
+    if (!authHeader) return null;
 
-    return null;
+    const [type, token] = authHeader.split(' ');
+    return type === 'Bearer' ? token : null;
   }
 }
