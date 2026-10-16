@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { AppConfigService } from '@config/config.service';
-import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData, IMailAuctionWinner, IMailAuctionOwner, IMailEmailVerification } from './interfaces';
+import { IMailFooter, IMailOptions, IMailForgotPassword, IMailUserData, IMailAuctionWinner, IMailAuctionOwner, IMailAuctionOutbid, IMailEmailVerification } from './interfaces';
 import { MAIL_QUEUE } from './mail.constants';
 import { MailContext } from './types';
 import { JobName } from './enums';
@@ -127,6 +127,28 @@ export class MailService {
       to: email,
       subject,
       template: `./${lang}/auction-owner`,
+      context,
+    });
+  }
+
+  async sendAuctionOutbidEmail(email: string, lang: string, userName: string, auctionTitle: string, newPrice: number, auctionId: number): Promise<void> {
+    const subject = this.i18n.t('mail.subjects.auction-outbid', { lang });
+    const footerTranslations = this.getFooterTranslations(lang);
+
+    const context: MailContext<IMailAuctionOutbid> = {
+      appName: this.appName,
+      appUrl: this.appUrl,
+      footer: footerTranslations,
+      userName,
+      auctionTitle,
+      newPrice,
+      auctionUrl: `${this.appUrl}/auctions/${auctionId}`,
+    };
+
+    await this.sendBulkEmail({
+      to: email,
+      subject,
+      template: `./${lang}/auction-outbid`,
       context,
     });
   }
