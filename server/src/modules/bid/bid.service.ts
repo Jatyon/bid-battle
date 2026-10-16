@@ -2,11 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '@config/config.service';
 import { PaginatorResponse } from '@core/models';
 import { Language } from '@core/enums';
+import { UsersService, UserPreferencesService } from '@modules/users';
 import { RedisService, BidRejectionCode } from '@shared/redis';
+import { MailService } from '@shared/mail';
 import { IAuctionState, IBidResult, IMyBidFilters } from './interfaces';
 import { BidRepository } from './repositories/bid.repository';
 import { GetMyBidsQueryDto, MyBidResponse } from './dto';
 import { calcMinIncrement } from './bid.constants';
+import { Bid } from './entities';
 import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
@@ -18,6 +21,9 @@ export class BidService {
     private readonly redisService: RedisService,
     private readonly i18n: I18nService,
     private readonly configService: AppConfigService,
+    private readonly usersService: UsersService,
+    private readonly userPreferencesService: UserPreferencesService,
+    private readonly mailService: MailService,
   ) {}
 
   /**
@@ -65,10 +71,11 @@ export class BidService {
     try {
       if (amount <= 0 || !Number.isFinite(amount)) return this.fail('INVALID_AMOUNT', 'bid.error.invalid_amount', lang);
 
-      const [ownerIdFromRedis, isActive, currentPrice] = await Promise.all([
+      const [ownerIdFromRedis, isActive, currentPrice, highestBidderId] = await Promise.all([
         this.redisService.getAuctionOwner(auctionId),
         this.redisService.isAuctionActive(auctionId),
         this.redisService.getLivePrice(auctionId),
+        this.redisService.getHighestBidderId(auctionId),
       ]);
 
       if (ownerIdFromRedis === null) {
@@ -80,29 +87,25 @@ export class BidService {
 
       if (!isActive) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended', lang);
 
-      const { minIncrementPercent, minIncrementAbsolute } = this.configService.bid;
-      const minIncrement = calcMinIncrement(currentPrice ?? 0, minIncrementPercent, minIncrementAbsolute);
+      const minIncrement = calcMinIncrement(currentPrice ?? 0);
+      const isFirstBid = highestBidderId === null;
+      const minRequired = isFirstBid ? (currentPrice ?? 0) : (currentPrice ?? 0) + minIncrement;
 
-      if (currentPrice !== null && amount < currentPrice + minIncrement)
+      if (currentPrice !== null && amount < minRequired)
         return {
           success: false,
-          reason: await this.i18n.translate('bid.error.bid_too_low_#minBid', { lang, args: { minBid: currentPrice + minIncrement } }),
+          reason: await this.i18n.translate('bid.error.bid_too_low_#minBid', { lang, args: { minBid: minRequired } }),
           code: 'BID_TOO_LOW',
           currentPrice,
-          minNextBid: currentPrice + minIncrement,
+          minNextBid: minRequired,
         };
 
       const atomicResult = await this.redisService.placeBidAtomicWithSnapshot(auctionId, userId, amount, minIncrement);
 
       if (atomicResult.success) {
+        let savedBid: Bid;
         try {
-          await this.bidRepository.save(
-            this.bidRepository.create({
-              auctionId,
-              userId,
-              amount,
-            }),
-          );
+          savedBid = await this.bidRepository.saveBidAndUpdateAuctionPrice(auctionId, userId, amount);
         } catch (dbError) {
           this.logger.error(`DB save failed after atomic bid — rolling back Redis for auction ${auctionId}`, dbError instanceof Error ? dbError.stack : String(dbError));
 
@@ -111,29 +114,33 @@ export class BidService {
         }
 
         this.logger.log(`Bid placed: auction=${auctionId}, user=${userId}, amount=${amount}`);
-        return { success: true };
+        return { success: true, bid: savedBid, previousBidderId: atomicResult.data.previousBidderId };
       }
 
       const { rejectionCode } = atomicResult;
 
       if (rejectionCode === BidRejectionCode.ALREADY_LEADING) {
-        const newCurrentPrice = await this.redisService.getLivePrice(auctionId);
+        const newCurrentPrice = atomicResult.currentPrice ?? (await this.redisService.getLivePrice(auctionId));
+        const nextMin = newCurrentPrice ? newCurrentPrice + calcMinIncrement(newCurrentPrice) : undefined;
         return {
           success: false,
           reason: await this.i18n.translate('bid.error.already_leading', { lang }),
           code: 'ALREADY_LEADING',
           currentPrice: newCurrentPrice ?? undefined,
+          minNextBid: nextMin,
         };
       }
 
       if (rejectionCode === BidRejectionCode.AUCTION_INACTIVE) return this.fail('AUCTION_ENDED', 'bid.error.auction_ended', lang);
 
-      const newCurrentPrice = await this.redisService.getLivePrice(auctionId);
+      const newCurrentPrice = atomicResult.currentPrice ?? (await this.redisService.getLivePrice(auctionId));
+      const nextMin = newCurrentPrice ? newCurrentPrice + calcMinIncrement(newCurrentPrice) : undefined;
       return {
         success: false,
         reason: await this.i18n.translate('bid.error.outbid', { lang }),
         code: 'OUTBID',
         currentPrice: newCurrentPrice ?? undefined,
+        minNextBid: nextMin,
       };
     } catch (error) {
       this.logger.error(`Error placing bid: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
@@ -156,7 +163,7 @@ export class BidService {
         this.redisService.getLivePrice(auctionId),
         this.redisService.getHighestBidderId(auctionId),
         this.redisService.isAuctionActive(auctionId),
-        this.redisService.getAuctionParticipantsCount(auctionId),
+        this.redisService.getUniqueParticipantsCount(auctionId),
       ]);
 
       const isLeading = requestingUserId !== undefined && highestBidderId === requestingUserId;
@@ -174,6 +181,34 @@ export class BidService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Handles asynchronous email notification to the outbid user.
+   * Respects user notification preferences and enforces an anti-spam cooldown window in Redis.
+   *
+   * @param auctionId - The ID of the auction
+   * @param previousBidderId - The ID of the user who was outbid
+   * @param newAmount - The new highest bid amount
+   * @param auctionTitle - Optional title of the auction
+   */
+  async handleOutbidEmailNotification(auctionId: number, previousBidderId: number, newAmount: number, auctionTitle?: string): Promise<void> {
+    const prefs = await this.userPreferencesService.findOrCreateByUserId(previousBidderId);
+    if (!prefs.notifyOnOutbid) return;
+
+    // Check rate limit / cooldown in Redis (10 minutes)
+    const acquired = await this.redisService.acquireOutbidEmailCooldown(auctionId, previousBidderId, 600);
+    if (!acquired) {
+      this.logger.log(`Outbid email cooldown active for user ${previousBidderId} on auction ${auctionId} — skipping email`);
+      return;
+    }
+
+    const previousUser = await this.usersService.findOneBy({ id: previousBidderId });
+    if (!previousUser || !previousUser.email) return;
+
+    const title = auctionTitle ?? `Auction #${auctionId}`;
+    await this.mailService.sendAuctionOutbidEmail(previousUser.email, prefs.lang, previousUser.concatName, title, newAmount, auctionId);
+    this.logger.log(`Outbid email queued for user ${previousBidderId} on auction ${auctionId}`);
   }
 
   /**
