@@ -82,6 +82,15 @@ describe('AuctionEndProcessor', () => {
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
 
     jest.clearAllMocks();
+
+    redisService.closeAuctionAtomic.mockImplementation(async (auctionId: number) => {
+      const price = await redisService.getLivePrice(auctionId);
+      if (price === null) {
+        return { wasActive: false, finalPrice: null, winnerId: null };
+      }
+      const bidderId = await redisService.getHighestBidderId(auctionId);
+      return { wasActive: true, finalPrice: price, winnerId: bidderId };
+    });
   });
 
   it('should be defined', () => {
@@ -89,8 +98,12 @@ describe('AuctionEndProcessor', () => {
   });
 
   describe('when Redis has no data for the auction (already cleaned up)', () => {
-    it('should skip processing and warn when getLivePrice returns null', async () => {
-      redisService.getLivePrice.mockResolvedValue(null);
+    it('should skip processing and warn when closeAuctionAtomic returns finalPrice=null', async () => {
+      redisService.closeAuctionAtomic.mockResolvedValue({
+        wasActive: false,
+        finalPrice: null,
+        winnerId: null,
+      });
 
       await processor.process(createJob(1));
 

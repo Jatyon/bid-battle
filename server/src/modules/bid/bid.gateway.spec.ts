@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 import { AppConfigService } from '@config/config.service';
 import { Language } from '@core/enums';
+import { createAuctionFixture } from '@test/fixtures/auctions.fixtures';
 import { createMockI18nService } from '@test/mocks/i18n.mock';
 import { AuthService, IAuthJwtPayload, IAuthSocket } from '@modules/auth';
 import { WsJwtGuard } from '@modules/auth/guards/ws-jwt.guard';
@@ -11,8 +12,10 @@ import { UsersService } from '@modules/users';
 import { RedisService } from '@shared/redis';
 import { IAuctionState, IBidResult } from './interfaces';
 import { AuctionIdDto, PlaceBidDto } from './dto';
+import { BidSocketEvent } from './enums';
 import { BidGateway } from './bid.gateway';
 import { BidService } from './bid.service';
+import { Bid } from './entities';
 import { createMock, DeepMocked } from '@golevelup/ts-jest';
 
 const createMockClient = (overrides: Partial<IAuthSocket['data']> = {}): DeepMocked<IAuthSocket> => {
@@ -23,6 +26,17 @@ const createMockClient = (overrides: Partial<IAuthSocket['data']> = {}): DeepMoc
 };
 
 const mockUser: IAuthJwtPayload = { sub: 1, email: 'user@test.com' };
+
+const createMockBid = (overrides?: Partial<Bid>): Bid =>
+  ({
+    id: 1,
+    amount: 500,
+    auctionId: 10,
+    userId: mockUser.sub,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }) as Bid;
 
 describe('BidGateway', () => {
   let gateway: BidGateway;
@@ -129,12 +143,13 @@ describe('BidGateway', () => {
       expect(redisService.deleteSocketAuction).toHaveBeenCalledWith(mockUser.sub, client.id);
     });
 
-    it('should skip Redis cleanup and log when guest disconnects from an auction room', async () => {
+    it('should clean up room presence and log when guest disconnects from an auction room', async () => {
       const client = createMockClient({ auctionId: 5 });
 
       await gateway['onClientDisconnect'](client);
 
-      expect(redisService.removeUserFromAuctionRoom).not.toHaveBeenCalled();
+      expect(redisService.removeUserFromAuctionRoom).toHaveBeenCalledWith(5, client.id);
+      expect(redisService.deleteSocketAuction).not.toHaveBeenCalled();
     });
 
     it('should log error and not throw when Redis cleanup fails', async () => {
@@ -150,17 +165,17 @@ describe('BidGateway', () => {
   describe('handleJoinAuction', () => {
     const data: AuctionIdDto = { auctionId: 10 };
 
-    it('should emit exception when auction is not active', async () => {
+    it('should emit auction:ended when auction is not active', async () => {
       const client = createMockClient({ user: mockUser });
       redisService.isAuctionActive.mockResolvedValue(false);
 
       await gateway.handleJoinAuction(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('exception', expect.objectContaining({ code: 'AUCTION_NOT_ACTIVE' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.AUCTION_ENDED, expect.objectContaining({ auctionId: 10 }));
       expect(client.join).not.toHaveBeenCalled();
     });
 
-    it('should join auction room and emit joined:auction for a guest', async () => {
+    it('should join auction room, track presence in Redis, and emit joined:auction for a guest', async () => {
       const client = createMockClient();
       redisService.isAuctionActive.mockResolvedValue(true);
 
@@ -168,8 +183,9 @@ describe('BidGateway', () => {
 
       expect(client.join).toHaveBeenCalledWith('auction_room_10');
       expect(client.data.auctionId).toBe(10);
-      expect(client.emit).toHaveBeenCalledWith('joined:auction', expect.objectContaining({ auctionId: 10 }));
-      expect(redisService.addUserToAuctionRoom).not.toHaveBeenCalled();
+      expect(redisService.addUserToAuctionRoom).toHaveBeenCalledWith(10, client.id, client.id);
+      expect(redisService.setSocketAuction).not.toHaveBeenCalled();
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.JOINED_AUCTION, expect.objectContaining({ auctionId: 10 }));
     });
 
     it('should join room, register in Redis, and emit joined:auction for authenticated user', async () => {
@@ -183,7 +199,7 @@ describe('BidGateway', () => {
       expect(client.join).toHaveBeenCalledWith('auction_room_10');
       expect(redisService.addUserToAuctionRoom).toHaveBeenCalledWith(10, client.id, mockUser.sub);
       expect(redisService.setSocketAuction).toHaveBeenCalledWith(mockUser.sub, client.id, 10);
-      expect(client.emit).toHaveBeenCalledWith('joined:auction', expect.objectContaining({ auctionId: 10 }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.JOINED_AUCTION, expect.objectContaining({ auctionId: 10 }));
     });
 
     it('should leave previous room and clean up Redis before joining new auction', async () => {
@@ -218,7 +234,7 @@ describe('BidGateway', () => {
 
       await gateway.handleJoinAuction(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('exception', expect.objectContaining({ code: 'JOIN_AUCTION_ERROR' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.EXCEPTION, expect.objectContaining({ code: 'JOIN_AUCTION_ERROR' }));
       expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
@@ -246,17 +262,18 @@ describe('BidGateway', () => {
       expect(client.data.auctionId).toBeUndefined();
       expect(redisService.removeUserFromAuctionRoom).toHaveBeenCalledWith(10, client.id);
       expect(redisService.deleteSocketAuction).toHaveBeenCalledWith(mockUser.sub, client.id);
-      expect(client.emit).toHaveBeenCalledWith('left:auction', expect.objectContaining({ auctionId: 10 }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.LEFT_AUCTION, expect.objectContaining({ auctionId: 10 }));
     });
 
-    it('should leave room and emit left:auction for guest without touching Redis', async () => {
+    it('should leave room, remove presence from Redis, and emit left:auction for guest', async () => {
       const client = createMockClient();
 
       await gateway.handleLeaveAuction(data, client);
 
       expect(client.leave).toHaveBeenCalledWith('auction_room_10');
-      expect(redisService.removeUserFromAuctionRoom).not.toHaveBeenCalled();
-      expect(client.emit).toHaveBeenCalledWith('left:auction', expect.objectContaining({ auctionId: 10 }));
+      expect(redisService.removeUserFromAuctionRoom).toHaveBeenCalledWith(10, client.id);
+      expect(redisService.deleteSocketAuction).not.toHaveBeenCalled();
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.LEFT_AUCTION, expect.objectContaining({ auctionId: 10 }));
     });
 
     it('should emit exception when an unexpected error occurs', async () => {
@@ -265,7 +282,7 @@ describe('BidGateway', () => {
 
       await gateway.handleLeaveAuction(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('exception', expect.objectContaining({ code: 'LEAVE_AUCTION_ERROR' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.EXCEPTION, expect.objectContaining({ code: 'LEAVE_AUCTION_ERROR' }));
     });
   });
 
@@ -278,7 +295,7 @@ describe('BidGateway', () => {
 
       await gateway.handleRejoinAuction(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('auction:ended', expect.objectContaining({ auctionId: 10 }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.AUCTION_ENDED, expect.objectContaining({ auctionId: 10 }));
       expect(client.join).not.toHaveBeenCalled();
     });
 
@@ -297,10 +314,10 @@ describe('BidGateway', () => {
       expect(client.data.auctionId).toBe(10);
       expect(redisService.addUserToAuctionRoom).toHaveBeenCalledWith(10, client.id, mockUser.sub);
       expect(redisService.setSocketAuction).toHaveBeenCalledWith(mockUser.sub, client.id, 10);
-      expect(client.emit).toHaveBeenCalledWith('rejoined:auction', expect.objectContaining({ auctionId: 10 }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.REJOINED_AUCTION, expect.objectContaining({ auctionId: 10 }));
     });
 
-    it('should join room and emit rejoined:auction for guest (no Redis state update)', async () => {
+    it('should join room, track presence in Redis, and emit rejoined:auction for guest', async () => {
       const client = createMockClient();
       redisService.isAuctionActive.mockResolvedValue(true);
       wsJwtGuard.validateOptional.mockResolvedValue(null);
@@ -309,8 +326,9 @@ describe('BidGateway', () => {
       await gateway.handleRejoinAuction(data, client);
 
       expect(client.join).toHaveBeenCalledWith('auction_room_10');
-      expect(redisService.addUserToAuctionRoom).not.toHaveBeenCalled();
-      expect(client.emit).toHaveBeenCalledWith('rejoined:auction', expect.objectContaining({ auctionId: 10 }));
+      expect(redisService.addUserToAuctionRoom).toHaveBeenCalledWith(10, client.id, client.id);
+      expect(redisService.setSocketAuction).not.toHaveBeenCalled();
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.REJOINED_AUCTION, expect.objectContaining({ auctionId: 10 }));
     });
 
     it('should emit exception with REJOIN_AUCTION_ERROR when an unexpected error occurs', async () => {
@@ -319,7 +337,7 @@ describe('BidGateway', () => {
 
       await gateway.handleRejoinAuction(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('exception', expect.objectContaining({ code: 'REJOIN_AUCTION_ERROR' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.EXCEPTION, expect.objectContaining({ code: 'REJOIN_AUCTION_ERROR' }));
       expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
@@ -332,7 +350,7 @@ describe('BidGateway', () => {
 
       await gateway.handlePlaceBid(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('bid:rejected', expect.objectContaining({ code: 'UNAUTHORIZED' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.BID_REJECTED, expect.objectContaining({ code: 'UNAUTHORIZED' }));
       expect(bidService.placeBid).not.toHaveBeenCalled();
     });
 
@@ -342,7 +360,7 @@ describe('BidGateway', () => {
 
       await gateway.handlePlaceBid(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('bid:rejected', expect.objectContaining({ code: 'UNAUTHORIZED' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.BID_REJECTED, expect.objectContaining({ code: 'UNAUTHORIZED' }));
       expect(client.disconnect).toHaveBeenCalled();
       expect(bidService.placeBid).not.toHaveBeenCalled();
     });
@@ -353,7 +371,7 @@ describe('BidGateway', () => {
 
       await gateway.handlePlaceBid(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('bid:rejected', expect.objectContaining({ code: 'NOT_IN_AUCTION_ROOM' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.BID_REJECTED, expect.objectContaining({ code: 'NOT_IN_AUCTION_ROOM' }));
       expect(bidService.placeBid).not.toHaveBeenCalled();
     });
 
@@ -364,7 +382,7 @@ describe('BidGateway', () => {
 
       await gateway.handlePlaceBid(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('bid:rejected', expect.objectContaining({ code: 'NOT_IN_AUCTION_ROOM' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.BID_REJECTED, expect.objectContaining({ code: 'NOT_IN_AUCTION_ROOM' }));
       expect(bidService.placeBid).not.toHaveBeenCalled();
     });
 
@@ -385,7 +403,7 @@ describe('BidGateway', () => {
       await gateway.handlePlaceBid(data, client);
 
       expect(client.emit).toHaveBeenCalledWith(
-        'bid:rejected',
+        BidSocketEvent.BID_REJECTED,
         expect.objectContaining({
           code: 'BID_TOO_LOW',
           currentPrice: 400,
@@ -394,7 +412,7 @@ describe('BidGateway', () => {
       );
     });
 
-    it('should broadcast new:highest:bid to auction room on successful bid', async () => {
+    it('should broadcast new:highest:bid to auction room and emit to bidder on successful bid', async () => {
       const client = createMockClient({ user: mockUser, auctionId: 10 });
       wsJwtGuard.revalidateSocket.mockResolvedValue(mockUser);
       redisService.getSocketAuction.mockResolvedValue(10);
@@ -402,9 +420,64 @@ describe('BidGateway', () => {
 
       await gateway.handlePlaceBid(data, client);
 
-      expect(gateway.server.to).toHaveBeenCalledWith('auction_room_10');
-      expect(gateway.server.to('auction_room_10').emit).toHaveBeenCalledWith('new:highest:bid', expect.objectContaining({ auctionId: 10, amount: 500 }));
+      expect(client.broadcast.to).toHaveBeenCalledWith('auction_room_10');
+      expect(client.broadcast.to('auction_room_10').except).toHaveBeenCalledWith(`user:${mockUser.sub}`);
+      expect(client.broadcast.to('auction_room_10').except(`user:${mockUser.sub}`).emit).toHaveBeenCalledWith(
+        BidSocketEvent.NEW_HIGHEST_BID,
+        expect.objectContaining({ auctionId: 10, amount: 500 }),
+      );
+      expect(gateway.server.to).toHaveBeenCalledWith(`user:${mockUser.sub}`);
+      expect(gateway.server.to(`user:${mockUser.sub}`).emit).toHaveBeenCalledWith(BidSocketEvent.NEW_HIGHEST_BID, expect.objectContaining({ auctionId: 10, amount: 500 }));
       expect(Logger.prototype.log).toHaveBeenCalledWith(expect.stringContaining('New highest bid'));
+    });
+
+    it('should emit auction:outbid to previous leader and delegate outbid email notification to bidService', async () => {
+      const client = createMockClient({ user: mockUser, auctionId: 10 });
+      const previousBidderId = 42;
+      wsJwtGuard.revalidateSocket.mockResolvedValue(mockUser);
+      redisService.getSocketAuction.mockResolvedValue(10);
+      bidService.placeBid.mockResolvedValue({
+        success: true,
+        previousBidderId,
+        bid: createMockBid({
+          auction: createAuctionFixture({ title: 'Test Auction' }),
+        }),
+      });
+      bidService.handleOutbidEmailNotification.mockResolvedValue();
+
+      await gateway.handlePlaceBid(data, client);
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(gateway.server.to).toHaveBeenCalledWith(`user:${previousBidderId}`);
+      expect(gateway.server.to(`user:${previousBidderId}`).emit).toHaveBeenCalledWith(
+        BidSocketEvent.AUCTION_OUTBID,
+        expect.objectContaining({
+          auctionId: 10,
+          newAmount: 500,
+          auctionTitle: 'Test Auction',
+        }),
+      );
+      expect(bidService.handleOutbidEmailNotification).toHaveBeenCalledWith(10, previousBidderId, 500, 'Test Auction');
+    });
+
+    it('should log error when bidService.handleOutbidEmailNotification rejects', async () => {
+      const client = createMockClient({ user: mockUser, auctionId: 10 });
+      const previousBidderId = 42;
+      wsJwtGuard.revalidateSocket.mockResolvedValue(mockUser);
+      redisService.getSocketAuction.mockResolvedValue(10);
+      bidService.placeBid.mockResolvedValue({
+        success: true,
+        previousBidderId,
+        bid: createMockBid({
+          auction: createAuctionFixture({ title: 'Test Auction' }),
+        }),
+      });
+      bidService.handleOutbidEmailNotification.mockRejectedValue(new Error('Notification failed'));
+
+      await gateway.handlePlaceBid(data, client);
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Failed to handle outbid email notification: Notification failed'));
     });
 
     it('should emit bid:rejected with SERVER_ERROR when an unexpected error occurs', async () => {
@@ -414,18 +487,18 @@ describe('BidGateway', () => {
 
       await gateway.handlePlaceBid(data, client);
 
-      expect(client.emit).toHaveBeenCalledWith('bid:rejected', expect.objectContaining({ code: 'SERVER_ERROR' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.BID_REJECTED, expect.objectContaining({ code: 'SERVER_ERROR' }));
       expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
 
   describe('handleRequestCurrentState', () => {
-    it('should emit error state when client has no auctionId', async () => {
+    it('should emit error exception when client has no auctionId', async () => {
       const client = createMockClient({ user: mockUser });
 
       await gateway.handleRequestCurrentState(client);
 
-      expect(client.emit).toHaveBeenCalledWith('current:state', expect.objectContaining({ code: 'NOT_IN_AUCTION_ROOM' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.EXCEPTION, expect.objectContaining({ code: 'NOT_IN_AUCTION_ROOM' }));
       expect(bidService.getCurrentState).not.toHaveBeenCalled();
     });
 
@@ -443,7 +516,7 @@ describe('BidGateway', () => {
       await gateway.handleRequestCurrentState(client);
 
       expect(bidService.getCurrentState).toHaveBeenCalledWith(5, mockUser.sub);
-      expect(client.emit).toHaveBeenCalledWith('current:state', expect.objectContaining({ auctionId: 5, currentPrice: 300, isLeading: true }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.CURRENT_STATE, expect.objectContaining({ auctionId: 5, currentPrice: 300, isLeading: true }));
     });
 
     it('should emit current:state with auction data for guest (userId undefined)', async () => {
@@ -454,55 +527,147 @@ describe('BidGateway', () => {
       await gateway.handleRequestCurrentState(client);
 
       expect(bidService.getCurrentState).toHaveBeenCalledWith(5, undefined);
-      expect(client.emit).toHaveBeenCalledWith('current:state', expect.objectContaining({ auctionId: 5 }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.CURRENT_STATE, expect.objectContaining({ auctionId: 5 }));
     });
 
-    it('should emit error state and log when BidService throws', async () => {
+    it('should emit error exception and log when BidService throws', async () => {
       const client = createMockClient({ user: mockUser, auctionId: 5 });
       bidService.getCurrentState.mockRejectedValue(new Error('Service error'));
 
       await gateway.handleRequestCurrentState(client);
 
-      expect(client.emit).toHaveBeenCalledWith('current:state', expect.objectContaining({ code: 'GET_STATE_ERROR' }));
+      expect(client.emit).toHaveBeenCalledWith(BidSocketEvent.EXCEPTION, expect.objectContaining({ code: 'GET_STATE_ERROR' }));
       expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
 
   describe('notifyAuctionEnd', () => {
-    it('should broadcast auction:ended to the auction room', () => {
-      gateway.notifyAuctionEnd(10, 42, 500);
+    it('should broadcast auction:ended to the auction room', async () => {
+      await gateway.notifyAuctionEnd(10, 42, 500);
 
+      expect(redisService.cleanupAuction).toHaveBeenCalledWith(10);
       expect(gateway.server.to).toHaveBeenCalledWith('auction_room_10');
-      expect(gateway.server.to('auction_room_10').emit).toHaveBeenCalledWith('auction:ended', expect.objectContaining({ auctionId: 10, finalPrice: 500 }));
+      expect(gateway.server.to('auction_room_10').emit).toHaveBeenCalledWith(BidSocketEvent.AUCTION_ENDED, expect.objectContaining({ auctionId: 10, finalPrice: 500 }));
     });
 
-    it('should emit auction:won to the winner personal room when winnerId is provided', () => {
-      gateway.notifyAuctionEnd(10, 42, 500);
+    it('should emit auction:won to the winner personal room when winnerId is provided', async () => {
+      await gateway.notifyAuctionEnd(10, 42, 500);
 
       expect(gateway.server.to).toHaveBeenCalledWith('user:42');
-      expect(gateway.server.to('user:42').emit).toHaveBeenCalledWith('auction:won', expect.objectContaining({ auctionId: 10, finalPrice: 500 }));
+      expect(gateway.server.to('user:42').emit).toHaveBeenCalledWith(BidSocketEvent.AUCTION_WON, expect.objectContaining({ auctionId: 10, finalPrice: 500 }));
     });
 
-    it('should not emit auction:won when winnerId is undefined (no bids placed)', () => {
-      gateway.notifyAuctionEnd(10, undefined, 100);
+    it('should not emit auction:won when winnerId is undefined (no bids placed)', async () => {
+      await gateway.notifyAuctionEnd(10, undefined, 100);
 
       const toCalls = (gateway.server.to as jest.Mock).mock.calls.map(([arg]) => arg as string);
       expect(toCalls).not.toContain(expect.stringContaining('user:'));
     });
 
-    it('should log confirmation after successful notifications', () => {
-      gateway.notifyAuctionEnd(10, 42, 500);
+    it('should log confirmation after successful notifications', async () => {
+      await gateway.notifyAuctionEnd(10, 42, 500);
 
       expect(Logger.prototype.log).toHaveBeenCalledWith(expect.stringContaining('Auction 10 ended — notification sent'));
     });
 
-    it('should log error and not throw when server.to throws', () => {
+    it('should log error and not throw when server.to throws', async () => {
       (gateway.server.to as jest.Mock).mockImplementation(() => {
         throw new Error('Socket error');
       });
 
-      expect(() => gateway.notifyAuctionEnd(10, 42, 500)).not.toThrow();
+      await expect(gateway.notifyAuctionEnd(10, 42, 500)).resolves.not.toThrow();
       expect(Logger.prototype.error).toHaveBeenCalled();
+    });
+
+    it('should remove pending presence update when auction ends', async () => {
+      gateway.schedulePresenceUpdate(10);
+      expect(gateway['pendingPresenceUpdates'].has(10)).toBe(true);
+
+      await gateway.notifyAuctionEnd(10, 42, 500);
+
+      expect(gateway['pendingPresenceUpdates'].has(10)).toBe(false);
+    });
+  });
+
+  describe('Presence throttling and batching', () => {
+    it('should schedule presence update into pending set without immediate broadcast', () => {
+      gateway.schedulePresenceUpdate(15);
+      gateway.schedulePresenceUpdate(15);
+      gateway.schedulePresenceUpdate(20);
+
+      expect(gateway['pendingPresenceUpdates'].size).toBe(2);
+      expect(gateway['pendingPresenceUpdates'].has(15)).toBe(true);
+      expect(gateway['pendingPresenceUpdates'].has(20)).toBe(true);
+      expect(redisService.getUniqueParticipantsCount).not.toHaveBeenCalled();
+    });
+
+    it('should flush pending presence updates and broadcast PRESENCE_UPDATE to rooms', async () => {
+      redisService.getUniqueParticipantsCount.mockResolvedValueOnce(5).mockResolvedValueOnce(12);
+
+      gateway.schedulePresenceUpdate(10);
+      gateway.schedulePresenceUpdate(20);
+
+      await gateway.flushPresenceUpdates();
+
+      expect(redisService.getUniqueParticipantsCount).toHaveBeenCalledWith(10);
+      expect(redisService.getUniqueParticipantsCount).toHaveBeenCalledWith(20);
+      expect(gateway.server.to).toHaveBeenCalledWith('auction_room_10');
+      expect(gateway.server.to).toHaveBeenCalledWith('auction_room_20');
+      expect(gateway.server.to('auction_room_10').emit).toHaveBeenCalledWith(BidSocketEvent.PRESENCE_UPDATE, expect.objectContaining({ auctionId: 10, participantsCount: 5 }));
+      expect(gateway.server.to('auction_room_20').emit).toHaveBeenCalledWith(BidSocketEvent.PRESENCE_UPDATE, expect.objectContaining({ auctionId: 20, participantsCount: 12 }));
+      expect(gateway['pendingPresenceUpdates'].size).toBe(0);
+    });
+
+    it('should do nothing when flushPresenceUpdates is called with no pending updates', async () => {
+      await gateway.flushPresenceUpdates();
+
+      expect(redisService.getUniqueParticipantsCount).not.toHaveBeenCalled();
+      expect(gateway.server.to).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully during flush without throwing', async () => {
+      redisService.getUniqueParticipantsCount.mockRejectedValue(new Error('Redis connection lost'));
+
+      gateway.schedulePresenceUpdate(99);
+
+      await expect(gateway.flushPresenceUpdates()).resolves.not.toThrow();
+      expect(Logger.prototype.error).toHaveBeenCalledWith(expect.stringContaining('Error emitting presence update for auction 99'));
+    });
+
+    it('should start and stop presence interval cleanly', () => {
+      jest.useFakeTimers();
+      const flushSpy = jest.spyOn(gateway, 'flushPresenceUpdates').mockResolvedValue(undefined);
+
+      gateway.startPresenceInterval();
+      expect(gateway['presenceInterval']).not.toBeNull();
+
+      // Calling startPresenceInterval again should be idempotent
+      const existingInterval = gateway['presenceInterval'];
+      gateway.startPresenceInterval();
+      expect(gateway['presenceInterval']).toBe(existingInterval);
+
+      // Fast-forward 5000ms
+      jest.advanceTimersByTime(5000);
+      expect(flushSpy).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(5000);
+      expect(flushSpy).toHaveBeenCalledTimes(2);
+
+      gateway.stopPresenceInterval();
+      expect(gateway['presenceInterval']).toBeNull();
+
+      jest.advanceTimersByTime(5000);
+      expect(flushSpy).toHaveBeenCalledTimes(2);
+
+      jest.useRealTimers();
+    });
+
+    it('should stop interval on module destroy', () => {
+      gateway.startPresenceInterval();
+      expect(gateway['presenceInterval']).not.toBeNull();
+
+      gateway.onModuleDestroy();
+      expect(gateway['presenceInterval']).toBeNull();
     });
   });
 });

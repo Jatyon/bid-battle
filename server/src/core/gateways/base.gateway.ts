@@ -22,17 +22,24 @@ export abstract class BaseGateway implements OnGatewayInit, OnGatewayConnection,
 
   afterInit() {
     this.logger.log(`WebSocket Gateway initialized - Namespace: ${this.namespace}`);
+
+    this.server.use((socket, next) => {
+      void (async () => {
+        try {
+          const client = socket as IAuthSocket;
+          client.data.lang = this.getLang(client);
+          await this.onClientConnect(client);
+          next();
+        } catch (error) {
+          this.logger.error(`Connection error in middleware: ${error instanceof Error ? error.message : String(error)}`);
+          next(new Error('Authentication error'));
+        }
+      })();
+    });
   }
 
-  async handleConnection(client: IAuthSocket) {
-    try {
-      client.data.lang = this.getLang(client);
-      this.setupRateLimit(client);
-      await this.onClientConnect(client);
-    } catch (error) {
-      this.logger.error(`Connection error: ${error instanceof Error ? error.message : String(error)}`);
-      client.disconnect();
-    }
+  handleConnection(client: IAuthSocket) {
+    this.setupRateLimit(client);
   }
 
   async handleDisconnect(client: IAuthSocket) {

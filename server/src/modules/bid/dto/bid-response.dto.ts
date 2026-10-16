@@ -32,23 +32,33 @@ export class BidResponse {
   })
   createdAt: Date;
 
-  constructor(bid: Bid, includeUser = false) {
+  @ApiProperty({
+    description: 'Indicates whether the bid belongs to the currently authenticated user requesting the resource',
+    example: true,
+    required: false,
+  })
+  isMyBid?: boolean;
+
+  constructor(bid: Bid, includeUser = false, requestingUserId?: number) {
     this.id = bid.id;
     this.amount = bid.amount;
     this.auctionId = bid.auctionId;
     this.createdAt = bid.createdAt;
 
+    if (requestingUserId !== undefined) this.isMyBid = requestingUserId === bid.userId;
+
     if (includeUser) {
       if (bid.user) {
+        const isMyBid = requestingUserId === bid.userId;
         this.user = {
-          id: bid.userId,
+          id: isMyBid ? bid.userId : 0,
           firstName: bid.user.firstName,
           lastName: bid.user.lastName ? `${bid.user.lastName.charAt(0)}.` : undefined,
           avatar: bid.user.avatar,
         };
       } else {
         this.user = {
-          id: bid.userId,
+          id: 0,
           isDeleted: true,
         };
       }

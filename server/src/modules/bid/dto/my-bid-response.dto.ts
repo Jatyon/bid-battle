@@ -14,6 +14,6 @@ export class MyBidResponse extends BidResponse {
   constructor(bid: Bid) {
     super(bid, false);
 
-    if (bid.auction) this.auction = new AuctionResponse(bid.auction, true, false);
+    if (bid.auction) this.auction = new AuctionResponse(bid.auction, true, true);
   }
 }
