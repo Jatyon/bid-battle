@@ -29,6 +29,7 @@ export class TokenService {
   /** Clears the token on logout or failed refresh. */
   clearAccessToken(): void {
     this._accessToken.set(null);
+    this._isRefreshing.set(false);
   }
 
   /**

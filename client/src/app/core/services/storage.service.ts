@@ -1,5 +1,5 @@
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { environment } from '@env/environment';
 
 // Optional: Type definition for which storage to use
@@ -11,6 +11,7 @@ export type StorageType = 'local' | 'session';
  */
 @Injectable({ providedIn: 'root' })
 export class StorageService {
+  private readonly document = inject(DOCUMENT);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly PREFIX = environment.storageKeyPrefix;
 
@@ -19,7 +20,9 @@ export class StorageService {
    */
   private getStorage(type: StorageType): Storage | null {
     if (!this.isBrowser) return null;
-    return type === 'local' ? window.localStorage : window.sessionStorage;
+    const win = this.document.defaultView || (typeof window !== 'undefined' ? window : null);
+    if (!win) return null;
+    return type === 'local' ? win.localStorage : win.sessionStorage;
   }
 
   get(key: string, type: StorageType = 'local'): string | null {

@@ -1,4 +1,4 @@
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter, Router, RouterStateSnapshot } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { SKIP_REFRESH_CONTEXT } from '@core/interceptors/http-context.tokens';
 import {
@@ -11,6 +11,7 @@ import {
   VerifyEmailRequest,
 } from '@core/models';
 import { createUserFixture } from '@test/fixtures';
+import { SocketService } from './socket/socket.service';
 import { StorageService } from './storage.service';
 import { TokenService } from './token.service';
 import { AuthService } from './auth.service';
@@ -32,6 +33,10 @@ describe('AuthService', () => {
     clearAccessToken: ReturnType<typeof vi.fn>;
   };
   let apiMock: { post: ReturnType<typeof vi.fn> };
+  let socketMock: {
+    disconnectSockets: ReturnType<typeof vi.fn>;
+    reconnectAll: ReturnType<typeof vi.fn>;
+  };
   let router: Router;
 
   beforeEach(() => {
@@ -51,12 +56,18 @@ describe('AuthService', () => {
       post: vi.fn(),
     };
 
+    socketMock = {
+      disconnectSockets: vi.fn(),
+      reconnectAll: vi.fn(),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         { provide: StorageService, useValue: storageMock },
         { provide: TokenService, useValue: tokenMock },
         { provide: ApiService, useValue: apiMock },
+        { provide: SocketService, useValue: socketMock },
       ],
     });
 
@@ -300,6 +311,67 @@ describe('AuthService', () => {
     });
   });
 
+  describe('isCurrentRouteProtected()', () => {
+    it('should return true when route data has requiresAuth: true', () => {
+      const mockSnapshot = {
+        root: {
+          data: { requiresAuth: true },
+          children: [],
+        },
+      } as unknown as RouterStateSnapshot;
+      Object.defineProperty(router, 'routerState', {
+        value: { snapshot: mockSnapshot },
+        configurable: true,
+      });
+
+      expect(service.isCurrentRouteProtected()).toBe(true);
+    });
+
+    it('should return true when a child route has canActivate with authGuard', () => {
+      function authGuard() {
+        return true;
+      }
+      const mockSnapshot = {
+        root: {
+          data: {},
+          children: [
+            {
+              data: {},
+              routeConfig: { canActivate: [authGuard] },
+              children: [],
+            },
+          ],
+        },
+      } as unknown as RouterStateSnapshot;
+      Object.defineProperty(router, 'routerState', {
+        value: { snapshot: mockSnapshot },
+        configurable: true,
+      });
+
+      expect(service.isCurrentRouteProtected()).toBe(true);
+    });
+
+    it('should return false for public route without auth guards or requiresAuth', () => {
+      const mockSnapshot = {
+        root: {
+          data: {},
+          children: [
+            {
+              data: {},
+              children: [],
+            },
+          ],
+        },
+      } as unknown as RouterStateSnapshot;
+      Object.defineProperty(router, 'routerState', {
+        value: { snapshot: mockSnapshot },
+        configurable: true,
+      });
+
+      expect(service.isCurrentRouteProtected()).toBe(false);
+    });
+  });
+
   describe('logout()', () => {
     it('should clear local session state', () => {
       apiMock.post.mockReturnValue(of(null as never));
@@ -317,23 +389,41 @@ describe('AuthService', () => {
       expect(apiMock.post).toHaveBeenCalledWith('/auth/logout', {});
     });
 
-    it('should redirect to /auth/login by default', async () => {
+    it('should redirect to /auth/login and disconnect sockets when on a protected route', async () => {
       apiMock.post.mockReturnValue(of(null as never));
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      vi.spyOn(service, 'isCurrentRouteProtected').mockReturnValue(true);
 
       service.logout();
       await Promise.resolve();
 
       expect(navigateSpy).toHaveBeenCalledWith(['/auth/login']);
+      expect(socketMock.disconnectSockets).toHaveBeenCalled();
+      expect(socketMock.reconnectAll).not.toHaveBeenCalled();
     });
 
-    it('should not redirect when redirect=false', () => {
+    it('should not redirect and should reconnect sockets when on a public route', async () => {
+      apiMock.post.mockReturnValue(of(null as never));
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      vi.spyOn(service, 'isCurrentRouteProtected').mockReturnValue(false);
+
+      service.logout();
+      await Promise.resolve();
+
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(socketMock.reconnectAll).toHaveBeenCalled();
+      expect(socketMock.disconnectSockets).not.toHaveBeenCalled();
+    });
+
+    it('should not redirect when redirect=false even on a protected route', () => {
       apiMock.post.mockReturnValue(of(null as never));
       const navigateSpy = vi.spyOn(router, 'navigate');
+      vi.spyOn(service, 'isCurrentRouteProtected').mockReturnValue(true);
 
       service.logout(false);
 
       expect(navigateSpy).not.toHaveBeenCalled();
+      expect(socketMock.disconnectSockets).toHaveBeenCalled();
     });
 
     it('should clear local session even when logout API fails', () => {

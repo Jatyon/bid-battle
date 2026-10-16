@@ -1,12 +1,5 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  input,
-  DOCUMENT,
-} from '@angular/core';
-import { NgClass } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { DOCUMENT, NgClass } from '@angular/common';
 import { resolveImageUrl } from '@core/utils';
 import { LucideAngularModule, User, UserX } from 'lucide-angular';
 

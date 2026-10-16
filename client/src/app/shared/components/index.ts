@@ -11,5 +11,6 @@ export * from './avatar/avatar.component';
 export * from './badge/badge.component';
 export * from './toast/toast.component';
 export * from './input/input.component';
+export * from './modal/modal.component';
 export * from './select';
 export * from './popup';

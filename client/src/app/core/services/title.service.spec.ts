@@ -1,7 +1,8 @@
-import { TestBed } from '@angular/core/testing';
-import { Title } from '@angular/platform-browser';
-import { AppTitleStrategy, TitleService } from './title.service';
 import { RouterStateSnapshot } from '@angular/router';
+import { Title } from '@angular/platform-browser';
+import { TestBed } from '@angular/core/testing';
+import { PLATFORM_ID } from '@angular/core';
+import { AppTitleStrategy, TitleService } from './title.service';
 import { TranslocoService } from '@jsverse/transloco';
 import { of } from 'rxjs';
 
@@ -16,9 +17,11 @@ describe('TitleService', () => {
     service = TestBed.inject(TitleService);
     titleApi = TestBed.inject(Title);
     vi.spyOn(titleApi, 'setTitle');
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true, writable: true });
   });
 
   afterEach(() => {
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true, writable: true });
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -103,11 +106,11 @@ describe('TitleService', () => {
     });
   });
 
-  describe('ngOnDestroy()', () => {
+  describe('onDestroy', () => {
     it('should stop blinking on destroy', async () => {
       vi.useFakeTimers();
       service.startBlink('Msg', 500);
-      service.ngOnDestroy();
+      TestBed.resetTestingModule();
 
       const callsBefore = (titleApi.setTitle as ReturnType<typeof vi.fn>).mock.calls.length;
       await vi.advanceTimersByTimeAsync(1000);
@@ -116,15 +119,36 @@ describe('TitleService', () => {
       expect(callsAfter).toBe(callsBefore);
     });
   });
+
+  describe('SSR (server platform)', () => {
+    it('should initialize safely on server', () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [{ provide: PLATFORM_ID, useValue: 'server' }],
+      });
+      const serverService = TestBed.inject(TitleService);
+      expect(serverService).toBeTruthy();
+    });
+
+    it('should not start blinking on server', () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [{ provide: PLATFORM_ID, useValue: 'server' }],
+      });
+      const serverService = TestBed.inject(TitleService);
+      serverService.startBlink('Server message');
+      expect(serverService.isBlinking()).toBe(false);
+    });
+  });
 });
 
 describe('AppTitleStrategy', () => {
   let strategy: AppTitleStrategy;
-  let titleServiceMock: { setTitle: ReturnType<typeof vi.fn> };
+  let titleServiceMock: { setTitle: ReturnType<typeof vi.fn>; stopBlink: ReturnType<typeof vi.fn> };
   let translocoMock: { selectTranslate: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    titleServiceMock = { setTitle: vi.fn() };
+    titleServiceMock = { setTitle: vi.fn(), stopBlink: vi.fn() };
     translocoMock = { selectTranslate: vi.fn().mockReturnValue(of('Translated Title')) };
 
     TestBed.configureTestingModule({
@@ -136,6 +160,14 @@ describe('AppTitleStrategy', () => {
     });
 
     strategy = TestBed.inject(AppTitleStrategy);
+  });
+
+  it('should stop blinking on every title update / route transition', () => {
+    vi.spyOn(strategy, 'buildTitle').mockReturnValue(undefined);
+
+    strategy.updateTitle({} as RouterStateSnapshot);
+
+    expect(titleServiceMock.stopBlink).toHaveBeenCalled();
   });
 
   it('should clear the title if the route has no title defined', () => {

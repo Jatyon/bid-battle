@@ -1,4 +1,4 @@
-import { Injectable, InjectionToken, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
+import { DestroyRef, Injectable, InjectionToken, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '@env/environment';
 import { SocketConnection } from './socket-connection';
@@ -29,12 +29,19 @@ export const SOCKET_IO_FACTORY = new InjectionToken<typeof io>('SOCKET_IO_FACTOR
  * ```
  */
 @Injectable({ providedIn: 'root' })
-export class SocketService implements OnDestroy {
+export class SocketService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly tokenService = inject(TokenService);
   private readonly socketFactory = inject(SOCKET_IO_FACTORY);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly connections = new Map<string, SocketConnection>();
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.isBrowser) this.disconnectAll();
+    });
+  }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -51,7 +58,7 @@ export class SocketService implements OnDestroy {
     if (!this.isBrowser)
       throw new Error(
         `[SocketService] getOrCreate('${namespace}') was called during SSR. ` +
-        `Guard the call site with isPlatformBrowser() before invoking this method.`,
+          `Guard the call site with isPlatformBrowser() before invoking this method.`,
       );
 
     if (!this.connections.has(namespace)) {
@@ -77,18 +84,24 @@ export class SocketService implements OnDestroy {
     }
   }
 
-  /** Disconnects all active connections. */
+  /** Disconnects and removes all connections. */
   disconnectAll(): void {
     this.connections.forEach((conn) => conn.disconnect());
     this.connections.clear();
   }
 
+  /** Disconnects the underlying sockets but keeps the connections in the registry. */
+  disconnectSockets(): void {
+    this.connections.forEach((conn) => conn.disconnect());
+  }
+
+  /** Reconnects all active connections. Useful when the auth token changes. */
+  reconnectAll(): void {
+    this.connections.forEach((conn) => conn.reconnect());
+  }
+
   /** Returns true if a connection for the given namespace already exists in the registry. */
   has(namespace: string): boolean {
     return this.connections.has(namespace);
-  }
-
-  ngOnDestroy(): void {
-    if (this.isBrowser) this.disconnectAll();
   }
 }

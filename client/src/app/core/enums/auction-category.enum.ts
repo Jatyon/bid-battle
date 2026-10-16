@@ -13,8 +13,10 @@ export const AUCTION_CATEGORIES = [
 
 export type AuctionCategory = (typeof AUCTION_CATEGORIES)[number];
 
-export function auctionCategoryTranslationKey(category: AuctionCategory): string {
-  return `AUCTIONS.CATEGORIES.${category.toUpperCase()}`;
+export function auctionCategoryTranslationKey(category: AuctionCategory | string): string {
+  if (!category) return 'AUCTIONS.CATEGORIES.OTHER';
+  const key = String(category).toUpperCase().replace(/-/g, '_');
+  return `AUCTIONS.CATEGORIES.${key}`;
 }
 
 export interface CategorySelectOption {

@@ -19,6 +19,7 @@ import {
   Language,
   LanguageService,
   ThemeService,
+  AuthService,
   TranslocoHttpLoader,
   AppTitleStrategy,
   languageInterceptor,
@@ -30,6 +31,7 @@ import {
 } from '@core/index';
 import { provideTransloco } from '@jsverse/transloco';
 import { routes } from './app.routes';
+import { catchError, of } from 'rxjs';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -51,8 +53,8 @@ export const appConfig: ApplicationConfig = {
         languageInterceptor,
         loadingInterceptor,
         authInterceptor,
-        refreshInterceptor,
         errorInterceptor,
+        refreshInterceptor,
       ]),
     ),
     provideTransloco({
@@ -68,7 +70,14 @@ export const appConfig: ApplicationConfig = {
       inject(LanguageService).init();
     }),
     provideAppInitializer(() => {
-      inject(ThemeService);
+      inject(ThemeService).init();
+    }),
+
+    provideAppInitializer(() => {
+      const authService = inject(AuthService);
+      if (authService.currentUser()) return authService.silentRefresh().pipe(catchError(() => of(false)));
+
+      return;
     }),
 
     { provide: TitleStrategy, useClass: AppTitleStrategy },

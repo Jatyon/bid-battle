@@ -33,12 +33,8 @@ export class SocketConnection {
 
   // ── Connection ─────────────────────────────────────────────────────────────
 
-  /**
-   * Creates and opens the connection.
-   * Idempotent — safe to call multiple times.
-   */
   connect(): void {
-    if (this.socket?.connected) return;
+    if (this.socket) return;
 
     this._status.set('connecting');
 
@@ -76,12 +72,22 @@ export class SocketConnection {
     this._socketReady$ = new Subject<void>();
   }
 
+  /**
+   * Disconnects and immediately reconnects the underlying socket.io instance.
+   * This forces the auth callback to fetch the latest token while preserving
+   * all registered event listeners.
+   */
+  reconnect(): void {
+    if (this.socket) this.socket.disconnect().connect();
+    else this.connect();
+  }
+
   // ── Emitting events ────────────────────────────────────────────────────────
 
   emit<T>(event: string, payload?: T): void {
-    if (!this.socket?.connected) {
+    if (!this.socket) {
       console.warn(
-        `[SocketConnection:${this.options.url}] Attempted to emit "${event}" without an active connection`,
+        `[SocketConnection:${this.options.url}] Attempted to emit "${event}" without calling connect() first`,
       );
       return;
     }

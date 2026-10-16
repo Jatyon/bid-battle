@@ -71,7 +71,9 @@ describe('SocketService', () => {
 
     it('should pass a getToken function that returns the current access token', () => {
       service.getOrCreate('/bid').connect();
-      const authCallback = (ioMock.mock.calls[0][1] as { auth: (cb: (data: unknown) => void) => void }).auth;
+      const authCallback = (
+        ioMock.mock.calls[0][1] as { auth: (cb: (data: unknown) => void) => void }
+      ).auth;
       const cb = vi.fn();
       authCallback(cb);
       expect(cb).toHaveBeenCalledWith({ token: 'token' });
@@ -82,7 +84,9 @@ describe('SocketService', () => {
       const tokenService = TestBed.inject(TokenService);
       (tokenService.accessToken as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
       s.getOrCreate('/bid').connect();
-      const authCallback = (ioMock.mock.calls[0][1] as { auth: (cb: (data: unknown) => void) => void }).auth;
+      const authCallback = (
+        ioMock.mock.calls[0][1] as { auth: (cb: (data: unknown) => void) => void }
+      ).auth;
       const cb = vi.fn();
       authCallback(cb);
       expect(cb).toHaveBeenCalledWith({ token: '' });
@@ -150,19 +154,19 @@ describe('SocketService', () => {
     });
   });
 
-  describe('ngOnDestroy()', () => {
-    it('should disconnect all connections in the browser', () => {
+  describe('DestroyRef lifecycle cleanup', () => {
+    it('should disconnect all connections in the browser on destroy', () => {
       const conn = service.getOrCreate('/bid');
       vi.spyOn(conn, 'disconnect');
 
-      service.ngOnDestroy();
+      TestBed.resetTestingModule();
 
       expect(conn.disconnect).toHaveBeenCalled();
     });
 
     it('should NOT disconnect anything on the server', () => {
-      const ssrService = createService('server');
-      expect(() => ssrService.ngOnDestroy()).not.toThrow();
+      createService('server');
+      expect(() => TestBed.resetTestingModule()).not.toThrow();
     });
   });
 });

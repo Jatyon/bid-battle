@@ -1,0 +1,100 @@
+@use 'abstracts/variables' as *;
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-md;
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur($spacing-2xs);
+  animation: backdropIn $transition-base forwards;
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: $popup-max-width;
+  max-height: 90vh;
+  border-radius: $radius-lg;
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: modalIn $transition-base cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal__title {
+  font-size: $font-size-lg;
+  font-weight: $fw-semibold;
+  color: var(--color-text);
+  margin: 0;
+  line-height: $lh-heading;
+}
+
+.modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all $transition-base;
+
+  &:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-text);
+  }
+}
+
+.modal__content {
+  padding: $spacing-lg;
+  overflow-y: auto;
+  flex: 1;
+
+  /* Custom scrollbar for content */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 10px;
+  }
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY($spacing-sm);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

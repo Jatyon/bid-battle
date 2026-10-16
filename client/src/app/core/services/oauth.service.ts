@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { environment } from '@env/environment';
 import { User } from '@core/models';
 import { ApiService } from './api.service';
@@ -16,6 +17,7 @@ interface OAuthExchangeResult {
 @Injectable({ providedIn: 'root' })
 export class OAuthService {
   private readonly api = inject(ApiService);
+  private readonly document = inject(DOCUMENT);
 
   login(provider: OAuthProvider): Observable<void> {
     switch (provider) {
@@ -39,12 +41,18 @@ export class OAuthService {
   }
 
   private loginWithGoogle(): Observable<void> {
-    window.location.href = `${environment.apiUrl}/auth/google`;
+    const loc =
+      this.document.defaultView?.location ??
+      (typeof window !== 'undefined' ? window.location : null);
+    if (loc) loc.href = `${environment.apiUrl}/auth/google`;
     return EMPTY;
   }
 
   private loginWithGithub(): Observable<void> {
-    window.location.href = `${environment.apiUrl}/auth/github`;
+    const loc =
+      this.document.defaultView?.location ??
+      (typeof window !== 'undefined' ? window.location : null);
+    if (loc) loc.href = `${environment.apiUrl}/auth/github`;
     return EMPTY;
   }
 }

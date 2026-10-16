@@ -129,11 +129,11 @@ describe('ThemeService', () => {
     });
   });
 
-  describe('ngOnDestroy()', () => {
+  describe('destroy cleanup (DestroyRef)', () => {
     it('should remove the media query listener on destroy', () => {
       storageMock.get.mockReturnValue(null);
-      const service = createService();
-      service.ngOnDestroy();
+      createService();
+      TestBed.resetTestingModule();
       expect(matchMediaMock.removeEventListener).toHaveBeenCalled();
     });
   });

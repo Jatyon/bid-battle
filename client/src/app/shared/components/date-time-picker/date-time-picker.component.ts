@@ -19,6 +19,7 @@ import {
   StatusChangeEvent,
   TouchedChangeEvent,
 } from '@angular/forms';
+import { DOCUMENT } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ButtonComponent } from '../button/button.component';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
@@ -60,6 +61,7 @@ export class DateTimePickerComponent implements ControlValueAccessor, OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly translocoService = inject(TranslocoService);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly document = inject(DOCUMENT);
   private readonly injector = inject(Injector);
 
   /** Reactive locale string — updates automatically when the user switches language. */
@@ -195,7 +197,7 @@ export class DateTimePickerComponent implements ControlValueAccessor, OnInit {
   readonly pickerDateFormatted = computed(() => {
     const key = this.pickerDate();
     if (!key) return '';
-    
+
     const date = new Date(`${key}T00:00:00`);
     return new Intl.DateTimeFormat(this.locale(), {
       month: 'short',
@@ -263,7 +265,9 @@ export class DateTimePickerComponent implements ControlValueAccessor, OnInit {
 
   openPicker(): void {
     const rect = this.elementRef.nativeElement.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
+    const windowObj = this.document.defaultView;
+    const windowHeight = windowObj ? windowObj.innerHeight : 0;
+    const spaceBelow = windowHeight - rect.bottom;
     const pickerHeightApprox = 380;
 
     this.dropUp.set(spaceBelow < pickerHeightApprox && rect.top > spaceBelow);

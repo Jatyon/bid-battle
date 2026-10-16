@@ -1,4 +1,5 @@
 import { cleanParams, normalizePageParams } from './http.utils';
+import { DEFAULT_PAGE_SIZE } from '../constants';
 
 describe('http.utils', () => {
   describe('cleanParams', () => {
@@ -10,7 +11,7 @@ describe('http.utils', () => {
     it('filters out undefined, null, and empty string properties', () => {
       const input = {
         page: 1,
-        limit: 12,
+        limit: DEFAULT_PAGE_SIZE,
         search: '',
         status: undefined,
         category: null,
@@ -40,14 +41,14 @@ describe('http.utils', () => {
   describe('normalizePageParams', () => {
     it('normalizes number into page and limit', () => {
       expect(normalizePageParams(3, 20)).toEqual({ page: 3, limit: 20 });
-      expect(normalizePageParams(2)).toEqual({ page: 2, limit: 12 });
+      expect(normalizePageParams(2)).toEqual({ page: 2, limit: DEFAULT_PAGE_SIZE });
     });
 
-    it('defaults page to 1 and limit to 12 when called with filters or undefined', () => {
-      expect(normalizePageParams()).toEqual({ page: 1, limit: 12 });
+    it('defaults page to 1 and limit to DEFAULT_PAGE_SIZE when called with filters or undefined', () => {
+      expect(normalizePageParams()).toEqual({ page: 1, limit: DEFAULT_PAGE_SIZE });
       expect(normalizePageParams({ search: 'camera' })).toEqual({
         page: 1,
-        limit: 12,
+        limit: DEFAULT_PAGE_SIZE,
         search: 'camera',
       });
     });
