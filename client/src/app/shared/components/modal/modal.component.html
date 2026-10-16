@@ -1,0 +1,18 @@
+@if (isOpen()) {
+<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events -->
+<div class="modal-backdrop" (click)="onBackdropClick($event)" role="dialog" aria-modal="true"
+    [attr.aria-labelledby]="'modal-title'">
+    <div class="modal">
+        <div class="modal__header">
+            <h2 class="modal__title" id="modal-title">{{ title() }}</h2>
+            <button class="modal__close" (click)="close()" aria-label="Close modal">
+                <lucide-icon [img]="closeIcon" [size]="20" />
+            </button>
+        </div>
+
+        <div class="modal__content">
+            <ng-content></ng-content>
+        </div>
+    </div>
+</div>
+}
