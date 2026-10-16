@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, SelectQueryBuilder } from 'typeorm';
 import { AuctionCategory, AuctionStatus } from '@modules/auctions/enums';
-import { MyBidStatusFilter } from '../enums';
 import { BidRepository } from './bid.repository';
+import { MyBidStatusFilter } from '../enums';
 import { Bid } from '../entities';
+import { DataSource, SelectQueryBuilder } from 'typeorm';
 
 describe('BidRepository', () => {
   let repository: BidRepository;
@@ -98,6 +98,7 @@ describe('BidRepository', () => {
       expect(repository.createQueryBuilder).toHaveBeenCalledWith('bid');
       expect(qb.innerJoinAndSelect).toHaveBeenCalledWith('bid.auction', 'auction');
       expect(qb.where).toHaveBeenCalledWith('bid.userId = :userId', { userId: 5 });
+      expect(qb.andWhere).toHaveBeenCalledWith(expect.stringContaining('SELECT MAX(b2.id)'), { userId: 5 });
       expect(qb.orderBy).toHaveBeenCalledWith('bid.createdAt', 'DESC');
       expect(qb.skip).toHaveBeenCalledWith(10);
       expect(qb.take).toHaveBeenCalledWith(20);
@@ -141,14 +142,15 @@ describe('BidRepository', () => {
 
       await repository.findPaginatedBidByUser(5, 0, 10, { bidStatus: MyBidStatusFilter.WON });
       expect(qb1.andWhere).toHaveBeenCalledWith('auction.status = :endedStatus', { endedStatus: AuctionStatus.ENDED });
-      expect(qb1.andWhere).toHaveBeenCalledWith('auction.winnerId = :userId', { userId: 5 });
+      expect(qb1.andWhere).toHaveBeenCalledWith('(auction.winnerId = :userId OR (auction.winnerId IS NULL AND bid.amount >= auction.currentPrice))', { userId: 5 });
 
       const qb2 = buildQbMock([[], 0]);
       spyQb(qb2);
 
       await repository.findPaginatedBidByUser(5, 0, 10, { bidStatus: MyBidStatusFilter.LOST });
       expect(qb2.andWhere).toHaveBeenCalledWith('auction.status = :endedStatus', { endedStatus: AuctionStatus.ENDED });
-      expect(qb2.andWhere).toHaveBeenCalledWith('(auction.winnerId != :userId OR auction.winnerId IS NULL)', { userId: 5 });
+      expect(qb2.andWhere).toHaveBeenCalledWith('(auction.winnerId != :userId OR auction.winnerId IS NULL)');
+      expect(qb2.andWhere).toHaveBeenCalledWith('bid.amount < auction.currentPrice');
     });
   });
 
