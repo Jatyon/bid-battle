@@ -5,6 +5,7 @@
     "reset-password": "Zmiana hasła",
     "auction-winner": "Wygrałeś aukcję!",
     "auction-owner": "Twoja aukcja dobiegła końca",
+    "auction-outbid": "Twoja oferta została przebita!",
     "verify-email": "Potwierdź swój adres email"
   },
   "footer": {

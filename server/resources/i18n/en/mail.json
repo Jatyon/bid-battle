@@ -5,6 +5,7 @@
     "reset-password": "Change password",
     "auction-winner": "You won the auction!",
     "auction-owner": "Your auction has ended",
+    "auction-outbid": "Your bid has been outbid!",
     "verify-email": "Confirm your email address"
   },
   "footer": {

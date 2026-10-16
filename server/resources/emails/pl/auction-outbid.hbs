@@ -1,0 +1,23 @@
+<h2>Twoja oferta została przebita!</h2>
+
+<p>Cześć {{userName}},</p>
+
+<p>Ktoś złożył wyższą ofertę w aukcji <strong>{{auctionTitle}}</strong>.</p>
+
+<table style='width:100%; border-collapse: collapse; margin: 20px 0;'>
+  <tr>
+    <td style='padding: 10px; border: 1px solid #e0e0e0; background: #f9f9f9; font-weight: bold;'>Aktualna cena</td>
+    <td style='padding: 10px; border: 1px solid #e0e0e0;'><strong>{{newPrice}}</strong></td>
+  </tr>
+</table>
+
+<p>Nie pozwól, aby ta okazja Ci uciekła! Kliknij poniższy link, aby złożyć nową ofertę:</p>
+
+<p class='link-text'>{{auctionUrl}}</p>
+
+<div class='divider'></div>
+
+<p style='color: #999999; font-size: 14px;'>
+  W razie pytań skontaktuj się z nami przez naszą stronę:
+  <a href='{{appUrl}}/contact' style='color: #667eea;'>{{appName}}</a>.
+</p>
