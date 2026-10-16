@@ -28,4 +28,5 @@ export interface ResultPlateBidAtomicSuccess<T> {
 export interface ResultPlateBidAtomicFailure {
   success: false;
   rejectionCode?: BidRejectionCode;
+  currentPrice?: number;
 }

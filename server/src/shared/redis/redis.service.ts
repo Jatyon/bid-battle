@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { BidAtomicSnapshot, ResultPlateBidAtomic } from './interfaces';
+import { AuctionCloseResult, BidAtomicSnapshot, ResultPlateBidAtomic } from './interfaces';
 import { REDIS_CLIENT, SOCKET_AUCTION_TTL } from './redis.constants';
 import Redis, { Result } from 'ioredis';
 
@@ -17,7 +17,7 @@ declare module 'ioredis' {
       activeKey: string,
       newAmount: number,
       userId: number,
-      minIncrement: number,
+      minIncrement?: number,
     ): Result<[number, string | null, string | null], Context>;
     rollbackBidAtomicCommand(
       priceKey: string,
@@ -27,6 +27,9 @@ declare module 'ioredis' {
       previousPrice: number | '',
       previousBidderId: number | '',
     ): Result<number, Context>;
+    closeAuctionAtomicCommand(activeKey: string, priceKey: string, bidderKey: string): Result<[number, string | null, string | null], Context>;
+    addAuctionParticipantCommand(participantsKey: string, userSocketsKey: string, uniqueParticipantsKey: string, socketId: string, userId: string): Result<number, Context>;
+    removeAuctionParticipantCommand(participantsKey: string, userSocketsKey: string, uniqueParticipantsKey: string, socketId: string): Result<number, Context>;
   }
 }
 
@@ -39,8 +42,12 @@ const RedisKey = {
   auctionBidder: (id: number) => `auction:${id}:highest_bidder`,
   auctionOwner: (id: number) => `auction:${id}:owner`,
   auctionParticipants: (id: number) => `auction:${id}:participants`,
+  auctionUniqueParticipants: (id: number) => `auction:${id}:unique_participants`,
+  auctionUserSockets: (id: number) => `auction:${id}:user_sockets`,
   auctionPrice: (id: number) => `auction:${id}:price`,
   userSocketAuction: (userId: number, socketId: string) => `user:${userId}:socket:${socketId}`,
+  outbidEmailCooldown: (auctionId: number, userId: number) => `cooldown:outbid_email:${auctionId}:${userId}`,
+  userPasswordChangedAt: (userId: number) => `user:${userId}:password_changed_at`,
 } as const;
 
 @Injectable()
@@ -89,17 +96,43 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     -- Prevent user from outbidding themselves
     if currentBidderStr == userIdStr then
-      return {0, 3, false}
+      return {0, 3, currentPriceStr or false}
     end
 
+    -- Dynamic calculation of minimum required increment based on current price.
+    -- Computing this inside the Lua script guarantees atomic consistency and eliminates
+    -- the TOCTOU race condition where an increment calculated in Node.js becomes stale
+    -- when another bid arrives and pushes the price across a tier boundary.
+    local function calcMinIncrement(price)
+      if price < 5000 then return 100
+      elseif price < 10000 then return 200
+      elseif price < 50000 then return 500
+      elseif price < 100000 then return 1000
+      elseif price < 500000 then return 2500
+      else return 5000 end
+    end
+
+    local minIncrement = calcMinIncrement(currentPrice)
+
     -- Validate minimum increment
-    if newAmount < currentPrice + minIncrement then
-      return {0, 4, false}
+    if currentBidderStr and currentBidderStr ~= '' then
+      if newAmount < currentPrice + minIncrement then
+        return {0, 4, currentPriceStr or false}
+      end
+    else
+      if newAmount < currentPrice then
+        return {0, 4, currentPriceStr or false}
+      end
     end
 
     -- Update price and bidder, preserving existing TTLs
+    local remainingTtl = redis.call('PTTL', priceKey)
     redis.call('SET', priceKey, tostring(newAmount), 'KEEPTTL')
-    redis.call('SET', bidderKey, userIdStr, 'KEEPTTL')
+    if remainingTtl > 0 then
+      redis.call('SET', bidderKey, userIdStr, 'PX', remainingTtl)
+    else
+      redis.call('SET', bidderKey, userIdStr, 'KEEPTTL')
+    end
 
     return {1, currentPriceStr or false, currentBidderStr or false}
   `;
@@ -150,6 +183,94 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return 1
   `;
 
+  /**
+   * LUA script to atomically close an auction in Redis.
+   * Execution steps:
+   * 1. Checks if the auction price key exists. If not, the auction was already cleaned up.
+   * 2. Atomically DELs the active key, instantly closing the race window so that no concurrent
+   *    or in-flight bids can be accepted from this exact microsecond forward.
+   * 3. Reads the final price and highest bidder ID.
+   *
+   * Returns a 3-element array:
+   *   [wasActive (1|0), finalPrice|false, winnerId|false]
+   */
+  private readonly CLOSE_AUCTION_SCRIPT = `
+    local activeKey = KEYS[1]
+    local priceKey = KEYS[2]
+    local bidderKey = KEYS[3]
+
+    local currentPrice = redis.call('GET', priceKey)
+    if not currentPrice then
+      return {0, false, false}
+    end
+
+    local wasActive = redis.call('DEL', activeKey)
+    local finalBidder = redis.call('GET', bidderKey)
+
+    return {wasActive, currentPrice, finalBidder or false}
+  `;
+
+  /**
+   * LUA script to atomically add a participant socket to an auction room.
+   * Execution steps:
+   * 1. Check if the socket is already mapped to the given userId (idempotent retry).
+   * 2. If mapped to a previous user, decrement previous user's count and clean up if needed.
+   * 3. Set the socket mapping in the participants Hash.
+   * 4. Increment the socket count for the userId in user_sockets Hash.
+   * 5. Add the userId to the unique_participants Set (SADD).
+   */
+  private readonly ADD_PARTICIPANT_SCRIPT = `
+    local participantsKey = KEYS[1]
+    local userSocketsKey = KEYS[2]
+    local uniqueParticipantsKey = KEYS[3]
+    local socketId = ARGV[1]
+    local userId = ARGV[2]
+
+    local oldUser = redis.call('HGET', participantsKey, socketId)
+    if oldUser == userId then
+      return 1
+    end
+
+    if oldUser then
+      local prevCount = redis.call('HINCRBY', userSocketsKey, oldUser, -1)
+      if prevCount <= 0 then
+        redis.call('HDEL', userSocketsKey, oldUser)
+        redis.call('SREM', uniqueParticipantsKey, oldUser)
+      end
+    end
+
+    redis.call('HSET', participantsKey, socketId, userId)
+    redis.call('HINCRBY', userSocketsKey, userId, 1)
+    redis.call('SADD', uniqueParticipantsKey, userId)
+    return 1
+  `;
+
+  /**
+   * LUA script to atomically remove a participant socket from an auction room.
+   * Execution steps:
+   * 1. Get the userId mapped to the socketId.
+   * 2. Delete the socketId from the participants Hash.
+   * 3. Decrement the user's active socket counter.
+   * 4. If the counter reaches 0 (or below), remove userId from unique_participants Set (SREM).
+   */
+  private readonly REMOVE_PARTICIPANT_SCRIPT = `
+    local participantsKey = KEYS[1]
+    local userSocketsKey = KEYS[2]
+    local uniqueParticipantsKey = KEYS[3]
+    local socketId = ARGV[1]
+
+    local userId = redis.call('HGET', participantsKey, socketId)
+    if userId then
+      redis.call('HDEL', participantsKey, socketId)
+      local count = redis.call('HINCRBY', userSocketsKey, userId, -1)
+      if count <= 0 then
+        redis.call('HDEL', userSocketsKey, userId)
+        redis.call('SREM', uniqueParticipantsKey, userId)
+      end
+    end
+    return 1
+  `;
+
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
   onModuleInit() {
@@ -160,6 +281,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.redis.defineCommand('rollbackBidAtomicCommand', {
       numberOfKeys: 2,
       lua: this.ROLLBACK_BID_SCRIPT,
+    });
+    this.redis.defineCommand('closeAuctionAtomicCommand', {
+      numberOfKeys: 3,
+      lua: this.CLOSE_AUCTION_SCRIPT,
+    });
+    this.redis.defineCommand('addAuctionParticipantCommand', {
+      numberOfKeys: 3,
+      lua: this.ADD_PARTICIPANT_SCRIPT,
+    });
+    this.redis.defineCommand('removeAuctionParticipantCommand', {
+      numberOfKeys: 3,
+      lua: this.REMOVE_PARTICIPANT_SCRIPT,
     });
     this.logger.log('Redis Lua scripts loaded.');
   }
@@ -273,6 +406,31 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error: unknown) {
       this.handleError(`Get live price error for ID "${auctionId}"`, error);
       return null;
+    }
+  }
+
+  /**
+   * Retrieves the current highest prices for multiple auctions in one batch.
+   *
+   * @param auctionIds - Array of auction IDs.
+   * @returns A Map linking auctionId to its current live price (if available).
+   */
+  async getLivePrices(auctionIds: number[]): Promise<Map<number, number>> {
+    if (auctionIds.length === 0) return new Map();
+
+    try {
+      const keys = auctionIds.map((id) => RedisKey.auctionPrice(id));
+      const prices = await this.redis.mget(...keys);
+
+      const result = new Map<number, number>();
+      prices.forEach((price, index) => {
+        if (price !== null) result.set(auctionIds[index], parseFloat(price));
+      });
+
+      return result;
+    } catch (error: unknown) {
+      this.handleError('Batch get live prices error', error);
+      return new Map();
     }
   }
 
@@ -471,6 +629,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         RedisKey.auctionActive(auctionId),
         RedisKey.auctionOwner(auctionId),
         RedisKey.auctionParticipants(auctionId),
+        RedisKey.auctionUniqueParticipants(auctionId),
+        RedisKey.auctionUserSockets(auctionId),
       );
       this.logger.log(`Auction ${auctionId} data cleaned up from Redis`);
     } catch (error: unknown) {
@@ -505,7 +665,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async removeUserFromAuctionRoom(auctionId: number, socketId: string): Promise<void> {
     try {
-      await this.redis.hdel(RedisKey.auctionParticipants(auctionId), socketId);
+      await this.redis.removeAuctionParticipantCommand(
+        RedisKey.auctionParticipants(auctionId),
+        RedisKey.auctionUserSockets(auctionId),
+        RedisKey.auctionUniqueParticipants(auctionId),
+        socketId,
+      );
     } catch (error: unknown) {
       this.handleError(`Remove socket "${socketId}" from auction "${auctionId}" error`, error);
       throw error;
@@ -527,16 +692,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Returns the number of **unique users** currently in the auction room.
-   * Unlike `getAuctionParticipantsCount` (which counts socket entries),
-   * this deduplicates users who have multiple open tabs / devices.
+   * Uses Redis SCARD on the unique participants Set for O(1) time complexity,
+   * completely avoiding O(N) memory transfers and main thread deduplication.
    *
    * @param auctionId - The ID of the auction.
    * @returns The count of distinct user IDs present in the room.
    */
   async getUniqueParticipantsCount(auctionId: number): Promise<number> {
     try {
-      const values = await this.redis.hvals(RedisKey.auctionParticipants(auctionId));
-      return new Set(values).size;
+      return await this.redis.scard(RedisKey.auctionUniqueParticipants(auctionId));
     } catch (error: unknown) {
       this.handleError(`Get unique participants count error for auction "${auctionId}"`, error);
       return 0;
@@ -583,9 +747,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param socketId - The unique ID of the socket.
    * @param userId - The ID of the user joining the room.
    */
-  async addUserToAuctionRoom(auctionId: number, socketId: string, userId: number): Promise<void> {
+  async addUserToAuctionRoom(auctionId: number, socketId: string, userId: number | string): Promise<void> {
     try {
-      await this.redis.hset(RedisKey.auctionParticipants(auctionId), socketId, userId.toString());
+      await this.redis.addAuctionParticipantCommand(
+        RedisKey.auctionParticipants(auctionId),
+        RedisKey.auctionUserSockets(auctionId),
+        RedisKey.auctionUniqueParticipants(auctionId),
+        socketId,
+        userId.toString(),
+      );
     } catch (error: unknown) {
       this.handleError(`Add socket "${socketId}" (user: ${userId}) to auction "${auctionId}" error`, error);
       throw error;
@@ -631,7 +801,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * - `{ success: false, rejectionCode: 4 }` — bid amount is below the required minimum increment.
    * - `{ success: false }` — unexpected Redis/Lua exception (no code available).
    */
-  async placeBidAtomicWithSnapshot(auctionId: number, userId: number, newAmount: number, minIncrement: number): Promise<ResultPlateBidAtomic<BidAtomicSnapshot>> {
+  async placeBidAtomicWithSnapshot(auctionId: number, userId: number, newAmount: number, minIncrement?: number): Promise<ResultPlateBidAtomic<BidAtomicSnapshot>> {
     try {
       const result = await this.redis.placeBidAtomicCommand(
         RedisKey.auctionPrice(auctionId),
@@ -639,14 +809,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         RedisKey.auctionActive(auctionId),
         newAmount,
         userId,
-        minIncrement,
+        minIncrement ?? 0,
       );
 
       const [accepted, rawPrice, rawBidder] = result;
 
       if (accepted !== 1) {
         const rejectionCode = rawPrice != null ? parseInt(rawPrice, 10) : undefined;
-        return { success: false, rejectionCode };
+        const currentPrice = rawBidder != null && rawBidder !== '' ? parseFloat(rawBidder) : undefined;
+        return {
+          success: false,
+          ...(rejectionCode !== undefined && { rejectionCode }),
+          ...(currentPrice !== undefined && !isNaN(currentPrice) && { currentPrice }),
+        };
       }
 
       return {
@@ -688,6 +863,81 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error: unknown) {
       this.logger.error(`CRITICAL: Redis rollback failed for auction ${auctionId}. Inconsistency risk!`, error instanceof Error ? error.stack : String(error));
     }
+  }
+
+  /**
+   * Atomically deactivates the auction in Redis and retrieves the final state.
+   *
+   * Deleting the `auctionActive` key atomically ensures that any incoming
+   * `placeBidAtomicWithSnapshot` call will be immediately rejected with `AUCTION_INACTIVE`,
+   * completely closing the race condition window while the database transaction
+   * is persisting the final price and winner.
+   *
+   * @param auctionId - The ID of the auction to close.
+   * @returns {@link AuctionCloseResult} containing `wasActive`, `finalPrice`, and `winnerId`.
+   *          If the auction price key does not exist in Redis, `finalPrice` will be null.
+   */
+  async closeAuctionAtomic(auctionId: number): Promise<AuctionCloseResult> {
+    try {
+      const result = await this.redis.closeAuctionAtomicCommand(RedisKey.auctionActive(auctionId), RedisKey.auctionPrice(auctionId), RedisKey.auctionBidder(auctionId));
+
+      const [wasActive, rawPrice, rawBidder] = result;
+
+      if (!rawPrice) {
+        return { wasActive: false, finalPrice: null, winnerId: null };
+      }
+
+      return {
+        wasActive: wasActive === 1,
+        finalPrice: parseFloat(rawPrice),
+        winnerId: rawBidder != null ? parseInt(rawBidder, 10) : null,
+      };
+    } catch (error: unknown) {
+      this.handleError(`Close auction atomic error for auction "${auctionId}"`, error);
+      return { wasActive: false, finalPrice: null, winnerId: null };
+    }
+  }
+
+  /**
+   * Atomically acquires a cooldown lock for sending an outbid notification email.
+   * Uses Redis SET with NX and EX to guarantee only one email is sent within the cooldown window.
+   *
+   * @param auctionId - The auction ID.
+   * @param userId - The ID of the outbid user.
+   * @param ttlSeconds - Cooldown duration in seconds (defaults to 600 = 10 minutes).
+   * @returns True if cooldown was acquired (email can be sent), false if still in cooldown.
+   */
+  async acquireOutbidEmailCooldown(auctionId: number, userId: number, ttlSeconds = 600): Promise<boolean> {
+    try {
+      const key = RedisKey.outbidEmailCooldown(auctionId, userId);
+      const result = await this.redis.set(key, '1', 'EX', ttlSeconds, 'NX');
+      return result === 'OK';
+    } catch (error: unknown) {
+      this.handleError(`Error setting outbid email cooldown for auction ${auctionId}, user ${userId}`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Retrieves the timestamp (in seconds) when the user's password was last changed.
+   *
+   * @param userId - The user ID.
+   * @returns Timestamp in seconds, or null if not found.
+   */
+  async getUserPasswordChangedAt(userId: number): Promise<number | null> {
+    return await this.getCache<number>(RedisKey.userPasswordChangedAt(userId));
+  }
+
+  /**
+   * Stores the timestamp (in seconds) when the user's password was last changed.
+   * Default TTL: 30 days (2,592,000s), well past maximum token lifetime.
+   *
+   * @param userId - The user ID.
+   * @param timestampSeconds - The passwordChangedAt timestamp in seconds.
+   * @param ttlSeconds - Expiration in seconds (default 30 days).
+   */
+  async setUserPasswordChangedAt(userId: number, timestampSeconds: number, ttlSeconds = 30 * 86400): Promise<void> {
+    await this.setCache(RedisKey.userPasswordChangedAt(userId), timestampSeconds, ttlSeconds);
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RedisService } from './redis.service';
 import { REDIS_CLIENT, SOCKET_AUCTION_TTL } from './redis.constants';
+import { RedisService } from './redis.service';
 import Redis from 'ioredis';
 
 describe('RedisService', () => {
@@ -24,6 +24,10 @@ describe('RedisService', () => {
       disconnect: jest.fn(),
       placeBidAtomicCommand: jest.fn(),
       rollbackBidAtomicCommand: jest.fn(),
+      closeAuctionAtomicCommand: jest.fn(),
+      addAuctionParticipantCommand: jest.fn(),
+      removeAuctionParticipantCommand: jest.fn(),
+      scard: jest.fn(),
     } as unknown as jest.Mocked<Redis>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -52,11 +56,23 @@ describe('RedisService', () => {
 
       expect(mockRedis.defineCommand).toHaveBeenCalledWith('placeBidAtomicCommand', {
         numberOfKeys: 3,
-        lua: expect.any(String) as string,
+        lua: expect.stringContaining('calcMinIncrement') as string,
       });
       expect(mockRedis.defineCommand).toHaveBeenCalledWith('rollbackBidAtomicCommand', {
         numberOfKeys: 2,
         lua: expect.stringContaining('currentBidder ~= ARGV[2]') as string,
+      });
+      expect(mockRedis.defineCommand).toHaveBeenCalledWith('closeAuctionAtomicCommand', {
+        numberOfKeys: 3,
+        lua: expect.stringContaining('DEL') as string,
+      });
+      expect(mockRedis.defineCommand).toHaveBeenCalledWith('addAuctionParticipantCommand', {
+        numberOfKeys: 3,
+        lua: expect.stringContaining('SADD') as string,
+      });
+      expect(mockRedis.defineCommand).toHaveBeenCalledWith('removeAuctionParticipantCommand', {
+        numberOfKeys: 3,
+        lua: expect.stringContaining('SREM') as string,
       });
       expect(service['logger'].log).toHaveBeenCalledWith('Redis Lua scripts loaded.');
     });
@@ -529,13 +545,21 @@ describe('RedisService', () => {
   });
 
   describe('cleanupAuction', () => {
-    it('should delete all 5 auction keys atomically', async () => {
-      (mockRedis.del as jest.Mock).mockResolvedValue(5);
+    it('should delete all 7 auction keys atomically', async () => {
+      (mockRedis.del as jest.Mock).mockResolvedValue(7);
       jest.spyOn(service['logger'], 'log').mockImplementation();
 
       await service.cleanupAuction(1);
 
-      expect(mockRedis.del).toHaveBeenCalledWith('auction:1:price', 'auction:1:highest_bidder', 'auction:1:active', 'auction:1:owner', 'auction:1:participants');
+      expect(mockRedis.del).toHaveBeenCalledWith(
+        'auction:1:price',
+        'auction:1:highest_bidder',
+        'auction:1:active',
+        'auction:1:owner',
+        'auction:1:participants',
+        'auction:1:unique_participants',
+        'auction:1:user_sockets',
+      );
       expect(service['logger'].log).toHaveBeenCalledWith(expect.stringContaining('Auction 1 data cleaned up'));
     });
 
@@ -577,16 +601,16 @@ describe('RedisService', () => {
   });
 
   describe('addUserToAuctionRoom', () => {
-    it('should call hset with correct auction participants key', async () => {
-      (mockRedis.hset as jest.Mock).mockResolvedValue(1);
+    it('should call addAuctionParticipantCommand with correct keys and arguments', async () => {
+      (mockRedis.addAuctionParticipantCommand as jest.Mock).mockResolvedValue(1);
 
       await service.addUserToAuctionRoom(1, 'socket-abc', 99);
 
-      expect(mockRedis.hset).toHaveBeenCalledWith('auction:1:participants', 'socket-abc', '99');
+      expect(mockRedis.addAuctionParticipantCommand).toHaveBeenCalledWith('auction:1:participants', 'auction:1:user_sockets', 'auction:1:unique_participants', 'socket-abc', '99');
     });
 
     it('should throw and log error when Redis fails', async () => {
-      (mockRedis.hset as jest.Mock).mockRejectedValue(new Error('Redis error'));
+      (mockRedis.addAuctionParticipantCommand as jest.Mock).mockRejectedValue(new Error('Redis error'));
 
       await expect(service.addUserToAuctionRoom(1, 'socket-abc', 99)).rejects.toThrow('Redis error');
 
@@ -595,16 +619,16 @@ describe('RedisService', () => {
   });
 
   describe('removeUserFromAuctionRoom', () => {
-    it('should call hdel with correct key and socketId', async () => {
-      (mockRedis.hdel as jest.Mock).mockResolvedValue(1);
+    it('should call removeAuctionParticipantCommand with correct keys and socketId', async () => {
+      (mockRedis.removeAuctionParticipantCommand as jest.Mock).mockResolvedValue(1);
 
       await service.removeUserFromAuctionRoom(1, 'socket-abc');
 
-      expect(mockRedis.hdel).toHaveBeenCalledWith('auction:1:participants', 'socket-abc');
+      expect(mockRedis.removeAuctionParticipantCommand).toHaveBeenCalledWith('auction:1:participants', 'auction:1:user_sockets', 'auction:1:unique_participants', 'socket-abc');
     });
 
     it('should throw and log error when Redis fails', async () => {
-      (mockRedis.hdel as jest.Mock).mockRejectedValue(new Error('Redis error'));
+      (mockRedis.removeAuctionParticipantCommand as jest.Mock).mockRejectedValue(new Error('Redis error'));
 
       await expect(service.removeUserFromAuctionRoom(1, 'socket-abc')).rejects.toThrow('Redis error');
 
@@ -753,25 +777,26 @@ describe('RedisService', () => {
   });
 
   describe('getUniqueParticipantsCount', () => {
-    it('should return count of unique user IDs from hash values', async () => {
-      mockRedis.hvals = jest.fn().mockResolvedValue(['1', '2', '1', '3']);
+    it('should return count of unique user IDs via scard', async () => {
+      mockRedis.scard = jest.fn().mockResolvedValue(3);
 
       const result = await service.getUniqueParticipantsCount(1);
 
       expect(result).toBe(3);
-      expect(mockRedis.hvals).toHaveBeenCalledWith('auction:1:participants');
+      expect(mockRedis.scard).toHaveBeenCalledWith('auction:1:unique_participants');
     });
 
     it('should return 0 when no participants are in the room', async () => {
-      mockRedis.hvals = jest.fn().mockResolvedValue([]);
+      mockRedis.scard = jest.fn().mockResolvedValue(0);
 
       const result = await service.getUniqueParticipantsCount(1);
 
       expect(result).toBe(0);
+      expect(mockRedis.scard).toHaveBeenCalledWith('auction:1:unique_participants');
     });
 
     it('should return 0 and log error when Redis fails', async () => {
-      mockRedis.hvals = jest.fn().mockRejectedValue(new Error('Redis error'));
+      mockRedis.scard = jest.fn().mockRejectedValue(new Error('Redis error'));
 
       const result = await service.getUniqueParticipantsCount(1);
 
@@ -804,6 +829,14 @@ describe('RedisService', () => {
       const result = await service.placeBidAtomicWithSnapshot(1, 99, 500, 10);
 
       expect(result).toEqual({ success: false });
+    });
+
+    it('should parse rejectionCode and live currentPrice when rejected by Lua script', async () => {
+      (mockRedis.placeBidAtomicCommand as jest.Mock).mockResolvedValue([0, '4', '120']);
+
+      const result = await service.placeBidAtomicWithSnapshot(1, 99, 110);
+
+      expect(result).toEqual({ success: false, rejectionCode: 4, currentPrice: 120 });
     });
 
     it('should return success=false and log error when Redis fails', async () => {
@@ -851,6 +884,111 @@ describe('RedisService', () => {
       await expect(service.rollbackBid(1, 250, 8, 100, 5)).resolves.not.toThrow();
 
       expect(service['logger'].error).toHaveBeenCalledWith(expect.stringContaining('CRITICAL'), expect.any(String));
+    });
+  });
+
+  describe('acquireOutbidEmailCooldown', () => {
+    it('should return true when Redis SET with NX returns OK', async () => {
+      (mockRedis.set as jest.Mock).mockResolvedValue('OK');
+
+      const result = await service.acquireOutbidEmailCooldown(1, 5, 600);
+
+      expect(mockRedis.set).toHaveBeenCalledWith('cooldown:outbid_email:1:5', '1', 'EX', 600, 'NX');
+      expect(result).toBe(true);
+    });
+
+    it('should return false when Redis SET with NX returns null (already in cooldown)', async () => {
+      (mockRedis.set as jest.Mock).mockResolvedValue(null);
+
+      const result = await service.acquireOutbidEmailCooldown(1, 5, 600);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false and log error when Redis throws', async () => {
+      (mockRedis.set as jest.Mock).mockRejectedValue(new Error('Redis connection error'));
+
+      const result = await service.acquireOutbidEmailCooldown(1, 5, 600);
+
+      expect(result).toBe(false);
+      expect(service['logger'].error).toHaveBeenCalled();
+    });
+  });
+
+  describe('closeAuctionAtomic', () => {
+    it('should return wasActive=true, parsed finalPrice, and winnerId when auction was active with bids', async () => {
+      (mockRedis.closeAuctionAtomicCommand as jest.Mock).mockResolvedValue([1, '1500', '42']);
+
+      const result = await service.closeAuctionAtomic(1);
+
+      expect(result).toEqual({ wasActive: true, finalPrice: 1500, winnerId: 42 });
+      expect(mockRedis.closeAuctionAtomicCommand).toHaveBeenCalledWith('auction:1:active', 'auction:1:price', 'auction:1:highest_bidder');
+    });
+
+    it('should return winnerId=null when no bids were placed', async () => {
+      (mockRedis.closeAuctionAtomicCommand as jest.Mock).mockResolvedValue([1, '1000', null]);
+
+      const result = await service.closeAuctionAtomic(1);
+
+      expect(result).toEqual({ wasActive: true, finalPrice: 1000, winnerId: null });
+    });
+
+    it('should return finalPrice=null and winnerId=null when auction price key is missing', async () => {
+      (mockRedis.closeAuctionAtomicCommand as jest.Mock).mockResolvedValue([0, null, null]);
+
+      const result = await service.closeAuctionAtomic(1);
+
+      expect(result).toEqual({ wasActive: false, finalPrice: null, winnerId: null });
+    });
+
+    it('should catch error, log, and return fallback null values when Redis command fails', async () => {
+      (mockRedis.closeAuctionAtomicCommand as jest.Mock).mockRejectedValue(new Error('Redis connection error'));
+
+      const result = await service.closeAuctionAtomic(1);
+
+      expect(result).toEqual({ wasActive: false, finalPrice: null, winnerId: null });
+      expect(service['logger'].error).toHaveBeenCalledWith(expect.stringContaining('Close auction atomic error'), expect.any(String));
+    });
+  });
+
+  describe('getUserPasswordChangedAt', () => {
+    it('should return timestamp when key exists in Redis', async () => {
+      const timestamp = 1729000000;
+      mockRedis.get.mockResolvedValue(JSON.stringify(timestamp));
+
+      const result = await service.getUserPasswordChangedAt(1);
+
+      expect(result).toBe(timestamp);
+      expect(mockRedis.get).toHaveBeenCalledWith('user:1:password_changed_at');
+    });
+
+    it('should return null when key does not exist', async () => {
+      mockRedis.get.mockResolvedValue(null);
+
+      const result = await service.getUserPasswordChangedAt(1);
+
+      expect(result).toBeNull();
+      expect(mockRedis.get).toHaveBeenCalledWith('user:1:password_changed_at');
+    });
+  });
+
+  describe('setUserPasswordChangedAt', () => {
+    it('should store timestamp with default TTL of 30 days', async () => {
+      const timestamp = 1729000000;
+      mockRedis.set.mockResolvedValue('OK');
+
+      await service.setUserPasswordChangedAt(1, timestamp);
+
+      expect(mockRedis.set).toHaveBeenCalledWith('user:1:password_changed_at', JSON.stringify(timestamp), 'EX', 30 * 86400);
+    });
+
+    it('should store timestamp with custom TTL if provided', async () => {
+      const timestamp = 1729000000;
+      mockRedis.set.mockResolvedValue('OK');
+
+      await service.setUserPasswordChangedAt(1, timestamp, 3600);
+
+      expect(mockRedis.set).toHaveBeenCalledWith('user:1:password_changed_at', JSON.stringify(timestamp), 'EX', 3600);
     });
   });
 });
