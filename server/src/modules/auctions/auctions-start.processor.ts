@@ -77,6 +77,7 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
 
           const highestBids = await this.bidRepository.findByOrphanedIds(orphanedIds);
           const highestBidMap = new Map(highestBids.map((b) => [b.auctionId, b.userId]));
+          const highestBidPriceMap = new Map(highestBids.map((b) => [b.auctionId, b.amount]));
 
           for (const auction of orphanedAuctions) {
             try {
@@ -89,7 +90,7 @@ export class AuctionStartProcessor extends WorkerHost implements OnApplicationBo
                 });
                 this.logger.warn(`Reconciliation: auction ${auction.id} past endTime — marked ENDED`);
               } else {
-                const priceToRestore = auction.currentPrice ?? auction.startingPrice;
+                const priceToRestore = highestBidPriceMap.get(auction.id) ?? auction.currentPrice ?? auction.startingPrice;
                 const highestBidderIdToRestore = highestBidMap.get(auction.id) ?? null;
 
                 await this.redisService.restoreAuction(auction.id, priceToRestore, durationSeconds, auction.ownerId, highestBidderIdToRestore);

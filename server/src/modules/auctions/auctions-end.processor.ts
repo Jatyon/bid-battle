@@ -43,16 +43,16 @@ export class AuctionEndProcessor extends WorkerHost {
   async process(job: Job<IAuctionJob>): Promise<void> {
     const { auctionId } = job.data;
 
-    this.logger.log(`Processing auction end: ${auctionId}`);
-
-    const finalPrice = await this.redisService.getLivePrice(auctionId);
+    // Atomically close the auction in Redis — this deletes the 'active' key in the same
+    // Lua script execution that captures the final price and winner.
+    // This eliminates the race condition window where an incoming sniping bid could be
+    // accepted while the database transaction is executing.
+    const { finalPrice, winnerId } = await this.redisService.closeAuctionAtomic(auctionId);
 
     if (finalPrice === null) {
       this.logger.warn(`Auction ${auctionId} data already cleaned up from Redis — skipping`);
       return;
     }
-
-    const winnerId = await this.redisService.getHighestBidderId(auctionId);
 
     let dbUpdated = false;
     let auction: Auction | null = null;
@@ -92,7 +92,7 @@ export class AuctionEndProcessor extends WorkerHost {
       return;
     }
 
-    this.bidGateway.notifyAuctionEnd(auctionId, winnerId ?? undefined, finalPrice ?? undefined);
+    await this.bidGateway.notifyAuctionEnd(auctionId, winnerId ?? undefined, finalPrice ?? undefined);
 
     this.logger.log(`Auction ${auctionId} ended — winner: ${winnerId ?? 'None'}, price: ${finalPrice ?? 'None'}`);
 

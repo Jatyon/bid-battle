@@ -41,12 +41,6 @@ export class AuctionDetailResponse {
   currentPrice: number;
 
   @ApiProperty({
-    description: 'Total number of bids placed on this auction',
-    example: 5,
-  })
-  bidCount: number;
-
-  @ApiProperty({
     description: 'Auction start time',
     example: '2024-03-10T08:00:00Z',
     type: 'string',
@@ -125,8 +119,6 @@ export class AuctionDetailResponse {
     this.mainImageUrl = auction.mainImageUrl;
     this.startingPrice = auction.startingPrice;
     this.currentPrice = auction.currentPrice;
-    // @ts-expect-error - we assume bidCount is joined or populated, defaulting to 0 if not
-    this.bidCount = auction.bidCount !== undefined ? Number(auction.bidCount) : 0;
     this.startTime = auction.startTime;
     this.endTime = auction.endTime;
     this.status = auction.status;

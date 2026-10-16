@@ -151,17 +151,24 @@ export class AuctionsService {
 
     const cacheKey = this.buildAuctionsCacheKey(page, limit, filters);
 
-    const cachedData = await this.redisService.getCache<PaginatorResponse<AuctionResponse>>(cacheKey);
+    let response = await this.redisService.getCache<PaginatorResponse<AuctionResponse>>(cacheKey);
 
-    if (cachedData) return cachedData;
+    if (!response) {
+      const [auctions, total] = await this.auctionsRepository.findActiveAuctions(skip, limit, filters);
+      const items = auctions.map((auction) => new AuctionResponse(auction, true));
+      response = query.response(items, page, limit, total);
+      await this.redisService.setCache(cacheKey, response, 30);
+    }
 
-    const [auctions, total] = await this.auctionsRepository.findActiveAuctions(skip, limit, filters);
+    if (response?.items && response.items.length > 0) {
+      const auctionIds = response.items.map((item) => item.id);
+      const livePrices = await this.redisService.getLivePrices(auctionIds);
 
-    const items = auctions.map((auction) => new AuctionResponse(auction, true));
-
-    const response = query.response(items, page, limit, total);
-
-    await this.redisService.setCache(cacheKey, response, 30);
+      response.items.forEach((item) => {
+        const livePrice = livePrices.get(item.id);
+        if (livePrice !== undefined) item.currentPrice = livePrice;
+      });
+    }
 
     return response;
   }
@@ -331,7 +338,7 @@ export class AuctionsService {
 
     const [bids, total] = await this.bidRepository.findPaginatedBidByAuction(auctionId, skip, limit);
 
-    const items = bids.map((bid) => new BidResponse(bid, true));
+    const items = bids.map((bid) => new BidResponse(bid, true, requestingUserId));
 
     return paginator.response(items, page, limit, total);
   }
