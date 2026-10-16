@@ -8,6 +8,7 @@ import { Column, Entity, Index, ManyToOne, JoinColumn, RelationId, PrimaryGenera
 @Index(['auctionId', 'amount'])
 @Index(['userId'])
 @Index(['auctionId', 'createdAt'])
+@Index('idx_bids_user_auction_id', ['userId', 'auctionId', 'id'])
 export class Bid {
   @ApiProperty({
     description: 'Unique identifier',

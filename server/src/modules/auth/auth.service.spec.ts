@@ -133,6 +133,40 @@ describe('AuthService', () => {
     });
   });
 
+  describe('validateJwtSession', () => {
+    const currentTime = new Date();
+    const currentTimeSeconds = Math.floor(currentTime.getTime() / 1000);
+
+    it('should pass without error if password was never changed (key missing in Redis)', async () => {
+      const mockPayload = { sub: 1, iat: currentTimeSeconds } as IAuthJwt;
+      redisService.getUserPasswordChangedAt.mockResolvedValue(null);
+
+      await expect(authService.validateJwtSession(mockPayload)).resolves.toBeUndefined();
+      expect(redisService.getUserPasswordChangedAt).toHaveBeenCalledWith(mockPayload.sub);
+    });
+
+    it('should throw UnauthorizedException if token was issued BEFORE password was changed', async () => {
+      const mockPayloadOld = { sub: 1, iat: currentTimeSeconds - 3600 } as IAuthJwt;
+      redisService.getUserPasswordChangedAt.mockResolvedValue(currentTimeSeconds - 1800);
+
+      await expect(authService.validateJwtSession(mockPayloadOld)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should pass without error if token was issued AFTER password was changed', async () => {
+      const mockPayloadNew = { sub: 1, iat: currentTimeSeconds } as IAuthJwt;
+      redisService.getUserPasswordChangedAt.mockResolvedValue(currentTimeSeconds - 1800);
+
+      await expect(authService.validateJwtSession(mockPayloadNew)).resolves.toBeUndefined();
+    });
+
+    it('should pass without error if iat is null or undefined', async () => {
+      const mockPayloadNoIat = { sub: 1 } as unknown as IAuthJwt;
+
+      await expect(authService.validateJwtSession(mockPayloadNoIat)).resolves.toBeUndefined();
+      expect(redisService.getUserPasswordChangedAt).not.toHaveBeenCalled();
+    });
+  });
+
   describe('register', () => {
     const registerDto: AuthRegisterDto = {
       firstName: 'John',
@@ -150,7 +184,6 @@ describe('AuthService', () => {
 
     it('should correctly hash password, save user, create preferences and send email', async () => {
       usersService.findOneBy.mockResolvedValue(null);
-      (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
       usersService.create.mockReturnValue(mockUser);
       usersService.save.mockResolvedValue(mockUser);
@@ -162,8 +195,7 @@ describe('AuthService', () => {
 
       await authService.register(registerDto, mockI18nContext);
 
-      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
-      expect(bcrypt.hash).toHaveBeenCalledWith(registerDto.password, 'random_salt');
+      expect(bcrypt.hash).toHaveBeenCalledWith(registerDto.password, 10);
       expect(usersService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...registerDto,
@@ -337,15 +369,14 @@ describe('AuthService', () => {
     it('should hash new password, update user, mark token as used and send email', async () => {
       usersTokenService.verifyToken.mockResolvedValue(mockUserToken);
       usersService.findOneWithPasswordByEmail.mockResolvedValue({ ...mockUser, password: 'existing_hashed_password' } as User);
-      (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
 
       await authService.resetPassword(dto, mockI18nContext);
 
       expect(usersTokenService.verifyToken).toHaveBeenCalledWith(dto.token, UserTokenEnum.PASSWORD_RESET);
-      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
-      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 'random_salt');
+      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 10);
       expect(usersService.updateBy).toHaveBeenCalledWith({ id: mockUserToken.userId }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
+      expect(redisService.setUserPasswordChangedAt).toHaveBeenCalledWith(mockUserToken.userId, expect.any(Number));
       expect(usersTokenService.revokeAllRefreshTokens).toHaveBeenCalledWith(mockUserToken.userId);
       expect(usersTokenService.markTokenAsUsed).toHaveBeenCalledWith(mockUserToken);
       expect(mailService.sendPasswordChangedEmail).toHaveBeenCalledWith(mockUserToken.user.email, mockI18nContext.lang, mockUserToken.user.concatName);
@@ -381,13 +412,14 @@ describe('AuthService', () => {
 
       usersService.findOneWithPasswordByEmail.mockResolvedValue(userWithPass);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      (bcrypt.genSalt as jest.Mock).mockResolvedValue('random_salt');
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_new_password');
 
       await authService.changePassword('test@example.com', dto);
 
       expect(bcrypt.compare).toHaveBeenCalledWith(dto.currentPassword, userWithPass.password);
+      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 10);
       expect(usersService.updateBy).toHaveBeenCalledWith({ email: 'test@example.com' }, { password: 'hashed_new_password', passwordChangedAt: expect.any(Date) as unknown });
+      expect(redisService.setUserPasswordChangedAt).toHaveBeenCalledWith(userWithPass.id, expect.any(Number));
     });
 
     it('should throw BadRequestException if user has NO password (e.g. Google login)', async () => {

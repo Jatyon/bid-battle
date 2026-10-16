@@ -82,9 +82,12 @@ export class InitBids1773681564095 implements MigrationInterface {
         columnNames: ['auction_id'],
       }),
     ]);
+
+    await queryRunner.query('CREATE INDEX idx_bids_user_auction_id ON bids (user_id, auction_id, id DESC)');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('DROP INDEX idx_bids_user_auction_id ON bids');
     await queryRunner.dropIndex('bids', 'IDX_BIDS_AUCTION_ID');
     await queryRunner.dropIndex('bids', 'IDX_BIDS_AUCTION_ID_CREATED_AT');
     await queryRunner.dropIndex('bids', 'IDX_BIDS_USER_ID');

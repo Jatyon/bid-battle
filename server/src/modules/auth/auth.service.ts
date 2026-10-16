@@ -43,6 +43,21 @@ export class AuthService {
     private readonly redisService: RedisService,
   ) {}
 
+  /**
+   * Validates JWT session in-memory and via Redis Cache (checking user:{id}:password_changed_at)
+   * without querying MySQL.
+   *
+   * @param payload - The decoded JWT payload.
+   * @throws UnauthorizedException if the token was issued before the password change.
+   */
+  async validateJwtSession(payload: IAuthJwt): Promise<void> {
+    if (payload.iat == null) return;
+
+    const passwordChangedAtSeconds = await this.redisService.getUserPasswordChangedAt(payload.sub);
+
+    if (passwordChangedAtSeconds != null && payload.iat < passwordChangedAtSeconds) throw new UnauthorizedException('auth.errors.token_invalidated_password_changed');
+  }
+
   async validateJwtUser(payload: IAuthJwt): Promise<User> {
     const user = await this.usersService.findOneBy({ id: payload.sub });
 
@@ -64,9 +79,7 @@ export class AuthService {
 
     if (existingUser) throw new ConflictException({ message: 'auth.errors.user_with_email_#email_exists', args: { email } });
 
-    const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
-
-    const hashedPassword: string = await bcrypt.hash(password, salt);
+    const hashedPassword = await this.hashPassword(password);
 
     const user = this.usersService.create({
       ...registerDto,
@@ -118,6 +131,11 @@ export class AuthService {
         lastLoginAt: new Date(),
       },
     );
+
+    if (user.passwordChangedAt) {
+      const passwordChangedAtSeconds = Math.floor(new Date(user.passwordChangedAt).getTime() / 1000);
+      await this.redisService.setUserPasswordChangedAt(user.id, passwordChangedAtSeconds);
+    }
 
     const oAuthUser: IOAuthUser = {
       id: user.id,
@@ -196,16 +214,20 @@ export class AuthService {
 
     if (!userWithPassword?.password) throw new BadRequestException('auth.errors.oauth_account_cannot_reset_password');
 
-    const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
-    const hashedPassword: string = await bcrypt.hash(resetPasswordDto.password, salt);
+    const hashedPassword = await this.hashPassword(resetPasswordDto.password);
+
+    const passwordChangedAt = new Date();
 
     await this.usersService.updateBy(
       { id: tokenEntity.userId },
       {
         password: hashedPassword,
-        passwordChangedAt: new Date(),
+        passwordChangedAt,
       },
     );
+
+    const passwordChangedAtSeconds = Math.floor(passwordChangedAt.getTime() / 1000);
+    await this.redisService.setUserPasswordChangedAt(tokenEntity.userId, passwordChangedAtSeconds);
 
     await this.usersTokenService.revokeAllRefreshTokens(tokenEntity.userId);
     await this.usersTokenService.markTokenAsUsed(tokenEntity);
@@ -228,16 +250,20 @@ export class AuthService {
 
     if (!isPasswordValid) throw new BadRequestException('auth.errors.the_current_password_incorrect');
 
-    const salt: string = await bcrypt.genSalt(this.configService.jwt.saltOrRounds);
-    const hashedPassword: string = await bcrypt.hash(changePasswordDto.password, salt);
+    const hashedPassword = await this.hashPassword(changePasswordDto.password);
+
+    const passwordChangedAt = new Date();
 
     await this.usersService.updateBy(
       { email },
       {
         password: hashedPassword,
-        passwordChangedAt: new Date(),
+        passwordChangedAt,
       },
     );
+
+    const passwordChangedAtSeconds = Math.floor(passwordChangedAt.getTime() / 1000);
+    await this.redisService.setUserPasswordChangedAt(user.id, passwordChangedAtSeconds);
 
     await this.usersTokenService.revokeAllRefreshTokens(user.id);
   }
@@ -372,6 +398,10 @@ export class AuthService {
     await this.redisService.deleteCache(key);
 
     return payload;
+  }
+
+  private hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, this.configService.jwt.saltOrRounds);
   }
 
   private async sendVerificationEmail(user: User, i18n: I18nContext): Promise<void> {

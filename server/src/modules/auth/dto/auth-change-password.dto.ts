@@ -1,6 +1,6 @@
-import { Match } from '@core/decorators/validator/match.decorator';
-import { IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Match } from '@core/decorators/validator/match.decorator';
+import { IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 
 export class AuthChangePasswordDto {
   @ApiProperty({
@@ -8,9 +8,9 @@ export class AuthChangePasswordDto {
     example: 'OldPassword123!',
     required: false,
   })
-  @IsOptional()
-  @IsString({ message: 'error.validation.currentPassword_is_string' })
-  currentPassword?: string;
+  @IsString()
+  @IsNotEmpty({ message: 'error.validation.currentPassword_required' })
+  currentPassword: string;
 
   @ApiProperty({
     description: 'New password (min 8 chars, at least 1 uppercase, 1 lowercase, 1 number or special char)',
