@@ -11,14 +11,17 @@ const defaultDecimalPipe = new DecimalPipe('en-US');
 export function formatPrice(
   valueInCents: number | null | undefined,
   currency = 'PLN',
-  digitsInfo = '1.2-2'
+  digitsInfo = '1.2-2',
 ): string {
   if (valueInCents === null || valueInCents === undefined || isNaN(valueInCents)) {
-    return `0.00 ${currency}`;
+    return `0,00 ${currency}`;
   }
 
   const formatted = defaultDecimalPipe.transform(centsToUnits(valueInCents), digitsInfo);
-  return `${formatted ?? '0.00'} ${currency}`;
+  if (!formatted) return `0,00 ${currency}`;
+
+  const euFormatted = formatted.replace(/,/g, ' ').replace('.', ',');
+  return `${euFormatted} ${currency}`;
 }
 
 @Pipe({
@@ -28,7 +31,7 @@ export class PricePipe implements PipeTransform {
   transform(
     valueInCents: number | null | undefined,
     currency = 'PLN',
-    digitsInfo = '1.2-2'
+    digitsInfo = '1.2-2',
   ): string {
     return formatPrice(valueInCents, currency, digitsInfo);
   }

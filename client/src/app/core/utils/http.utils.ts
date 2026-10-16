@@ -1,3 +1,5 @@
+import { DEFAULT_PAGE_SIZE } from '../constants';
+
 /**
  * Cleans query parameters by removing `undefined`, `null`, and empty string (`''`) values.
  * Returns an object with values suitable for `HttpParams`.
@@ -21,7 +23,7 @@ export function cleanParams(
  */
 export function normalizePageParams<T extends object>(
   params?: T | number,
-  limit = 12,
+  limit = DEFAULT_PAGE_SIZE,
 ): Record<string, unknown> {
   return typeof params === 'number' ? { page: params, limit } : { page: 1, limit, ...params };
 }
