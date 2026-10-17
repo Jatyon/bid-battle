@@ -1,15 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
+  afterNextRender,
   inject,
   input,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { SpinnerComponent } from '@app/shared';
-import { NotificationService } from '@core/services';
+import { AuthService, NotificationService } from '@core/services';
 import { toCents } from '@core/utils';
 import { AuctionDetails, AuctionFormData, UpdateAuctionRequest } from '@features/auctions/models';
 import { AuctionFormComponent } from '@features/auctions/components';
@@ -17,7 +16,7 @@ import { AuctionsService } from '@features/auctions/services';
 import { toLocalDateTime } from '@features/auctions/utils';
 import { AuctionStatus } from '@features/auctions/enums';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
-import { Observable, finalize, catchError, of, switchMap, EMPTY } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { LucideAngularModule, AlertTriangle } from 'lucide-angular';
 
 @Component({
@@ -29,12 +28,13 @@ import { LucideAngularModule, AlertTriangle } from 'lucide-angular';
 })
 export class AuctionEditPage {
   readonly id = input<string>();
+  readonly initialAuction = input<AuctionDetails>();
 
   private readonly auctionsService = inject(AuctionsService);
+  private readonly authService = inject(AuthService);
   private readonly notifications = inject(NotificationService);
   private readonly transloco = inject(TranslocoService);
   private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly warningIcon = AlertTriangle;
 
@@ -44,41 +44,61 @@ export class AuctionEditPage {
   readonly submitError = signal('');
   readonly hasBids = signal(false);
 
-  private get auctionId(): number {
-    return Number(this.id());
-  }
-
   constructor() {
-    toObservable(this.id)
-      .pipe(
-        switchMap((idStr) => {
-          const numId = Number(idStr);
-          if (!numId || isNaN(numId)) {
-            void this.router.navigate(['/']);
-            return EMPTY;
-          }
-
-          this.isLoading.set(true);
-          return this.auctionsService.getAuctionById(numId).pipe(
-            finalize(() => this.isLoading.set(false)),
-            catchError(() => {
-              this.notifications.error('AUCTIONS.EDIT.ERROR_LOAD');
-              void this.router.navigate(['/']);
-              return of(null);
-            }),
-          );
-        }),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((auction) => {
-        if (!auction) return;
-        this.auction.set(auction);
-        this.hasBids.set(auction.bidCount > 0);
-      });
+    afterNextRender(() => {
+      void this.loadAuction();
+    });
   }
 
-  handleUpdate(data: AuctionFormData): void {
+  private async loadAuction(): Promise<void> {
+    const numId = Number(this.id());
+    if (!numId || isNaN(numId) || numId <= 0) {
+      void this.router.navigate(['/']);
+      return;
+    }
+
+    const existing = this.initialAuction();
+    let auction = existing && existing.id === numId ? existing : null;
+
+    if (!auction) {
+      this.isLoading.set(true);
+      try {
+        auction = await firstValueFrom(this.auctionsService.getAuctionById(numId));
+      } catch {
+        this.notifications.error('AUCTIONS.EDIT.ERROR_LOAD');
+        void this.router.navigate(['/']);
+        return;
+      } finally {
+        this.isLoading.set(false);
+      }
+    } else {
+      this.isLoading.set(false);
+    }
+
+    if (!auction) return;
+
+    const currentUser = this.authService.currentUser();
+    if (auction.owner?.id !== currentUser?.id) {
+      this.notifications.error('AUCTIONS.EDIT.ERROR_NOT_OWNER');
+      void this.router.navigate(['/']);
+      return;
+    }
+
+    this.auction.set(auction);
+
+    try {
+      const res = await firstValueFrom(this.auctionsService.getAuctionBids(auction.id, 1, 1));
+      this.hasBids.set(res.total > 0);
+    } catch {
+      // Ignore bids load error
+    }
+  }
+
+  async handleUpdate(data: AuctionFormData): Promise<void> {
     if (this.isSubmitting() || this.isLoading()) return;
+
+    const currentAuction = this.auction();
+    if (!currentAuction) return;
 
     this.submitError.set('');
     this.isSubmitting.set(true);
@@ -91,7 +111,7 @@ export class AuctionEditPage {
       requestBase.category = data.formValues.category;
       requestBase.startingPrice = toCents(data.formValues.startingPrice);
 
-      const originalEndTimeStr = toLocalDateTime(this.auction()!.endTime);
+      const originalEndTimeStr = toLocalDateTime(currentAuction.endTime);
 
       if (data.formValues.endTime !== originalEndTimeStr) {
         const endTimestamp = new Date(data.formValues.endTime).getTime();
@@ -99,58 +119,53 @@ export class AuctionEditPage {
       }
     }
 
-    if (data.formValues.appendDescription) requestBase.appendDescription = data.formValues.appendDescription.trim();
+    if (data.formValues.appendDescription) {
+      requestBase.appendDescription = data.formValues.appendDescription.trim();
+    }
 
-    if (this.auction()?.status === AuctionStatus.PENDING) {
+    if (currentAuction.status === AuctionStatus.PENDING) {
       const isImmediate = data.formValues.startImmediately;
 
       if (isImmediate) {
         // Send current time so the server reschedules the BullMQ job to fire immediately.
         // The backend accepts timestamps up to 5 minutes in the past to tolerate clock skew.
         requestBase.startTime = new Date().toISOString();
-      } else if (data.formValues.startTime)
+      } else if (data.formValues.startTime) {
         requestBase.startTime = new Date(data.formValues.startTime).toISOString();
+      }
     }
-
-    let updateImages$: Observable<{ message: string } | null> = of(null);
 
     const filesToUpload = data.images.filter((img) => img.file).map((img) => img.file as File);
     const existingImageUrls = data.images.filter((img) => !img.file).map((img) => img.previewUrl);
 
-    const auctionImages = this.auction()!.images;
+    const auctionImages = currentAuction.images;
     const imagesChanged =
       filesToUpload.length > 0 ||
       existingImageUrls.length !== auctionImages.length ||
       existingImageUrls.some((url, i) => url !== auctionImages[i]) ||
-      data.primaryImageIndex !== this.auction()!.primaryImageIndex;
+      data.primaryImageIndex !== currentAuction.primaryImageIndex;
 
-    if (!this.hasBids() && imagesChanged) {
-      updateImages$ = this.auctionsService.updateAuctionImages(
-        this.auctionId,
-        filesToUpload,
-        existingImageUrls,
-        data.primaryImageIndex,
-      );
+    const auctionId = currentAuction.id;
+
+    try {
+      if (!this.hasBids() && imagesChanged) {
+        await firstValueFrom(
+          this.auctionsService.updateAuctionImages(
+            auctionId,
+            filesToUpload,
+            existingImageUrls,
+            data.primaryImageIndex,
+          ),
+        );
+      }
+
+      await firstValueFrom(this.auctionsService.updateAuction(auctionId, requestBase));
+      this.notifications.success('AUCTIONS.EDIT.SUCCESS');
+      void this.router.navigate(['/']);
+    } catch {
+      this.submitError.set(this.transloco.translate('AUCTIONS.EDIT.ERROR_SAVE'));
+    } finally {
+      this.isSubmitting.set(false);
     }
-
-    const updateAuction$ = this.auctionsService.updateAuction(this.auctionId, requestBase);
-
-    (imagesChanged && !this.hasBids()
-      ? updateImages$.pipe(switchMap(() => updateAuction$))
-      : updateAuction$
-    )
-      .pipe(
-        finalize(() => this.isSubmitting.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.notifications.success('AUCTIONS.EDIT.SUCCESS');
-          void this.router.navigate(['/']);
-        },
-        error: () => {
-          this.submitError.set(this.transloco.translate('AUCTIONS.EDIT.ERROR_SAVE'));
-        },
-      });
   }
 }

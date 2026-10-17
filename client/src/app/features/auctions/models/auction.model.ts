@@ -11,7 +11,6 @@ export interface Auction {
   mainImageUrl: string;
   startingPrice: number;
   currentPrice: number;
-  bidCount: number;
   startTime: string;
   endTime: string;
   status: AuctionStatus;

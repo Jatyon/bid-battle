@@ -7,6 +7,6 @@ export class AuctionClockService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly currentTime$: Observable<number> = defer(() =>
-    this.isBrowser ? timer(0, 60_000).pipe(map(() => Date.now())) : of(Date.now()),
+    this.isBrowser ? timer(0, 1_000).pipe(map(() => Date.now())) : of(Date.now()),
   ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
 }

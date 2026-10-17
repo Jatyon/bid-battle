@@ -1,14 +1,8 @@
 <ng-container *transloco="let t">
-    <article
-        class="auction-card"
-        [routerLink]="['/auctions', auction().id]"
-        tabindex="0"
-        role="link"
-    >
+    <article class="auction-card" [routerLink]="['/auctions', auction().id]" tabindex="0" role="link">
         <div class="auction-card__image-wrap">
             @if (auction().mainImageUrl) {
-            <img class="auction-card__image" [src]="imageUrl(auction().mainImageUrl)" [alt]="auction().title"
-                loading="lazy" />
+            <img class="auction-card__image" [src]="imageUrl()" [alt]="auction().title" loading="lazy" />
             } @else {
             <div class="auction-card__image auction-card__image--empty" aria-hidden="true">
                 <span>{{ t('AUCTIONS.CARD.NO_IMAGE') }}</span>
@@ -18,19 +12,12 @@
 
         <div class="auction-card__body">
             <app-badge variant="primary" [uppercase]="true" class="auction-card__category-badge">
-                {{ t(categoryTranslationKey(auction().category)) }}
+                {{ t(categoryTranslationKey()) }}
             </app-badge>
             <h2 class="auction-card__title">{{ auction().title }}</h2>
             @if (auction().owner) {
-                <app-user-badge
-                    [user]="auction().owner"
-                    [abbreviateLastName]="true"
-                    [isLink]="true"
-                    size="sm"
-                    variant="neutral"
-                    class="auction-card__seller"
-                    (click)="$event.stopPropagation()"
-                ></app-user-badge>
+            <app-user-badge [user]="auction().owner" [abbreviateLastName]="true" [isLink]="true" size="sm"
+                variant="neutral" class="auction-card__seller" (click)="$event.stopPropagation()"></app-user-badge>
             }
             <div class="auction-card__footer">
                 <div class="auction-card__price">
@@ -39,7 +26,7 @@
                 </div>
                 <div class="auction-card__activity">
                     <span class="auction-card__meta-label">{{ t('AUCTIONS.CARD.TIME_LEFT') }}</span>
-                    @if (timeRemaining(auction().endTime); as remaining) {
+                    @if (timeRemaining(); as remaining) {
                     <strong class="auction-card__time">
                         {{ t('AUCTIONS.CARD.TIME_REMAINING', remaining) }}
                     </strong>

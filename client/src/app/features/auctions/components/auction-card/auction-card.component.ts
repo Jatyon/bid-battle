@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -8,6 +8,12 @@ import { resolveImageUrl } from '@core/utils';
 import { AuctionClockService } from '@features/auctions/services';
 import { Auction } from '@features/auctions/models';
 import { TranslocoDirective } from '@jsverse/transloco';
+
+interface TimeRemaining {
+  days: number;
+  hours: number;
+  minutes: number;
+}
 
 @Component({
   selector: 'app-auction-card',
@@ -24,24 +30,32 @@ export class AuctionCardComponent {
     initialValue: Date.now(),
   });
 
-  timeRemaining(endTime: string): { days: number; hours: number; minutes: number } | null {
-    const difference = Date.parse(endTime) - this.currentTime();
+  readonly timeRemaining = computed<TimeRemaining | null>(
+    () => {
+      const difference = Date.parse(this.auction().endTime) - this.currentTime();
 
-    if (difference <= 0) return null;
+      if (difference <= 0) return null;
 
-    const totalMinutes = Math.floor(difference / 60_000);
-    return {
-      days: Math.floor(totalMinutes / 1440),
-      hours: Math.floor((totalMinutes % 1440) / 60),
-      minutes: totalMinutes % 60,
-    };
-  }
+      const totalMinutes = Math.floor(difference / 60_000);
+      return {
+        days: Math.floor(totalMinutes / 1440),
+        hours: Math.floor((totalMinutes % 1440) / 60),
+        minutes: totalMinutes % 60,
+      };
+    },
+    {
+      equal: (a, b) =>
+        a === b ||
+        (!!a && !!b && a.days === b.days && a.hours === b.hours && a.minutes === b.minutes),
+    },
+  );
 
-  categoryTranslationKey(category: Auction['category']): string {
-    return auctionCategoryTranslationKey(category);
-  }
+  readonly categoryTranslationKey = computed(() =>
+    auctionCategoryTranslationKey(this.auction().category),
+  );
 
-  imageUrl(value: string): string {
-    return resolveImageUrl(value, this.document.baseURI);
-  }
+  readonly imageUrl = computed(() => {
+    const mainImg = this.auction().mainImageUrl;
+    return mainImg ? resolveImageUrl(mainImg, this.document.baseURI) : '';
+  });
 }

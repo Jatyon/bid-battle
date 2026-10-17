@@ -43,15 +43,9 @@
                 }
             </div>
 
-            @defer (on viewport) {
-                <app-pagination
-                    [page]="page()"
-                    [totalPages]="totalPages()"
-                    [ariaLabel]="t('AUCTIONS.PAGINATION.LABEL')"
-                    (pageChange)="goToPage($event)"
-                />
-            } @placeholder {
-                <div class="pagination-placeholder"></div>
+            @if (totalPages() > 1) {
+            <app-pagination [page]="page()" [totalPages]="totalPages()" [ariaLabel]="t('AUCTIONS.PAGINATION.LABEL')"
+                (pageChange)="goToPage($event)" />
             }
             }
         </section>

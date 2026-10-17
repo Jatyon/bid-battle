@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BadgeComponent, PaginationComponent } from '@app/shared';
 import type { PaginatedResponse } from '@core/models';
+import { DEFAULT_PAGE_SIZE } from '@core/constants';
 import { scrollToTop } from '@core/utils';
 import { SortOrder } from '@core/enums';
 import { AuctionCardComponent, AuctionFiltersComponent } from '@features/auctions/components';
@@ -40,7 +41,7 @@ export class AuctionListPage {
     sortBy: AuctionSortBy.CREATED_AT,
     sortOrder: SortOrder.DESC,
   });
-  readonly pageLimit = 12;
+  readonly pageLimit = DEFAULT_PAGE_SIZE;
 
   readonly totalPages = computed(() =>
     Math.ceil((this.pageData()?.total ?? 0) / this.pageLimit),
