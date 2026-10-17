@@ -15,7 +15,7 @@
   overflow: hidden;
   background: var(--color-surface);
   border: $border-width solid var(--color-border);
-  box-shadow: var(--shadow-md, 0 12px 36px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-md);
   cursor: pointer;
 
   .main-image {
@@ -100,7 +100,7 @@
   .dark-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--lightbox-overlay-bg);
     z-index: 2;
     pointer-events: none;
   }
@@ -112,11 +112,19 @@
   align-items: center;
   justify-content: center;
   border-radius: $radius-full;
-  border: $border-width solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  border: $border-width solid var(--lightbox-btn-border);
+  color: var(--lightbox-btn-color, var(--color-text-primary));
   cursor: pointer;
-  backdrop-filter: blur(8px);
+  background: var(--lightbox-btn-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--lightbox-btn-shadow);
   transition: all $transition-fast;
+
+  &:focus-visible {
+    outline: $focus-ring-width solid var(--color-primary);
+    outline-offset: $focus-ring-offset;
+  }
 }
 
 .top-controls {
@@ -131,12 +139,16 @@
   .action-circle-btn {
     width: $auction-lightbox-btn-size;
     height: $auction-lightbox-btn-size;
-    background: rgba(255, 255, 255, 0.12);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.25);
+      background: var(--lightbox-btn-bg-hover);
       transform: scale(1.08);
-      border-color: rgba(255, 255, 255, 0.4);
+      border-color: var(--lightbox-btn-border-hover);
+      box-shadow: var(--lightbox-btn-shadow-hover);
+    }
+
+    &:active {
+      transform: scale(0.96);
     }
   }
 }
@@ -148,7 +160,6 @@
   z-index: $z-dropdown;
   width: $auction-lightbox-nav-btn-size;
   height: $auction-lightbox-nav-btn-size;
-  background: rgba(255, 255, 255, 0.1);
 
   &.prev-btn {
     left: $spacing-lg;
@@ -159,9 +170,27 @@
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+    background: var(--lightbox-btn-bg-hover);
+    transform: translateY(-50%) scale(1.08);
+    border-color: var(--lightbox-btn-border-hover);
+    box-shadow: var(--lightbox-btn-shadow-hover);
+  }
+
+  &:active {
+    transform: translateY(-50%) scale(0.96);
+  }
+
+  @media (max-width: 640px) {
+    width: $auction-lightbox-btn-size;
+    height: $auction-lightbox-btn-size;
+
+    &.prev-btn {
+      left: $spacing-sm;
+    }
+
+    &.next-btn {
+      right: $spacing-sm;
+    }
   }
 }
 
@@ -181,7 +210,7 @@
     max-height: 86vh;
     object-fit: contain;
     border-radius: $radius-sm;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--lightbox-stage-shadow);
     user-select: none;
     animation: zoomIn $transition-fast;
     pointer-events: auto;
@@ -194,13 +223,14 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: $z-dropdown;
-  background: rgba(18, 18, 24, 0.65);
+  background: var(--lightbox-strip-bg);
   backdrop-filter: blur(16px);
-  border: $border-width solid rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(16px);
+  border: $border-width solid var(--lightbox-strip-border);
   border-radius: $radius-md + $radius-sm;
   padding: $spacing-compact $spacing-input;
   max-width: 92vw;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--lightbox-strip-shadow);
 
   .strip-container {
     display: flex;
@@ -213,7 +243,7 @@
     }
 
     &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.25);
+      background: var(--lightbox-scrollbar-thumb);
       border-radius: $spacing-2xs;
     }
   }
@@ -225,7 +255,7 @@
     border: $focus-ring-width solid transparent;
     border-radius: $radius-md - $spacing-2xs;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--lightbox-thumb-bg);
     opacity: 0.5;
     cursor: pointer;
     transition: all $transition-fast;
@@ -236,8 +266,8 @@
 
     &.active {
       opacity: 1;
-      border-color: #fff;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+      border-color: var(--lightbox-thumb-active-border);
+      box-shadow: var(--lightbox-thumb-active-shadow);
     }
 
     .strip-thumb-img {
