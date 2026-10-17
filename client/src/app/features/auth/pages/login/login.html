@@ -53,7 +53,7 @@
 
     <p class="login-card__footer">
         {{ t('AUTH.LOGIN.NO_ACCOUNT') }}
-        <a routerLink="/auth/register" class="login-card__footer-link">
+        <a routerLink="/auth/register" queryParamsHandling="preserve" class="login-card__footer-link">
             {{ t('AUTH.LOGIN.CREATE_ONE') }}
         </a>
     </p>

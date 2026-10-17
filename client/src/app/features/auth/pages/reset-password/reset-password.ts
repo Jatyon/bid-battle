@@ -2,8 +2,6 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
-  OnInit,
   inject,
   input,
   signal,
@@ -29,7 +27,7 @@ import { firstValueFrom } from 'rxjs';
   styleUrl: './reset-password.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ResetPasswordPage implements OnInit {
+export class ResetPasswordPage {
   readonly token = input<string>();
 
   private readonly fb = inject(FormBuilder).nonNullable;
@@ -38,7 +36,6 @@ export class ResetPasswordPage implements OnInit {
   private readonly popup = inject(PopupService);
   private readonly router = inject(Router);
   private readonly transloco = inject(TranslocoService);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly isLoading = signal(false);
 
@@ -47,9 +44,9 @@ export class ResetPasswordPage implements OnInit {
     passwordRepeat: ['', [Validators.required, passwordRepeatMatchValidator]],
   });
 
-  ngOnInit(): void {
+  constructor() {
     this.form.controls.password.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntilDestroyed())
       .subscribe(() =>
         this.form.controls.passwordRepeat.updateValueAndValidity({ onlySelf: true }),
       );
