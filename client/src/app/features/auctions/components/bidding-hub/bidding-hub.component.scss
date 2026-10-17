@@ -1,0 +1,317 @@
+@use 'abstracts/variables' as *;
+
+.bidding-hub-card {
+  background: var(--color-surface);
+  border: $border-width solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: var(--shadow-lg, 0 12px 36px rgba(0, 0, 0, 0.25));
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg - $spacing-xs;
+}
+
+.hub-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding-bottom: $spacing-md;
+  border-bottom: $border-width solid var(--color-border);
+
+  @include bp-sm {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: $spacing-sm + $spacing-xs;
+  }
+
+  .status-badge-wrapper {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm + $spacing-xs;
+  }
+
+  .timer-box {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: $spacing-xs;
+
+    @include bp-sm {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0;
+    }
+
+    .timer-label {
+      font-size: $font-size-sm;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+    }
+
+    .timer-digits {
+      font-family: monospace;
+      font-size: $font-size-lg;
+      font-weight: $fw-bold;
+      color: var(--color-primary);
+
+      .digit {
+        color: var(--color-primary);
+      }
+    }
+
+    &.ended .ended-text {
+      font-weight: $fw-semibold;
+      color: var(--color-text-muted);
+      font-size: $font-size-base;
+    }
+  }
+}
+
+.price-section {
+  background: var(--color-surface-2);
+  border: $border-width solid var(--color-border);
+  border-radius: $radius-md + $radius-sm;
+  padding: $spacing-lg - $spacing-xs;
+  text-align: center;
+  transition: background-color $transition-base;
+
+  &.flash {
+    background: color-mix(in srgb, var(--color-success) 20%, transparent);
+    border-color: var(--color-success);
+    animation: pulse 0.5s ease;
+  }
+
+  .price-label {
+    font-size: $font-size-base;
+    color: var(--color-text-secondary);
+  }
+
+  .price-value {
+    font-size: $font-size-3xl;
+    font-weight: 800;
+    color: var(--color-text);
+    margin: $spacing-xs 0;
+    letter-spacing: -0.02em;
+
+    @include bp-sm {
+      font-size: $font-size-4xl;
+    }
+  }
+
+  .bid-count-sub {
+    font-size: $font-size-sm;
+    color: var(--color-text-muted);
+  }
+}
+
+.status-alert-container {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm + $spacing-xs;
+
+  .alert {
+    display: flex;
+    gap: $spacing-md - $spacing-2xs;
+    padding: $spacing-md;
+    border-radius: $radius-md + $radius-sm;
+    font-size: $font-size-base;
+    line-height: $lh-base;
+
+    .alert-icon {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: $spacing-2xs;
+      flex-shrink: 0;
+
+      lucide-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    .alert-content {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-3xs;
+
+      p {
+        margin: 0;
+        opacity: 0.9;
+      }
+    }
+
+    &.alert-info {
+      background: color-mix(in srgb, var(--color-info) 12%, transparent);
+      border: $border-width solid color-mix(in srgb, var(--color-info) 30%, transparent);
+      color: var(--color-info-text);
+
+      .cta-actions {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-sm;
+        margin-top: $spacing-sm;
+
+        @include bp-sm {
+          flex-direction: row;
+        }
+      }
+    }
+
+    &.alert-warning {
+      background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+      border: $border-width solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+      color: var(--color-warning);
+    }
+
+    &.alert-success {
+      background: color-mix(in srgb, var(--color-success) 12%, transparent);
+      border: $border-width solid color-mix(in srgb, var(--color-success) 30%, transparent);
+      color: var(--color-success);
+    }
+
+    &.alert-danger {
+      background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+      border: $border-width solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+      color: var(--color-danger);
+    }
+  }
+}
+
+.bidding-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-top: $spacing-sm;
+
+  .quick-bids-label {
+    font-size: $font-size-sm;
+    font-weight: $fw-semibold;
+    color: var(--color-text-secondary);
+  }
+
+  .quick-bids-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+
+    @include bp-lg {
+      flex-wrap: nowrap;
+      gap: $spacing-xs;
+
+      app-button {
+        flex: 1 1 0;
+        min-width: 0;
+
+        ::ng-deep .btn {
+          width: 100%;
+          padding-inline: $spacing-xs;
+          white-space: nowrap;
+        }
+      }
+    }
+  }
+
+  .custom-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3xs;
+
+    .input-label {
+      font-size: $font-size-sm;
+      color: var(--color-text-secondary);
+    }
+
+    .input-with-button {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+
+      @include bp-sm {
+        flex-direction: row;
+      }
+
+      app-button {
+        display: block;
+        width: 100%;
+
+        ::ng-deep .btn {
+          width: 100%;
+        }
+
+        @include bp-sm {
+          display: inline-block;
+          width: auto;
+
+          ::ng-deep .btn {
+            width: auto;
+          }
+        }
+      }
+
+      .bid-input {
+        flex: 1;
+        background: var(--color-surface-2);
+        border: $border-width solid var(--color-border);
+        color: var(--color-text);
+        padding: $spacing-input $spacing-md;
+        border-radius: $radius-md + $radius-sm;
+        font-size: $font-size-md;
+        font-weight: $fw-semibold;
+
+        &:focus {
+          outline: none;
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+        }
+
+        &::placeholder {
+          color: var(--color-text-muted);
+        }
+      }
+    }
+
+    .min-bid-hint {
+      font-size: $font-size-sm;
+      color: var(--color-text-muted);
+    }
+  }
+}
+
+.btn-sm {
+  padding: $spacing-compact $spacing-sm;
+  font-size: $font-size-sm;
+  border-radius: $radius-sm + $spacing-2xs;
+  text-decoration: none;
+  font-weight: $fw-semibold;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+
+  &:hover {
+    background: var(--color-primary-hover);
+  }
+}
+
+.btn-outline {
+  border: $border-width solid var(--color-border);
+  color: var(--color-text);
+
+  &:hover {
+    background: var(--color-surface-2);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from '@core/guards';
+import { auctionOwnerGuard } from '@features/auctions';
 
 export const routes: Routes = [
   {
@@ -15,6 +16,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'auctions/:id',
+        title: 'ROUTES.AUCTION_DETAILS',
+        loadComponent: () =>
+          import('@features/auctions/pages/auction-detail/auction-detail').then(
+            (m) => m.AuctionDetailPage,
+          ),
+      },
+      {
         path: 'users',
         title: 'ROUTES.USERS',
         loadComponent: () => import('@features/profile').then((m) => m.UsersSearchPage),
@@ -27,6 +36,7 @@ export const routes: Routes = [
       {
         path: 'sell',
         canActivate: [authGuard],
+        data: { requiresAuth: true },
         title: 'ROUTES.SELL',
         loadComponent: () =>
           import('@features/auctions/pages/auction-create/auction-create').then(
@@ -36,12 +46,14 @@ export const routes: Routes = [
       {
         path: 'profile',
         canActivate: [authGuard],
+        data: { requiresAuth: true },
         title: 'ROUTES.PROFILE',
         loadComponent: () => import('@features/profile').then((m) => m.ProfilePage),
       },
       {
         path: 'edit/:id',
-        canActivate: [authGuard],
+        canActivate: [authGuard, auctionOwnerGuard],
+        data: { requiresAuth: true },
         title: 'ROUTES.EDIT',
         loadComponent: () =>
           import('@features/auctions/pages/auction-edit/auction-edit').then(
@@ -51,6 +63,7 @@ export const routes: Routes = [
       {
         path: 'activity',
         canActivate: [authGuard],
+        data: { requiresAuth: true },
         title: 'ROUTES.ACTIVITY',
         loadComponent: () =>
           import('@features/activity/pages/activity/activity').then((m) => m.ActivityPage),

@@ -1,0 +1,70 @@
+<div class="bid-history-card" *transloco="let t">
+  <div class="card-header">
+    <h3 class="title">{{ t('AUCTIONS.DETAIL.HISTORY.TITLE') }}</h3>
+    @if (totalBids() > 0) {
+    <app-badge variant="primary" appearance="subtle" size="sm">
+      {{ totalBids() }}
+      {{
+      totalBids() === 1
+      ? t('AUCTIONS.DETAIL.HISTORY.BID_SINGLE')
+      : t('AUCTIONS.DETAIL.HISTORY.BID_MULTIPLE')
+      }}
+    </app-badge>
+    }
+  </div>
+
+  @if (isLoading() && bids().length === 0) {
+  <div class="loading-state">
+    <app-spinner size="sm" />
+    <span>{{ t('AUCTIONS.DETAIL.HISTORY.LOADING') }}</span>
+  </div>
+  }
+
+  @if (!isLoading() && bids().length === 0) {
+  <div class="empty-state">
+    {{ t('AUCTIONS.DETAIL.HISTORY.EMPTY') }}
+  </div>
+  }
+
+  @if (bids().length > 0) {
+  <div class="bids-list" [class.opacity-50]="isLoading()">
+    @for (bid of bids(); track bid.id; let first = $first) {
+    <div class="bid-row" [class.highest]="isHighestBid(first)" [class.my-bid]="isMyBid(bid)">
+      <div class="bidder-info">
+        <div class="avatar-circle" [class.my-avatar]="isMyBid(bid)">
+          {{ getAvatarInitial(bid) }}
+        </div>
+        <div class="details">
+          <div class="bidder-name-wrapper">
+            <span class="bidder-name" [class.is-you]="isMyBid(bid)">
+              {{ isMyBid(bid) ? t('AUCTIONS.DETAIL.HISTORY.YOU') : formatBidderName(bid.user) }}
+            </span>
+            @if (isMyBid(bid)) {
+            <app-badge variant="primary" appearance="subtle" size="sm">
+              {{ t('AUCTIONS.DETAIL.HISTORY.YOUR_BID') }}
+            </app-badge>
+            }
+          </div>
+          <span class="bid-date">{{ bid.createdAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span>
+        </div>
+      </div>
+
+      <div class="bid-amount-wrapper">
+        <span class="bid-amount">{{ bid.amount | price }}</span>
+        @if (isHighestBid(first)) {
+        <span class="top-tag">{{ t('AUCTIONS.DETAIL.HISTORY.HIGHEST') }}</span>
+        }
+      </div>
+    </div>
+    }
+  </div>
+
+  @if (totalBids() > bids().length) {
+  <div class="show-all-wrapper mt-3">
+    <app-button variant="secondary" [fullWidth]="true" (clicked)="showAll.emit()">
+      {{ t('AUCTIONS.DETAIL.HISTORY.SHOW_ALL') }}
+    </app-button>
+  </div>
+  }
+  }
+</div>

@@ -12,7 +12,8 @@
     "PROFILE": "Profile",
     "USER_PROFILE": "User Profile",
     "USERS": "Find Users",
-    "ACTIVITY": "My Activity"
+    "ACTIVITY": "My Activity",
+    "AUCTION_DETAILS": "Auction Details"
   },
   "NAVBAR": {
     "HOME": "Home",
@@ -113,6 +114,7 @@
         "SAVE": "Save changes"
       },
       "ERROR_LOAD": "Could not load the auction.",
+      "ERROR_NOT_OWNER": "You are not the owner of this auction.",
       "ERROR_SAVE": "Could not save the changes.",
       "SUCCESS": "Auction updated successfully.",
       "HAS_BIDS_WARNING": "Bids have already been placed on this auction. Changing the title, description, category, starting price, and adding or removing images are disabled. You can only append a note to the description and extend the end time."
@@ -172,6 +174,80 @@
       "PREVIOUS": "Previous page",
       "NEXT": "Next page",
       "PAGE": "Page {{page}} of {{pages}}"
+    },
+    "DETAIL": {
+      "WINNER_CONGRATS": "CONGRATULATIONS! You won this auction!",
+      "FINAL_PURCHASE_PRICE": "Final purchase price",
+      "DESCRIPTION_TITLE": "Item description",
+      "SELLER_TITLE": "Seller",
+      "VIEW_SELLER_PROFILE": "View seller profile",
+      "LOADING": "Loading auction details...",
+      "NOT_FOUND_TITLE": "Auction not found",
+      "NOT_FOUND_MSG": "Sorry, the auction does not exist or has been removed.",
+      "BACK_TO_HOME": "Back to home page",
+      "LOAD_ERROR": "Error loading auction details",
+      "ENDING_SOON_TITLE": "Auction ending soon!",
+      "OUTBID_NOTIFICATION_TITLE": "(1) You have been outbid!",
+      "BID_REJECTED_DEFAULT": "Bid was rejected.",
+      "BID_TIMEOUT": "No response from server. Please try placing your bid again.",
+      "AUCTION_WON_NOTIFICATION_TITLE": "You won the auction!",
+      "CONNECTION_ERROR": "Connection error occurred.",
+      "HUB": {
+        "VIEWERS_TITLE": "Currently viewing",
+        "VIEWING": "viewing",
+        "STARTS_IN": "Starts in:",
+        "ENDS_IN": "Ends in:",
+        "ENDED": "Auction Ended",
+        "CURRENT_PRICE": "Current price:",
+        "BID_COUNT": "Number of bids:",
+        "GUEST_TITLE": "Want to participate in this auction?",
+        "GUEST_SUBTITLE": "Log in or create a free account to place bids.",
+        "OWNER_TITLE": "You are the owner of this auction.",
+        "OWNER_SUBTITLE": "You cannot bid on your own item.",
+        "LEADING_TITLE": "You are winning this auction!",
+        "LEADING_SUBTITLE": "Your bid is currently the highest. You will be notified if someone outbids you.",
+        "OUTBID_TITLE": "You have been outbid!",
+        "OUTBID_SUBTITLE": "Increase your bid to regain the lead in this auction.",
+        "QUICK_BIDS_LABEL": "Quick bid:",
+        "YOUR_BID_LABEL": "Your bid:",
+        "INPUT_PLACEHOLDER": "Enter min. {{min}}",
+        "BID": "BID",
+        "BID_SUBMITTING": "Submitting...",
+        "MIN_BID_HINT": "Minimum required amount:",
+        "ALREADY_LEADING_TOAST": "You are already leading this auction.",
+        "UNITS": {
+          "DAYS": "d",
+          "HOURS": "h",
+          "MINUTES": "m",
+          "SECONDS": "s"
+        }
+      },
+      "GALLERY": {
+        "ALT_PREVIEW": "Auction preview",
+        "ALT_THUMBNAIL": "Thumbnail",
+        "DOWNLOAD_PHOTO": "Download image",
+        "CLOSE_LIGHTBOX": "Close (Esc)",
+        "PREVIOUS": "Previous (←)",
+        "NEXT": "Next (→)",
+        "ALT_FULLVIEW": "Enlarged photo view",
+        "ALT_THUMBNAIL_STRIP": "Thumbnail in strip"
+      },
+      "HISTORY": {
+        "TITLE": "Bid history",
+        "BID_SINGLE": "bid",
+        "BID_MULTIPLE": "bids",
+        "LOADING": "Loading bid history...",
+        "EMPTY": "No bids placed yet. Be the first to place a bid!",
+        "HIGHEST": "Highest",
+        "ANONYMOUS_BIDDER": "Anonymous bidder",
+        "USER_PREFIX": "User",
+        "SHOW_ALL": "Show full history",
+        "MODAL_TITLE": "All bids",
+        "CLOSE_MODAL": "Close",
+        "YOU": "You",
+        "YOUR_BID": "Your bid",
+        "YOU_INITIAL": "Y"
+      }
     }
   },
   "COMMON": {
@@ -288,7 +364,9 @@
     "LOADING": "Loading…"
   },
   "TOAST": {
-    "CLOSE": "Close notification"
+    "CLOSE": "Close notification",
+    "AUCTION_WON": "Congratulations! You won the auction! Final price: {{price}}",
+    "AUCTION_OUTBID": "Your bid on auction \"{{title}}\" was outbid! New price: {{price}}"
   },
   "POPUP": {
     "CONFIRM": "Confirm",

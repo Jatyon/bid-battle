@@ -1,0 +1,223 @@
+@use 'abstracts/variables' as *;
+
+.page-container {
+  max-width: $auction-detail-max-width;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  @include bp-lg {
+    padding: $spacing-xl 0;
+  }
+}
+
+.winner-celebration-banner {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: ($spacing-sm + $spacing-xs) $spacing-md;
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  border: $border-width solid color-mix(in srgb, var(--color-success) 35%, transparent);
+  border-radius: $radius-md + $radius-sm;
+  transition: background-color $transition-fast;
+
+  @include bp-sm {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: ($spacing-sm + $spacing-xs) $spacing-lg;
+    gap: $spacing-md;
+  }
+
+  .winner-info {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm + $spacing-xs;
+    min-width: 0;
+
+    .trophy-circle {
+      width: $bidder-avatar-size;
+      height: $bidder-avatar-size;
+      border-radius: $radius-full;
+      background: color-mix(in srgb, var(--color-success) 20%, transparent);
+      border: $border-width solid color-mix(in srgb, var(--color-success) 40%, transparent);
+      color: var(--color-success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .details {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+      min-width: 0;
+
+      .winner-title {
+        font-size: $font-size-base;
+        font-weight: $fw-semibold;
+        color: var(--color-text);
+        line-height: $lh-tight;
+      }
+
+      .winner-subtitle {
+        font-size: $font-size-sm;
+        color: var(--color-text-muted);
+        line-height: $lh-tight;
+      }
+    }
+  }
+
+  .winner-price-wrapper {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: $spacing-xs;
+    border-top: $border-width solid color-mix(in srgb, var(--color-success) 20%, transparent);
+
+    @include bp-sm {
+      flex-direction: column;
+      align-items: flex-end;
+      padding-top: 0;
+      border-top: none;
+      gap: $spacing-xs;
+      flex-shrink: 0;
+    }
+
+    .winner-price {
+      font-size: $font-size-md;
+      font-weight: $fw-bold;
+      color: var(--color-text);
+      line-height: $lh-tight;
+    }
+
+    .winner-tag {
+      font-size: $font-size-xs;
+      color: var(--color-success);
+      font-weight: $fw-bold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: $lh-tight;
+      white-space: nowrap;
+    }
+  }
+}
+
+.auction-grid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  @include bp-lg {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    align-items: start;
+    gap: $spacing-lg;
+  }
+}
+
+.main-column,
+.sidebar-column {
+  display: contents;
+
+  @include bp-lg {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+}
+
+// Mobile ordering
+app-auction-gallery { order: 1; }
+.title-header { order: 2; }
+app-bidding-hub { order: 3; }
+.description-card { order: 4; }
+.seller-card { order: 5; }
+app-bid-history { order: 6; }
+
+.title-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  .auction-detail__category-badge {
+    align-self: flex-start;
+  }
+
+  .auction-title {
+    font-size: $font-size-2xl;
+    font-weight: $fw-bold;
+    color: var(--color-text);
+    margin: 0;
+    line-height: $lh-heading;
+
+    @include bp-sm {
+      font-size: $font-size-3xl;
+    }
+  }
+}
+
+.info-card {
+  background: var(--color-surface);
+  border: $border-width solid var(--color-border);
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+
+  .section-title {
+    font-size: $font-size-xl;
+    font-weight: $fw-bold;
+    color: var(--color-text);
+    margin: 0 0 $spacing-md 0;
+  }
+
+  .card-subtitle {
+    font-size: $font-size-md;
+    font-weight: $fw-semibold;
+    color: var(--color-text-muted);
+    margin: 0 0 $spacing-md 0;
+  }
+
+  .description-text {
+    color: var(--color-text-secondary);
+    line-height: $lh-base;
+    white-space: pre-wrap;
+    font-size: $font-size-base;
+  }
+}
+
+.seller-profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+}
+
+.page-loading,
+.not-found-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl $spacing-lg;
+  text-align: center;
+  gap: $spacing-md;
+  color: var(--color-text-muted);
+}
+
+::ng-deep .modal__content {
+  .bid-history-card {
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+
+    .card-header {
+      display: none; // hide inner title since modal has its own
+    }
+  }
+}

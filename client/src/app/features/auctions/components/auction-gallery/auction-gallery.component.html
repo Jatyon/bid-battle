@@ -1,0 +1,82 @@
+<ng-container *transloco="let t">
+  <div class="gallery-container">
+    <!-- Main image with click to open lightbox -->
+    <div class="main-image-wrapper" role="button" tabindex="0"
+      [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.ALT_PREVIEW')" (click)="openLightbox()"
+      (keydown.enter)="openLightbox()" (keydown.space)="openLightbox(); $event.preventDefault()">
+      <img [src]="activeImageUrl()" [alt]="t('AUCTIONS.DETAIL.GALLERY.ALT_PREVIEW')" class="main-image" />
+    </div>
+
+    <!-- Thumbnails row -->
+    @if (allImages().length > 1) {
+    <div class="thumbnails-grid" role="group" [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.ALT_THUMBNAIL')">
+      @for (img of allImages(); track $index; let i = $index) {
+      <button type="button" class="thumbnail-btn" [class.active]="selectedIndex() === i"
+        [attr.aria-pressed]="selectedIndex() === i"
+        [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.ALT_THUMBNAIL') + ' ' + (i + 1)" (click)="selectImage(i)">
+        <img [src]="imageUrl(img)" [alt]="t('AUCTIONS.DETAIL.GALLERY.ALT_THUMBNAIL') + ' ' + (i + 1)"
+          class="thumbnail-img" />
+      </button>
+      }
+    </div>
+    }
+  </div>
+
+  <!-- Fullscreen Lightbox Modal (Modern Blurred Glass Style) -->
+  @if (isLightboxOpen()) {
+  <div class="lightbox-backdrop" role="dialog" aria-modal="true" tabindex="-1"
+    [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.ALT_FULLVIEW')" (click)="onBackdropClick($event)"
+    (keydown.escape)="closeLightbox()">
+    <!-- Ambient Blurred Background Image -->
+    <div class="blurred-bg" [style.background-image]="'url(' + lightboxActiveUrl() + ')'" aria-hidden="true"></div>
+    <div class="dark-overlay" aria-hidden="true"></div>
+
+    <!-- Top Right Action Controls -->
+    <div class="top-controls">
+      <button type="button" class="action-circle-btn" [title]="t('AUCTIONS.DETAIL.GALLERY.DOWNLOAD_PHOTO')"
+        [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.DOWNLOAD_PHOTO')" (click)="downloadImage()">
+        <lucide-icon [img]="downloadIcon" [size]="20" aria-hidden="true" />
+      </button>
+      <button type="button" class="action-circle-btn" [title]="t('AUCTIONS.DETAIL.GALLERY.CLOSE_LIGHTBOX')"
+        [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.CLOSE_LIGHTBOX')" (click)="closeLightbox()">
+        <lucide-icon [img]="closeIcon" [size]="20" aria-hidden="true" />
+      </button>
+    </div>
+
+    <!-- Side Navigation Arrows -->
+    @if (allImages().length > 1) {
+    <button type="button" class="side-nav-btn prev-btn" [title]="t('AUCTIONS.DETAIL.GALLERY.PREVIOUS')"
+      [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.PREVIOUS')" (click)="$event.stopPropagation(); prevLightboxImage()">
+      <lucide-icon [img]="prevIcon" [size]="24" aria-hidden="true" />
+    </button>
+
+    <button type="button" class="side-nav-btn next-btn" [title]="t('AUCTIONS.DETAIL.GALLERY.NEXT')"
+      [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.NEXT')" (click)="$event.stopPropagation(); nextLightboxImage()">
+      <lucide-icon [img]="nextIcon" [size]="24" aria-hidden="true" />
+    </button>
+    }
+
+    <!-- Main Image Stage -->
+    <div class="lightbox-stage">
+      <img [src]="lightboxActiveUrl()" [alt]="t('AUCTIONS.DETAIL.GALLERY.ALT_FULLVIEW')" class="lightbox-main-photo" />
+    </div>
+
+    <!-- Bottom Thumbnail Strip -->
+    @if (allImages().length > 1) {
+    <div class="bottom-thumbnail-strip">
+      <div class="strip-container" role="group" [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.ALT_THUMBNAIL_STRIP')">
+        @for (img of allImages(); track $index; let i = $index) {
+        <button type="button" class="strip-thumb-btn" [class.active]="lightboxIndex() === i"
+          [attr.aria-pressed]="lightboxIndex() === i"
+          [attr.aria-label]="t('AUCTIONS.DETAIL.GALLERY.ALT_THUMBNAIL_STRIP') + ' ' + (i + 1)"
+          (click)="lightboxIndex.set(i)">
+          <img [src]="imageUrl(img)" [alt]="t('AUCTIONS.DETAIL.GALLERY.ALT_THUMBNAIL_STRIP') + ' ' + (i + 1)"
+            class="strip-thumb-img" />
+        </button>
+        }
+      </div>
+    </div>
+    }
+  </div>
+  }
+</ng-container>

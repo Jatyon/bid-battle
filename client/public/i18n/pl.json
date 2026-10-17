@@ -12,7 +12,8 @@
     "PROFILE": "Profil",
     "USER_PROFILE": "Profil użytkownika",
     "USERS": "Szukaj użytkowników",
-    "ACTIVITY": "Moja aktywność"
+    "ACTIVITY": "Moja aktywność",
+    "AUCTION_DETAILS": "Szczegóły aukcji"
   },
   "NAVBAR": {
     "HOME": "Strona główna",
@@ -120,6 +121,7 @@
         "APPEND_DESCRIPTION_MAX": "Notatka może mieć maksymalnie 1000 znaków."
       },
       "ERROR_LOAD": "Nie udało się załadować aukcji.",
+      "ERROR_NOT_OWNER": "Nie jesteś właścicielem tej aukcji.",
       "ERROR_SAVE": "Nie udało się zapisać zmian.",
       "SUCCESS": "Aukcja została zaktualizowana.",
       "HAS_BIDS_WARNING": "W tej aukcji złożono już oferty. Zmiana tytułu, opisu, ceny wywoławczej oraz dodawanie/usuwanie zdjęć zostały zablokowane. Możesz jedynie dodać notatkę do opisu oraz wydłużyć czas trwania aukcji."
@@ -179,6 +181,80 @@
       "PREVIOUS": "Poprzednia strona",
       "NEXT": "Następna strona",
       "PAGE": "Strona {{page}} z {{pages}}"
+    },
+    "DETAIL": {
+      "WINNER_CONGRATS": "GRATULACJE! Wygrałeś tę aukcję!",
+      "FINAL_PURCHASE_PRICE": "Ostateczna kwota zakupu",
+      "DESCRIPTION_TITLE": "Opis przedmiotu",
+      "SELLER_TITLE": "Sprzedający",
+      "VIEW_SELLER_PROFILE": "Zobacz profil sprzedającego",
+      "LOADING": "Ładowanie szczegółów aukcji...",
+      "NOT_FOUND_TITLE": "Nie znaleziono aukcji",
+      "NOT_FOUND_MSG": "Przepraszamy, aukcja nie istnieje lub została usunięta.",
+      "BACK_TO_HOME": "Powrót do strony głównej",
+      "LOAD_ERROR": "Błąd podczas ładowania szczegółów aukcji",
+      "ENDING_SOON_TITLE": "Aukcja zaraz się kończy!",
+      "OUTBID_NOTIFICATION_TITLE": "(1) Zostałeś przebity!",
+      "BID_REJECTED_DEFAULT": "Oferta została odrzucona.",
+      "BID_TIMEOUT": "Brak odpowiedzi od serwera. Spróbuj zalicytować ponownie.",
+      "AUCTION_WON_NOTIFICATION_TITLE": "Wygrałeś aukcję!",
+      "CONNECTION_ERROR": "Wystąpił błąd połączenia.",
+      "HUB": {
+        "VIEWERS_TITLE": "Obecnie oglądający",
+        "VIEWING": "ogląda",
+        "STARTS_IN": "Start za:",
+        "ENDS_IN": "Koniec za:",
+        "ENDED": "Aukcja Zakończona",
+        "CURRENT_PRICE": "Aktualna cena:",
+        "BID_COUNT": "Liczba ofert:",
+        "GUEST_TITLE": "Chcesz wziąć udział w tej licytacji?",
+        "GUEST_SUBTITLE": "Zaloguj się lub utwórz darmowe konto, aby składać oferty.",
+        "OWNER_TITLE": "Jesteś właścicielem tej aukcji.",
+        "OWNER_SUBTITLE": "Nie możesz licytować własnego przedmiotu.",
+        "LEADING_TITLE": "Prowadzisz w tej licytacji!",
+        "LEADING_SUBTITLE": "Twoja oferta jest obecnie najwyższa. Zostaniesz powiadomiony, jeśli ktoś Cię przebije.",
+        "OUTBID_TITLE": "Zostałeś przebity!",
+        "OUTBID_SUBTITLE": "Podbij ofertę, aby odzyskać prowadzenie w tej licytacji.",
+        "QUICK_BIDS_LABEL": "Szybkie przebicie:",
+        "YOUR_BID_LABEL": "Twoja oferta:",
+        "INPUT_PLACEHOLDER": "Wpisz min. {{min}}",
+        "BID": "LICYTUJ",
+        "BID_SUBMITTING": "Wysyłanie...",
+        "MIN_BID_HINT": "Wymagana kwota minimalna:",
+        "ALREADY_LEADING_TOAST": "Już prowadzisz w tej aukcji.",
+        "UNITS": {
+          "DAYS": "d",
+          "HOURS": "g",
+          "MINUTES": "m",
+          "SECONDS": "s"
+        }
+      },
+      "GALLERY": {
+        "ALT_PREVIEW": "Podgląd aukcji",
+        "ALT_THUMBNAIL": "Miniaturka",
+        "DOWNLOAD_PHOTO": "Pobierz zdjęcie",
+        "CLOSE_LIGHTBOX": "Zamknij (Esc)",
+        "PREVIOUS": "Poprzednie (←)",
+        "NEXT": "Następne (→)",
+        "ALT_FULLVIEW": "Powiększony widok zdjęcia",
+        "ALT_THUMBNAIL_STRIP": "Miniaturka w pasek"
+      },
+      "HISTORY": {
+        "TITLE": "Historia licytacji",
+        "BID_SINGLE": "oferta",
+        "BID_MULTIPLE": "ofert",
+        "LOADING": "Ładowanie historii ofert...",
+        "EMPTY": "Brak złożonych ofert. Bądź pierwszym, który złoży ofertę!",
+        "HIGHEST": "Najwyższa",
+        "ANONYMOUS_BIDDER": "Anonimowy licytujący",
+        "USER_PREFIX": "Użytkownik",
+        "SHOW_ALL": "Pokaż całą historię",
+        "MODAL_TITLE": "Wszystkie oferty",
+        "CLOSE_MODAL": "Zamknij",
+        "YOU": "Ty",
+        "YOUR_BID": "Twoja oferta",
+        "YOU_INITIAL": "Ty"
+      }
     }
   },
   "COMMON": {
@@ -295,7 +371,9 @@
     "LOADING": "Ładowanie…"
   },
   "TOAST": {
-    "CLOSE": "Zamknij powiadomienie"
+    "CLOSE": "Zamknij powiadomienie",
+    "AUCTION_WON": "Gratulacje! Wygrałeś aukcję! Ostateczna kwota: {{price}}",
+    "AUCTION_OUTBID": "Twoja oferta w aukcji \"{{title}}\" została przebita! Nowa kwota: {{price}}"
   },
   "POPUP": {
     "CONFIRM": "Potwierdź",
