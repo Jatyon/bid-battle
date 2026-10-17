@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService } from '@core/services/auth.service';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { AuthService } from '@core/services';
 import { TranslocoDirective } from '@jsverse/transloco';
 import {
   Activity,
@@ -21,6 +21,7 @@ import {
 })
 export class MobileNavComponent {
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly currentUser = this.authService.currentUser;
   readonly homeIcon = House;
@@ -29,4 +30,9 @@ export class MobileNavComponent {
   readonly activityIcon = Activity;
   readonly profileIcon = UserRound;
   readonly loginIcon = LogIn;
+
+  goToLogin(event: Event): void {
+    event.preventDefault();
+    void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+  }
 }

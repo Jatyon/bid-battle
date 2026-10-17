@@ -23,7 +23,8 @@
             <span>{{ t('NAVBAR.PROFILE') }}</span>
         </a>
         } @else {
-        <a routerLink="/auth/login" routerLinkActive="mobile-nav__item--active" class="mobile-nav__item">
+        <a href="/auth/login" (click)="goToLogin($event)" routerLinkActive="mobile-nav__item--active"
+            class="mobile-nav__item">
             <lucide-icon [img]="loginIcon" class="mobile-nav__icon" aria-hidden="true" />
             <span>{{ t('NAVBAR.LOGIN') }}</span>
         </a>

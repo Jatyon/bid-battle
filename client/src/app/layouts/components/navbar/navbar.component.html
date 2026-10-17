@@ -64,10 +64,12 @@
                 </div>
                 } @else {
                 <div class="navbar__auth-actions">
-                    <a routerLink="/auth/login" class="navbar__auth-button navbar__auth-button--login">
+                    <a href="/auth/login" (click)="goToLogin($event)"
+                        class="navbar__auth-button navbar__auth-button--login">
                         {{ t('NAVBAR.LOGIN') }}
                     </a>
-                    <a routerLink="/auth/register" class="navbar__auth-button navbar__auth-button--register">
+                    <a href="/auth/register" (click)="goToRegister($event)"
+                        class="navbar__auth-button navbar__auth-button--register">
                         {{ t('NAVBAR.SIGN_UP') }}
                     </a>
                 </div>

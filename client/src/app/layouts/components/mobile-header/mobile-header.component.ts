@@ -7,12 +7,10 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ThemeService } from '@core/services/theme.service';
-import { AuthService } from '@core/services/auth.service';
-import { LanguageService } from '@core/services/language.service';
+import { AuthService, LanguageService, ThemeService } from '@core/services';
 import { Language } from '@core/enums';
+import { BrandLogoComponent } from '@app/shared';
 import { AuctionSearchComponent } from '@features/auctions/components';
-import { BrandLogoComponent } from '@shared/components';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { LucideAngularModule, LogOut, Moon, Sun, UserRound, Globe } from 'lucide-angular';
 
