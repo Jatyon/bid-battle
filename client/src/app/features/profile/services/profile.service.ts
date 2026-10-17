@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { User, UpdateProfileRequest } from '@core/models';
-import { ApiService } from '@core/services/api.service';
+import { ApiService } from '@core/services';
 import { ProfilePreferences, PublicProfile } from '../models';
 import { Observable, map } from 'rxjs';
 

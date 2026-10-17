@@ -1,17 +1,10 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  OnInit,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { AppDatePipe, AvatarComponent, InputComponent } from '@app/shared';
-import { PublicProfile } from '@features/profile/models';
 import { ProfileService } from '@features/profile/services';
+import { PublicProfile } from '@features/profile/models';
 import { TranslocoDirective } from '@jsverse/transloco';
 import {
   catchError,
@@ -41,9 +34,8 @@ import { LucideAngularModule, Search, User, CalendarDays } from 'lucide-angular'
   styleUrl: './users-search.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UsersSearchPage implements OnInit {
+export class UsersSearchPage {
   private readonly profileService = inject(ProfileService);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly searchControl = new FormControl('');
   readonly users = signal<PublicProfile[]>([]);
@@ -54,7 +46,7 @@ export class UsersSearchPage implements OnInit {
   readonly userIcon = User;
   readonly calendarIcon = CalendarDays;
 
-  ngOnInit(): void {
+  constructor() {
     this.searchControl.valueChanges
       .pipe(
         startWith(this.searchControl.value),
@@ -80,7 +72,7 @@ export class UsersSearchPage implements OnInit {
             finalize(() => this.loading.set(false)),
           ),
         ),
-        takeUntilDestroyed(this.destroyRef),
+        takeUntilDestroyed(),
       )
       .subscribe((users) => {
         this.users.set(users);

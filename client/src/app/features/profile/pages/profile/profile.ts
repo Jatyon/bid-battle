@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  OnInit,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -25,9 +18,9 @@ import {
   resolveHttpError,
   strongPasswordValidators,
 } from '@features/auth/utils';
+import { AvatarUploadComponent } from '@features/profile/components';
 import { ProfilePreferences } from '@features/profile/models';
 import { ProfileService } from '@features/profile/services';
-import { AvatarUploadComponent } from '@features/profile/components';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 
@@ -46,7 +39,7 @@ import { finalize } from 'rxjs';
   styleUrl: './profile.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProfilePage implements OnInit {
+export class ProfilePage {
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly authService = inject(AuthService);
   private readonly languageService = inject(LanguageService);
@@ -95,12 +88,12 @@ export class ProfilePage implements OnInit {
     notifyOnAuctionEnd: [true],
   });
 
-  ngOnInit(): void {
+  constructor() {
     this.profileService
       .getPreferences()
       .pipe(
         finalize(() => this.isLoadingPreferences.set(false)),
-        takeUntilDestroyed(this.destroyRef),
+        takeUntilDestroyed(),
       )
       .subscribe({
         next: (preferences) => {
