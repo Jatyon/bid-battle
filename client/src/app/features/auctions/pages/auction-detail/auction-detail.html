@@ -1,0 +1,127 @@
+<ng-container *transloco="let t">
+  @if (isLoading()) {
+    <div class="page-loading">
+      <app-spinner size="lg" />
+      <p>{{ t('AUCTIONS.DETAIL.LOADING') }}</p>
+    </div>
+  } @else {
+    <div class="page-container">
+      @if (auction(); as data) {
+        <!-- Winner Banner -->
+        @if (isWinner()) {
+          <div class="winner-celebration-banner">
+            <div class="winner-info">
+              <div class="trophy-circle">
+                <lucide-icon [img]="trophyIcon" [size]="18" aria-hidden="true" />
+              </div>
+              <div class="details">
+                <span class="winner-title">{{ t('AUCTIONS.DETAIL.WINNER_CONGRATS') }}</span>
+                <span class="winner-subtitle">{{ t('AUCTIONS.DETAIL.HUB.ENDED') }}</span>
+              </div>
+            </div>
+
+            <div class="winner-price-wrapper">
+              <span class="winner-price">{{ data.currentPrice | price }}</span>
+              <span class="winner-tag">{{ t('AUCTIONS.DETAIL.FINAL_PURCHASE_PRICE') }}</span>
+            </div>
+          </div>
+        }
+
+        <!-- Main Grid Layout -->
+        <div class="auction-grid">
+          <div class="main-column">
+            <app-auction-gallery
+              [images]="data.images"
+              [mainImageUrl]="data.mainImageUrl"
+            ></app-auction-gallery>
+
+            <!-- Description & Specifications Card -->
+            <div class="info-card description-card">
+              <h2 class="section-title">{{ t('AUCTIONS.DETAIL.DESCRIPTION_TITLE') }}</h2>
+              <div class="description-text">
+                {{ data.description }}
+              </div>
+            </div>
+
+            <!-- Seller Profile Card -->
+            @if (data.owner; as seller) {
+              <div class="info-card seller-card">
+                <h3 class="card-subtitle">{{ t('AUCTIONS.DETAIL.SELLER_TITLE') }}</h3>
+                <div class="seller-profile-row">
+                  <app-user-badge [user]="seller"></app-user-badge>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="sidebar-column">
+            <!-- Main Title & Breadcrumb -->
+            <div class="title-header">
+              <app-badge
+                variant="primary"
+                [uppercase]="true"
+                class="auction-detail__category-badge"
+              >
+                {{ t(categoryTranslationKey(data.category)) }}
+              </app-badge>
+              <h1 class="auction-title">{{ data.title }}</h1>
+            </div>
+
+            <!-- Bidding Hub Control -->
+            <app-bidding-hub
+              [auction]="data"
+              [livePrice]="livePrice()"
+              [isLeading]="isLeading()"
+              [hasBidded]="hasBidded()"
+              [isOwner]="isOwner()"
+              [isGuest]="isGuest()"
+              [participantsCount]="participantsCount()"
+              [bidCount]="bidCount()"
+              [isPlacingBid]="isPlacingBid()"
+              [isLiveConnected]="isLiveConnected()"
+              (placeBid)="handlePlaceBid($event)"
+            ></app-bidding-hub>
+
+            <!-- Bid History List -->
+            <app-bid-history 
+              [bids]="bids()" 
+              [isLoading]="isLoadingBids()"
+              [totalBids]="bidCount()"
+              (showAll)="openBidsModal()"
+            ></app-bid-history>
+          </div>
+        </div>
+      } @else {
+        <div class="not-found-card">
+          <h2>{{ t('AUCTIONS.DETAIL.NOT_FOUND_TITLE') }}</h2>
+          <p>{{ t('AUCTIONS.DETAIL.NOT_FOUND_MSG') }}</p>
+          <a routerLink="/" class="btn btn-primary">{{ t('AUCTIONS.DETAIL.BACK_TO_HOME') }}</a>
+        </div>
+      }
+    </div>
+
+    <!-- Paginated Bids Modal -->
+    <app-modal
+      [(isOpen)]="isBidsModalOpen"
+      [title]="t('AUCTIONS.DETAIL.HISTORY.MODAL_TITLE')"
+    >
+      <app-bid-history 
+        [bids]="paginatedBids()" 
+        [isLoading]="isLoadingPaginatedBids()"
+        [totalBids]="0"
+        [page]="paginatedBidsPage()"
+      ></app-bid-history>
+
+      @if (paginatedBidsTotalPages() > 1) {
+        <div class="pagination-wrapper mt-3">
+          <app-pagination
+            [page]="paginatedBidsPage()"
+            [totalPages]="paginatedBidsTotalPages()"
+            [autoScroll]="false"
+            (pageChange)="loadPaginatedBids($event)"
+          ></app-pagination>
+        </div>
+      }
+    </app-modal>
+  }
+</ng-container>
