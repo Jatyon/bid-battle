@@ -46,6 +46,13 @@ export interface MyBidAuction {
     avatar?: string;
     isDeleted?: boolean;
   };
+  winner?: {
+    id: number;
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+    isDeleted?: boolean;
+  };
 }
 
 export interface MyBid {
