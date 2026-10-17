@@ -95,15 +95,15 @@ export class VerifyEmailPage {
     if (!isPlatformBrowser(this.platformId) || this.executed) return;
     this.executed = true;
 
-    const tokenVal = this.token();
+    const token = this.token();
 
-    if (!tokenVal) {
+    if (!token) {
       this.status.set('no-token');
       return;
     }
 
     try {
-      const request: VerifyEmailRequest = { token: tokenVal };
+      const request: VerifyEmailRequest = { token };
       await firstValueFrom(this.authService.verifyEmail(request));
       this.status.set('success');
     } catch (err: unknown) {

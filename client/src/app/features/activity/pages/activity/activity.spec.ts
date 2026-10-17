@@ -233,4 +233,87 @@ describe('ActivityPage', () => {
     component.auctions.set([{ id: 1 } as any]);
     expect(component.hasNoFilterResults()).toBe(false);
   });
+
+  it('should execute only one query with new filters when changing status in auctions tab', async () => {
+    const router = TestBed.inject(Router);
+    expect(auctionsService.getMyAuctions).toHaveBeenCalledTimes(1);
+
+    await router.navigate([], { queryParams: { status: 'ACTIVE', page: 1 } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(auctionsService.getMyAuctions).toHaveBeenCalledTimes(2);
+    expect(auctionsService.getMyAuctions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'ACTIVE', page: 1 }),
+    );
+
+    await router.navigate([], { queryParams: { status: 'ENDED', page: 1 } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(auctionsService.getMyAuctions).toHaveBeenCalledTimes(3);
+    expect(auctionsService.getMyAuctions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'ENDED', page: 1 }),
+    );
+  });
+
+  it('should execute only one query with new filters when changing status in bids tab', async () => {
+    const router = TestBed.inject(Router);
+
+    await router.navigate([], { queryParams: { tab: 'bids' } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(bidsService.getMyBids).toHaveBeenCalledTimes(1);
+    expect(bidsService.getMyBids).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 1, sortBy: 'endTime', sortOrder: 'ASC' }),
+    );
+
+    await router.navigate([], { queryParams: { tab: 'bids', status: 'WINNING', page: 1 } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(bidsService.getMyBids).toHaveBeenCalledTimes(2);
+    expect(bidsService.getMyBids).toHaveBeenLastCalledWith(
+      expect.objectContaining({ bidStatus: 'WINNING', page: 1 }),
+    );
+
+    await router.navigate([], { queryParams: { tab: 'bids', status: 'OUTBID', page: 1 } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(bidsService.getMyBids).toHaveBeenCalledTimes(3);
+    expect(bidsService.getMyBids).toHaveBeenLastCalledWith(
+      expect.objectContaining({ bidStatus: 'OUTBID', page: 1 }),
+    );
+  });
+
+  it('should immediately set loading to true when changing filters or resetting, preventing empty state flash', () => {
+    // Simulate active filters returning 0 results
+    component.status.set('ENDED');
+    component.auctions.set([]);
+    component.loading.set(false);
+    expect(component.hasNoFilterResults()).toBe(true);
+
+    // Reset filters (or change status to '')
+    component.onSelectStatus('');
+    expect(component.loading()).toBe(true);
+
+    // Also test resetFilters
+    component.loading.set(false);
+    component.status.set('ENDED');
+    component.resetFilters();
+    expect(component.loading()).toBe(true);
+
+    // Also test category change
+    component.loading.set(false);
+    component.onCategoryChange('ELECTRONICS');
+    expect(component.loading()).toBe(true);
+
+    // Also test search change
+    component.loading.set(false);
+    component.onSearchChange('phone');
+    expect(component.loading()).toBe(true);
+  });
 });
+

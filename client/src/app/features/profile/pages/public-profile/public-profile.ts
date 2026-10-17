@@ -9,14 +9,15 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { PaginationComponent, AppDatePipe, AvatarComponent } from '@app/shared';
+import { DEFAULT_PAGE_SIZE } from '@core/constants';
 import { PaginatedResponse } from '@core/models';
 import { scrollToTop } from '@core/utils';
 import { SortOrder } from '@core/enums';
-import { PublicProfile } from '@features/profile/models';
-import { ProfileService } from '@features/profile/services';
 import { Auction, AuctionSearchQuery } from '@features/auctions/models';
 import { AuctionCardComponent } from '@features/auctions/components';
 import { AuctionsService } from '@features/auctions/services';
+import { ProfileService } from '@features/profile/services';
+import { PublicProfile } from '@features/profile/models';
 import { AuctionSortBy } from '@features/auctions/enums';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { LucideAngularModule, CalendarDays, Star, Package, HelpCircle } from 'lucide-angular';
@@ -53,7 +54,7 @@ export class PublicProfilePage {
   readonly pageData = signal<PaginatedResponse<Auction> | null>(null);
   readonly loadingAuctions = signal(false);
   readonly page = signal(1);
-  readonly pageLimit = 12;
+  readonly pageLimit = DEFAULT_PAGE_SIZE;
 
   readonly calendarIcon = CalendarDays;
   readonly starIcon = Star;

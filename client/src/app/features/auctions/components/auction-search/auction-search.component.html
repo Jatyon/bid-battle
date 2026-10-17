@@ -76,7 +76,9 @@
                             loading="lazy" />
                         <span class="auction-search__details">
                             <span class="auction-search__title">{{ auction.title }}</span>
-                            <span class="auction-search__meta">{{ t(categoryTranslationKey(auction.category)) }}</span>
+                            <span class="auction-search__meta">{{
+                                t(categoryTranslationKey(auction.category))
+                                }}</span>
                         </span>
                         <span class="auction-search__price">
                             <span>{{ t('SEARCH.CURRENT_BID') }}</span>

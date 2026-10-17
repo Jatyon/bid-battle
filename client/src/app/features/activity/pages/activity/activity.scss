@@ -119,22 +119,6 @@
   border: $border-width dashed var(--color-border);
   border-radius: $radius-lg;
 
-  &__icon-wrap {
-    display: grid;
-    place-items: center;
-    width: 4rem;
-    height: 4rem;
-    border-radius: $radius-full;
-    background: var(--color-surface-2);
-    color: var(--color-text-muted);
-    margin-bottom: $spacing-md;
-
-    lucide-icon {
-      width: 2rem;
-      height: 2rem;
-    }
-  }
-
   &__title {
     margin: 0 0 $spacing-xs;
     color: var(--color-text);
@@ -177,7 +161,6 @@
     }
   }
 }
-
 
 @keyframes activity-spin {
   to {

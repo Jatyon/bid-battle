@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, DOCUMENT, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DOCUMENT } from '@angular/common';
 import { BadgeComponent } from '@app/shared';
 import { auctionCategoryTranslationKey } from '@core/enums';
 import type { AuctionCategory } from '@core/enums';
@@ -26,7 +27,11 @@ export class ActivityCardComponent {
 
   readonly fullImageUrl = computed(() => resolveImageUrl(this.imageUrl(), this.document.baseURI));
 
-  categoryTranslationKey(category?: string | null): string {
+  readonly categoryTranslationKey = computed(() =>
+    auctionCategoryTranslationKey((this.category() as AuctionCategory) || 'OTHER'),
+  );
+
+  getCategoryTranslationKey(category?: string | null): string {
     return auctionCategoryTranslationKey((category as AuctionCategory) || 'OTHER');
   }
 }

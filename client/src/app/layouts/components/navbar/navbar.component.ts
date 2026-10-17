@@ -7,11 +7,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
-import { ThemeService } from '@core/services/theme.service';
-import { AuthService } from '@core/services/auth.service';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { AuthService, ThemeService } from '@core/services';
+import { BrandLogoComponent } from '@app/shared';
 import { AuctionSearchComponent } from '@features/auctions/components';
-import { BrandLogoComponent } from '@shared/components';
 import { TranslocoDirective } from '@jsverse/transloco';
 import {
   LucideAngularModule,
@@ -42,6 +41,7 @@ import {
 export class NavbarComponent {
   private readonly authService = inject(AuthService);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly router = inject(Router);
   readonly themeService = inject(ThemeService);
 
   readonly chevronIcon = ChevronDown;
@@ -81,6 +81,16 @@ export class NavbarComponent {
 
   toggleTheme(): void {
     this.themeService.toggle();
+  }
+
+  goToLogin(event: Event): void {
+    event.preventDefault();
+    void this.router.navigate(['/auth/login'], { queryParams: { returnUrl: this.router.url } });
+  }
+
+  goToRegister(event: Event): void {
+    event.preventDefault();
+    void this.router.navigate(['/auth/register'], { queryParams: { returnUrl: this.router.url } });
   }
 
   @HostListener('document:click', ['$event.target'])

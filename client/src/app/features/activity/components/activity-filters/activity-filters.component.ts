@@ -1,8 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
-  OnInit,
   computed,
   effect,
   inject,
@@ -37,9 +35,8 @@ interface StatusChip {
   styleUrl: './activity-filters.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ActivityFiltersComponent implements OnInit {
+export class ActivityFiltersComponent {
   private readonly transloco = inject(TranslocoService);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly activeTab = input.required<ActivityTab>();
   readonly status = input('');
@@ -86,8 +83,8 @@ export class ActivityFiltersComponent implements OnInit {
   readonly auctionSortOptions = computed<SelectOption[]>(() => [
     { value: 'createdAt_DESC', label: this.transloco.translate('ACTIVITY.FILTERS.SORT_NEWEST') },
     { value: 'endTime_ASC', label: this.transloco.translate('ACTIVITY.FILTERS.SORT_ENDING_SOON') },
-    { value: 'currentPrice_DESC', label: this.transloco.translate('ACTIVITY.FILTERS.SORT_PRICE_HIGH'), },
-    { value: 'currentPrice_ASC', label: this.transloco.translate('ACTIVITY.FILTERS.SORT_PRICE_LOW'), },
+    { value: 'currentPrice_DESC', label: this.transloco.translate('ACTIVITY.FILTERS.SORT_PRICE_HIGH') },
+    { value: 'currentPrice_ASC', label: this.transloco.translate('ACTIVITY.FILTERS.SORT_PRICE_LOW') },
   ]);
 
   readonly bidSortOptions = computed<SelectOption[]>(() => [
@@ -112,24 +109,22 @@ export class ActivityFiltersComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const searchVal = this.search();
-      if (this.searchControl.value !== searchVal) this.searchControl.setValue(searchVal, { emitEvent: false });
+      const search = this.search();
+      if (this.searchControl.value !== search) this.searchControl.setValue(search, { emitEvent: false });
     });
 
     effect(() => {
-      const catVal = this.category();
-      if (this.categoryControl.value !== catVal) this.categoryControl.setValue(catVal, { emitEvent: false });
+      const category = this.category();
+      if (this.categoryControl.value !== category) this.categoryControl.setValue(category, { emitEvent: false });
     });
 
     effect(() => {
-      const sortVal = this.sort() || this.defaultSort();
-      if (this.sortControl.value !== sortVal) this.sortControl.setValue(sortVal, { emitEvent: false });
+      const sort = this.sort() || this.defaultSort();
+      if (this.sortControl.value !== sort) this.sortControl.setValue(sort, { emitEvent: false });
     });
-  }
 
-  ngOnInit(): void {
     this.searchControl.valueChanges
-      .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((val) => {
         this.searchChange.emit(val.trim());
       });

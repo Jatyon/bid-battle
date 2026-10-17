@@ -1,20 +1,47 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonComponent, PaginationComponent } from '@app/shared';
 import type { PaginatedResponse } from '@core/models/paginated-response.model';
 import type { AuctionCategory } from '@core/enums';
 import { scrollToTop } from '@core/utils';
+import { DEFAULT_PAGE_SIZE } from '@core/constants';
 import { SortOrder } from '@core/enums';
-import type { ActivityTab, MyAuctionFilters, MyBid, MyBidFilters, MyBidStatusFilter } from '@features/activity/models';
-import { ActivityFiltersComponent, MyAuctionCardComponent, MyBidCardComponent } from '@features/activity/components';
+import type {
+  ActivityTab,
+  MyAuctionFilters,
+  MyBid,
+  MyBidFilters,
+  MyBidStatusFilter,
+} from '@features/activity/models';
+import {
+  ActivityFiltersComponent,
+  MyAuctionCardComponent,
+  MyBidCardComponent,
+} from '@features/activity/components';
 import { AuctionsService } from '@features/auctions/services';
 import type { MyAuction } from '@features/auctions/models';
 import { BidsService } from '@features/activity/services';
 import { AuctionStatus } from '@features/auctions/enums';
-import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
+import { TranslocoDirective } from '@jsverse/transloco';
 import { LucideAngularModule, Gavel, Package, AlertCircle, RotateCcw } from 'lucide-angular';
-import { EMPTY, Subject, catchError, finalize, switchMap } from 'rxjs';
+import {
+  EMPTY,
+  Subject,
+  catchError,
+  distinctUntilChanged,
+  finalize,
+  map,
+  merge,
+  switchMap,
+} from 'rxjs';
 
 @Component({
   selector: 'app-activity',
@@ -32,23 +59,11 @@ import { EMPTY, Subject, catchError, finalize, switchMap } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ActivityPage {
-  // Query param route inputs (populated via withComponentInputBinding)
-  /* eslint-disable @angular-eslint/no-input-rename */
-  readonly tabParam = input<string>('', { alias: 'tab' });
-  readonly pageParam = input<string>('', { alias: 'page' });
-  readonly searchParam = input<string>('', { alias: 'search' });
-  readonly statusParam = input<string>('', { alias: 'status' });
-  readonly categoryParam = input<string>('', { alias: 'category' });
-  readonly sortParam = input<string>('', { alias: 'sort' });
-  /* eslint-enable @angular-eslint/no-input-rename */
-
   private readonly auctionsService = inject(AuctionsService);
   private readonly bidsService = inject(BidsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly transloco = inject(TranslocoService);
-  private readonly queryParams = toSignal(this.route.queryParamMap);
 
   readonly reloadRequests$ = new Subject<void>();
 
@@ -61,7 +76,7 @@ export class ActivityPage {
   readonly loading = signal(true);
   readonly hasError = signal(false);
   readonly page = signal(1);
-  readonly pageSize = 12;
+  readonly pageSize = DEFAULT_PAGE_SIZE;
 
   // Filter signals
   readonly search = signal('');
@@ -90,9 +105,7 @@ export class ActivityPage {
   readonly hasNoFilterResults = computed(
     () =>
       this.hasActiveFilters() &&
-      (this.activeTab() === 'auctions'
-        ? this.auctions().length === 0
-        : this.bids().length === 0),
+      (this.activeTab() === 'auctions' ? this.auctions().length === 0 : this.bids().length === 0),
   );
 
   readonly totalPages = computed(() => {
@@ -109,101 +122,130 @@ export class ActivityPage {
       : (this.bidsPageData()?.total ?? 0),
   );
 
+  private currentRequestId = 0;
+
   constructor() {
-    this.reloadRequests$
+    merge(
+      this.route.queryParamMap.pipe(
+        distinctUntilChanged(
+          (prev, curr) =>
+            (prev.get('tab') ?? '') === (curr.get('tab') ?? '') &&
+            (prev.get('page') ?? '') === (curr.get('page') ?? '') &&
+            (prev.get('search') ?? '') === (curr.get('search') ?? '') &&
+            (prev.get('status') ?? '') === (curr.get('status') ?? '') &&
+            (prev.get('category') ?? '') === (curr.get('category') ?? '') &&
+            (prev.get('sort') ?? '') === (curr.get('sort') ?? ''),
+        ),
+      ),
+      this.reloadRequests$.pipe(map(() => this.route.snapshot.queryParamMap)),
+    )
       .pipe(
-        switchMap(() => {
+        switchMap((paramMap) => {
+          const requestId = ++this.currentRequestId;
           this.loading.set(true);
           this.hasError.set(false);
 
-          if (this.activeTab() === 'auctions') {
-            const { sortBy, sortOrder } = this.parseSort(this.sort());
+          const tabVal = paramMap.get('tab') || '';
+          const pageVal = paramMap.get('page') || '';
+          const searchVal = paramMap.get('search') || '';
+          const statusVal = paramMap.get('status') || '';
+          const categoryVal = paramMap.get('category') || '';
+          const sortVal = paramMap.get('sort') || '';
+
+          const tab: ActivityTab = tabVal === 'bids' ? 'bids' : 'auctions';
+          const pageNum = Number(pageVal) || 1;
+          const page = pageNum >= 1 ? pageNum : 1;
+          const search = searchVal;
+          const status = statusVal;
+          const category = categoryVal;
+          const defaultSort = this.getDefaultSort(tab);
+          const sort = sortVal || defaultSort;
+
+          this.activeTab.set(tab);
+          this.page.set(page);
+          this.search.set(search);
+          this.status.set(status);
+          this.category.set(category);
+          this.sort.set(sort);
+
+          if (tab === 'auctions') {
+            const { sortBy, sortOrder } = this.parseSort(sort);
             const filters: MyAuctionFilters = {
-              page: this.page(),
+              page,
               limit: this.pageSize,
-              search: this.search() || undefined,
-              status: (this.status() as AuctionStatus) || undefined,
-              category: (this.category() as AuctionCategory) || undefined,
+              search: search || undefined,
+              status: (status as AuctionStatus) || undefined,
+              category: (category as AuctionCategory) || undefined,
               sortBy: sortBy as MyAuctionFilters['sortBy'],
               sortOrder,
             };
 
             return this.auctionsService.getMyAuctions(filters).pipe(
+              map((res) => ({ tab: 'auctions' as const, res, requestId })),
               catchError(() => {
-                this.hasError.set(true);
-                this.auctions.set([]);
-                this.auctionsPageData.set(null);
+                if (requestId === this.currentRequestId) {
+                  this.hasError.set(true);
+                  this.auctions.set([]);
+                  this.auctionsPageData.set(null);
+                }
                 return EMPTY;
               }),
-              finalize(() => this.loading.set(false)),
+              finalize(() => {
+                if (requestId === this.currentRequestId) {
+                  this.loading.set(false);
+                }
+              }),
             );
           } else {
-            const { sortBy, sortOrder } = this.parseSort(this.sort());
+            const { sortBy, sortOrder } = this.parseSort(sort);
             const filters: MyBidFilters = {
-              page: this.page(),
+              page,
               limit: this.pageSize,
-              search: this.search() || undefined,
-              bidStatus: (this.status() as MyBidStatusFilter) || undefined,
-              category: (this.category() as AuctionCategory) || undefined,
+              search: search || undefined,
+              bidStatus: (status as MyBidStatusFilter) || undefined,
+              category: (category as AuctionCategory) || undefined,
               sortBy: sortBy as MyBidFilters['sortBy'],
               sortOrder,
             };
 
             return this.bidsService.getMyBids(filters).pipe(
+              map((res) => ({ tab: 'bids' as const, res, requestId })),
               catchError(() => {
-                this.hasError.set(true);
-                this.bids.set([]);
-                this.bidsPageData.set(null);
+                if (requestId === this.currentRequestId) {
+                  this.hasError.set(true);
+                  this.bids.set([]);
+                  this.bidsPageData.set(null);
+                }
                 return EMPTY;
               }),
-              finalize(() => this.loading.set(false)),
+              finalize(() => {
+                if (requestId === this.currentRequestId) {
+                  this.loading.set(false);
+                }
+              }),
             );
           }
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((response) => {
-        if (this.activeTab() === 'auctions') {
-          const res = response as PaginatedResponse<MyAuction>;
+      .subscribe(({ tab, res, requestId }) => {
+        if (requestId !== this.currentRequestId) return;
+
+        if (tab === 'auctions') {
           this.auctionsPageData.set(res);
           this.auctions.set(res.items);
         } else {
-          const res = response as PaginatedResponse<MyBid>;
           this.bidsPageData.set(res);
           this.bids.set(res.items);
         }
       });
-
-    // Reactively synchronize internal state whenever route query param inputs change
-    effect(() => {
-      const qp = this.queryParams();
-      const tabVal = this.tabParam() || qp?.get('tab') || '';
-      const pageVal = this.pageParam() || qp?.get('page') || '';
-      const searchVal = this.searchParam() || qp?.get('search') || '';
-      const statusVal = this.statusParam() || qp?.get('status') || '';
-      const categoryVal = this.categoryParam() || qp?.get('category') || '';
-      const sortVal = this.sortParam() || qp?.get('sort') || '';
-
-      const tab: ActivityTab = tabVal === 'bids' ? 'bids' : 'auctions';
-      this.activeTab.set(tab);
-
-      const pageNum = Number(pageVal) || 1;
-      this.page.set(pageNum >= 1 ? pageNum : 1);
-
-      this.search.set(searchVal ?? '');
-      this.status.set(statusVal ?? '');
-      this.category.set(categoryVal ?? '');
-
-      const defaultSort = this.getDefaultSort(tab);
-      this.sort.set(sortVal || defaultSort);
-
-      this.reload();
-    });
   }
 
   switchTab(tab: ActivityTab): void {
     if (this.activeTab() === tab) return;
+
     scrollToTop();
+    this.loading.set(true);
     this.activeTab.set(tab);
     this.page.set(1);
     this.search.set('');
@@ -218,18 +260,27 @@ export class ActivityPage {
   }
 
   onSearchChange(value: string): void {
+    if (value === this.search()) return;
+
+    this.loading.set(true);
     this.search.set(value);
     this.page.set(1);
     this.updateQueryParams({ search: value || null, page: 1 });
   }
 
   onSelectStatus(value: string): void {
+    if (value === this.status()) return;
+
+    this.loading.set(true);
     this.status.set(value);
     this.page.set(1);
     this.updateQueryParams({ status: value || null, page: 1 });
   }
 
   onCategoryChange(value: string): void {
+    if (value === this.category()) return;
+
+    this.loading.set(true);
     this.category.set(value);
     this.page.set(1);
     this.updateQueryParams({ category: value || null, page: 1 });
@@ -238,6 +289,10 @@ export class ActivityPage {
   onSortChange(value: string): void {
     const defaultSort = this.defaultSort();
     const sortVal = value || defaultSort;
+
+    if (sortVal === this.sort()) return;
+
+    this.loading.set(true);
     this.sort.set(sortVal);
     this.page.set(1);
     this.updateQueryParams({
@@ -248,6 +303,7 @@ export class ActivityPage {
 
   resetFilters(): void {
     scrollToTop();
+    this.loading.set(true);
     const defaultSort = this.defaultSort();
     this.search.set('');
     this.status.set('');
@@ -267,6 +323,7 @@ export class ActivityPage {
   goToPage(pageNumber: number): void {
     if (pageNumber < 1 || pageNumber > this.totalPages() || pageNumber === this.page()) return;
     scrollToTop();
+    this.loading.set(true);
     this.updateQueryParams({ page: pageNumber });
   }
 

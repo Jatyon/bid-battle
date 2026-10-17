@@ -2,14 +2,12 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
-  OnInit,
   inject,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
-import { RouterLink, Router } from '@angular/router';
+import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { ButtonComponent, InputComponent, PopupService } from '@app/shared';
 import type { RegisterRequest } from '@core/models';
 import { AuthService } from '@core/services';
@@ -28,12 +26,12 @@ import { firstValueFrom } from 'rxjs';
   styleUrl: './register.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RegisterPage implements OnInit {
+export class RegisterPage {
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly authService = inject(AuthService);
   private readonly popup = inject(PopupService);
   private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
   private readonly transloco = inject(TranslocoService);
 
   readonly isLoading = signal(false);
@@ -46,9 +44,9 @@ export class RegisterPage implements OnInit {
     passwordRepeat: ['', [Validators.required, passwordRepeatMatchValidator]],
   });
 
-  ngOnInit(): void {
+  constructor() {
     this.form.controls.password.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntilDestroyed())
       .subscribe(() =>
         this.form.controls.passwordRepeat.updateValueAndValidity({ onlySelf: true }),
       );
@@ -86,6 +84,9 @@ export class RegisterPage implements OnInit {
         mode: 'info',
         confirmText: this.transloco.translate('COMMON.ACTIONS.UNDERSTOOD'),
       })
-      .then(() => this.router.navigate(['/auth/login']));
+      .then(() => {
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+        void this.router.navigate(['/auth/login'], { queryParams: returnUrl ? { returnUrl } : undefined });
+      });
   }
 }

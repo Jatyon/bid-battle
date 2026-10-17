@@ -14,19 +14,14 @@
                 <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()" class="profile-card__form" novalidate>
                     <div class="profile-card__row">
                         <app-input formControlName="firstName" [label]="t('COMMON.FORMS.FIRST_NAME')" name="firstName"
-                            [errorMessages]="{
-                                required: t('PROFILE.VALIDATION.FIRST_NAME_REQUIRED')
-                            }" />
+                            [errorMessages]="{required: t('PROFILE.VALIDATION.FIRST_NAME_REQUIRED')}" />
 
                         <app-input formControlName="lastName" [label]="t('COMMON.FORMS.LAST_NAME')" name="lastName"
-                            [errorMessages]="{
-                                required: t('PROFILE.VALIDATION.LAST_NAME_REQUIRED')
-                            }" />
+                            [errorMessages]="{required: t('PROFILE.VALIDATION.LAST_NAME_REQUIRED')}" />
                     </div>
 
                     <div class="profile-card__row">
-                        <app-input formControlName="email" [label]="t('PROFILE.INFO.EMAIL_READONLY')"
-                            name="email" />
+                        <app-input formControlName="email" [label]="t('PROFILE.INFO.EMAIL_READONLY')" name="email" />
                     </div>
 
                     <app-button type="submit" [loading]="isSavingProfile()" size="md" variant="primary">
@@ -39,7 +34,9 @@
                 <h2 class="profile-card__title">{{ t('PROFILE.PREFERENCES.TITLE') }}</h2>
 
                 @if (isLoadingPreferences()) {
-                <p class="profile-card__description" role="status">{{ t('PROFILE.PREFERENCES.LOADING') }}</p>
+                <p class="profile-card__description" role="status">
+                    {{ t('PROFILE.PREFERENCES.LOADING') }}
+                </p>
                 } @else {
                 <form [formGroup]="preferencesForm" (ngSubmit)="onPreferencesSubmit()" class="profile-card__form"
                     novalidate>
@@ -72,27 +69,24 @@
                     <div class="profile-card__row">
                         <app-input formControlName="currentPassword" type="password"
                             [label]="t('PROFILE.PASSWORD.CURRENT')" autocomplete="current-password"
-                            name="currentPassword" [errorMessages]="{
-                                required: t('PROFILE.PASSWORD.CURRENT_REQUIRED')
-                            }" />
+                            name="currentPassword"
+                            [errorMessages]="{required: t('PROFILE.PASSWORD.CURRENT_REQUIRED')}" />
                     </div>
 
                     <div class="profile-card__row">
                         <app-input formControlName="password" type="password" [label]="t('PROFILE.PASSWORD.NEW')"
                             [placeholder]="t('PROFILE.PASSWORD.NEW_PLACEHOLDER')" autocomplete="new-password"
                             name="password" [errorMessages]="{
-                                required: t('AUTH.VALIDATION.PASSWORD_REQUIRED'),
-                                minlength: t('AUTH.VALIDATION.PASSWORD_MIN'),
-                                pattern: t('AUTH.VALIDATION.PASSWORD_TOO_WEAK')
-                            }" />
+                            required: t('AUTH.VALIDATION.PASSWORD_REQUIRED'),
+                            minlength: t('AUTH.VALIDATION.PASSWORD_MIN'),
+                            pattern: t('AUTH.VALIDATION.PASSWORD_TOO_WEAK')}" />
 
                         <app-input formControlName="passwordRepeat" type="password"
                             [label]="t('COMMON.FORMS.PASSWORD_REPEAT')"
                             [placeholder]="t('PROFILE.PASSWORD.REPEAT_PLACEHOLDER')" autocomplete="new-password"
                             name="passwordRepeat" [errorMessages]="{
-                                required: t('AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED'),
-                                passwordMismatch: t('AUTH.VALIDATION.PASSWORD_MISMATCH')
-                            }" />
+                            required: t('AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED'),
+                            passwordMismatch: t('AUTH.VALIDATION.PASSWORD_MISMATCH')}" />
                     </div>
 
                     <app-button type="submit" [loading]="isChangingPassword()" size="md" variant="primary">

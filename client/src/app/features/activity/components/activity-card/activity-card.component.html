@@ -1,26 +1,15 @@
 <ng-container *transloco="let t">
-  <article
-    class="activity-card"
-    [class.activity-card--ended]="cardModifier() === 'ended'"
+  <article class="activity-card" [class.activity-card--ended]="cardModifier() === 'ended'"
     [class.activity-card--canceled]="cardModifier() === 'canceled'"
-    [class.activity-card--won]="cardModifier() === 'won'"
-    [class.activity-card--outbid]="cardModifier() === 'outbid'"
-    [routerLink]="routerLink()"
-    role="link"
-    tabindex="0"
-  >
+    [class.activity-card--won]="cardModifier() === 'won'" [class.activity-card--outbid]="cardModifier() === 'outbid'"
+    [routerLink]="routerLink()" role="link" tabindex="0">
     <div class="activity-card__image-container">
       @if (fullImageUrl()) {
-        <img
-          class="activity-card__image"
-          [src]="fullImageUrl()"
-          [alt]="title()"
-          loading="lazy"
-        />
+      <img class="activity-card__image" [src]="fullImageUrl()" [alt]="title()" loading="lazy" />
       } @else {
-        <div class="activity-card__image activity-card__image--placeholder">
-          <span>{{ t('AUCTIONS.CARD.NO_IMAGE') }}</span>
-        </div>
+      <div class="activity-card__image activity-card__image--placeholder">
+        <span>{{ t('AUCTIONS.CARD.NO_IMAGE') }}</span>
+      </div>
       }
     </div>
 
@@ -28,9 +17,9 @@
       <div class="activity-card__header">
         <div class="activity-card__meta">
           @if (category(); as cat) {
-            <app-badge variant="primary" [uppercase]="true">
-              {{ t(categoryTranslationKey(cat)) }}
-            </app-badge>
+          <app-badge variant="primary" [uppercase]="true">
+            {{ t(categoryTranslationKey()) }}
+          </app-badge>
           }
 
           <div class="activity-card__header-right">

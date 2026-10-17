@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import type { PaginatedResponse } from '@core/models/paginated-response.model';
 import { cleanParams, normalizePageParams } from '@core/utils';
-import { ApiService } from '@core/services/api.service';
+import { DEFAULT_PAGE_SIZE } from '@core/constants';
+import { ApiService } from '@core/services';
 import {
   Auction,
   AuctionSearchQuery,
@@ -10,6 +11,7 @@ import {
   AuctionDetails,
   UpdateAuctionRequest,
   MyAuction,
+  AuctionBidItem,
 } from '@features/auctions';
 import type { MyAuctionFilters } from '@features/activity/models';
 import { Observable, map } from 'rxjs';
@@ -44,6 +46,12 @@ export class AuctionsService {
     return this.api.get<AuctionDetails>(`/auctions/${id}`).pipe(map((response) => response.data));
   }
 
+  getAuctionBids(id: number, page = 1, limit = 10): Observable<PaginatedResponse<AuctionBidItem>> {
+    return this.api
+      .get<PaginatedResponse<AuctionBidItem>>(`/auctions/${id}/bids`, cleanParams({ page, limit }))
+      .pipe(map((response) => response.data));
+  }
+
   updateAuction(id: number, request: UpdateAuctionRequest): Observable<AuctionDetails> {
     return this.api
       .patch<AuctionDetails>(`/auctions/${id}`, request)
@@ -66,7 +74,7 @@ export class AuctionsService {
       .pipe(map((response) => response.data));
   }
 
-  getMyAuctions(params?: MyAuctionFilters | number, limit = 12): Observable<PaginatedResponse<MyAuction>> {
+  getMyAuctions(params?: MyAuctionFilters | number, limit = DEFAULT_PAGE_SIZE): Observable<PaginatedResponse<MyAuction>> {
     return this.api
       .get<PaginatedResponse<MyAuction>>(
         '/auctions/my/auctions',

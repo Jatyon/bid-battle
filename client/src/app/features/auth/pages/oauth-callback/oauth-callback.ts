@@ -6,11 +6,12 @@ import {
   PLATFORM_ID,
   afterNextRender,
 } from '@angular/core';
-import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
+import { Router } from '@angular/router';
 import { NotificationService, OAuthService, AuthService } from '@app/core';
 import { DotsLoaderComponent } from '@app/shared';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Intermediary page for the OAuth callback (full redirect flow).
@@ -43,35 +44,33 @@ export class OAuthCallbackPage {
 
   constructor() {
     afterNextRender(() => {
-      this.processCallback();
+      void this.processCallback();
     });
   }
 
-  private processCallback(): void {
+  private async processCallback(): Promise<void> {
     if (!isPlatformBrowser(this.platformId) || this.executed) return;
     this.executed = true;
 
-    const err = this.error();
-    if (err) {
+    const errorParam = this.error();
+    if (errorParam) {
       void this.router.navigate(['/auth/login']);
-      this.notifications.error(err);
+      this.notifications.error(errorParam);
       return;
     }
 
-    const codeVal = this.code();
-    if (!codeVal) {
+    const code = this.code();
+    if (!code) {
       void this.router.navigate(['/auth/login']);
       return;
     }
 
-    this.oauthService.exchangeCode(codeVal).subscribe({
-      next: ({ accessToken, user }) => {
-        this.authService.setSession(accessToken, user);
-        void this.router.navigate(['/']);
-      },
-      error: () => {
-        void this.router.navigate(['/auth/login']);
-      },
-    });
+    try {
+      const { accessToken, user } = await firstValueFrom(this.oauthService.exchangeCode(code));
+      this.authService.setSession(accessToken, user);
+      void this.router.navigate(['/']);
+    } catch {
+      void this.router.navigate(['/auth/login']);
+    }
   }
 }

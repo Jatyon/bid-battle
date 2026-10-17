@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@env/environment';
 import type { PaginatedResponse } from '@core/models/paginated-response.model';
+import { DEFAULT_PAGE_SIZE } from '@core/constants';
 import { SortOrder } from '@core/enums';
 import { Auction, CreateAuctionRequest } from '../models/auction.model';
 import { AuctionsService } from './auctions.service';
@@ -129,6 +130,20 @@ describe('AuctionsService', () => {
     const request = httpMock.expectOne(`${environment.apiUrl}/auctions/my/auctions?page=2&limit=5`);
     expect(request.request.method).toBe('GET');
     const mockData = { items: [], page: 2, limit: 5, total: 0 };
+    request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: mockData });
+
+    expect(result).toEqual(mockData);
+  });
+
+  it('gets user auctions with default pagination limit', () => {
+    let result: unknown;
+    service.getMyAuctions(1).subscribe((data) => (result = data));
+
+    const request = httpMock.expectOne(
+      `${environment.apiUrl}/auctions/my/auctions?page=1&limit=${DEFAULT_PAGE_SIZE}`,
+    );
+    expect(request.request.method).toBe('GET');
+    const mockData = { items: [], page: 1, limit: DEFAULT_PAGE_SIZE, total: 0 };
     request.flush({ statusCode: 200, timestamp: new Date().toISOString(), data: mockData });
 
     expect(result).toEqual(mockData);

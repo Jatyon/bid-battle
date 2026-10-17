@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   HostListener,
   computed,
@@ -9,6 +10,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import {
   AppDatePipe,
@@ -22,11 +24,8 @@ import { NotificationService } from '@core/services';
 import { AuctionsService } from '@features/auctions/services';
 import type { MyAuction } from '@features/auctions/models';
 import { AuctionStatus } from '@features/auctions/enums';
-import {
-  ActivityCardComponent,
-  type ActivityCardModifier,
-} from '../activity-card/activity-card.component';
-import { ActivityCardColComponent } from '../activity-card-col/activity-card-col.component';
+import { ActivityCardComponent, type ActivityCardModifier } from '../activity-card';
+import { ActivityCardColComponent } from '../activity-card-col';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import {
   LucideAngularModule,
@@ -38,7 +37,7 @@ import {
   XCircle,
   MoreVertical,
 } from 'lucide-angular';
-import { firstValueFrom } from 'rxjs';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-my-auction-card',
@@ -68,6 +67,7 @@ export class MyAuctionCardComponent {
   private readonly popup = inject(PopupService);
   private readonly notifications = inject(NotificationService);
   private readonly transloco = inject(TranslocoService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly isMenuOpen = signal(false);
   readonly isCanceling = signal(false);
@@ -143,19 +143,30 @@ export class MyAuctionCardComponent {
       return;
     }
 
-    try {
-      this.isCanceling.set(true);
-      await firstValueFrom(this.auctionsService.cancelAuction(this.auction().id));
-      this.notifications.success(this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_SUCCESS'));
-      this.auctionCanceled.emit(this.auction().id);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error && err.message
-          ? err.message
-          : this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_ERROR');
-      this.notifications.error(message);
-    } finally {
-      this.isCanceling.set(false);
-    }
+    this.isCanceling.set(true);
+
+    this.auctionsService
+      .cancelAuction(this.auction().id)
+      .pipe(
+        finalize(() => {
+          this.isCanceling.set(false);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.notifications.success(
+            this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_SUCCESS'),
+          );
+          this.auctionCanceled.emit(this.auction().id);
+        },
+        error: (err: unknown) => {
+          const message =
+            err instanceof Error && err.message
+              ? err.message
+              : this.transloco.translate('ACTIVITY.AUCTIONS.CANCEL_ERROR');
+          this.notifications.error(message);
+        },
+      });
   }
 }

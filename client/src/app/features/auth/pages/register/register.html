@@ -30,8 +30,8 @@
             }" />
 
         <app-input formControlName="passwordRepeat" type="password" [label]="t('COMMON.FORMS.PASSWORD_REPEAT')"
-            [placeholder]="t('COMMON.FORMS.PASSWORD_PLACEHOLDER')" autocomplete="new-password"
-            name="passwordRepeat" [errorMessages]="{
+            [placeholder]="t('COMMON.FORMS.PASSWORD_PLACEHOLDER')" autocomplete="new-password" name="passwordRepeat"
+            [errorMessages]="{
                 required:          t('AUTH.VALIDATION.PASSWORD_REPEAT_REQUIRED'),
                 passwordMismatch:  t('AUTH.VALIDATION.PASSWORD_MISMATCH')
             }" />
@@ -43,7 +43,7 @@
 
     <p class="register-card__footer">
         {{ t('AUTH.REGISTER.HAVE_ACCOUNT') }}
-        <a routerLink="/auth/login" class="register-card__footer-link">
+        <a routerLink="/auth/login" queryParamsHandling="preserve" class="register-card__footer-link">
             {{ t('AUTH.REGISTER.SIGN_IN') }}
         </a>
     </p>
