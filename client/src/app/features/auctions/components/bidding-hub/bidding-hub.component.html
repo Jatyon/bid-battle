@@ -1,0 +1,175 @@
+<div class="bidding-hub-card" *transloco="let t">
+  <!-- Countdown Header -->
+  <div class="hub-header">
+    <div class="status-badge-wrapper">
+      <app-badge
+        [variant]="statusBadgeVariant()"
+        [uppercase]="true"
+        [dot]="isActive()"
+        [pulse]="isActive()"
+      >
+        {{ t(statusTranslationKey()) }}
+      </app-badge>
+
+
+      @if (participantsCount() > 0) {
+        <app-badge
+          variant="neutral"
+          appearance="subtle"
+          size="sm"
+          [title]="t('AUCTIONS.DETAIL.HUB.VIEWERS_TITLE')"
+        >
+          <lucide-icon [img]="eyeIcon" [size]="14" aria-hidden="true" />
+          {{ participantsCount() }} {{ t('AUCTIONS.DETAIL.HUB.VIEWING') }}
+        </app-badge>
+      }
+    </div>
+
+    <!-- Timer section -->
+    @if (remainingTime(); as time) {
+      <div class="timer-box">
+        <span class="timer-label">
+          {{ isPending() ? t('AUCTIONS.DETAIL.HUB.STARTS_IN') : t('AUCTIONS.DETAIL.HUB.ENDS_IN') }}
+        </span>
+        <div class="timer-digits">
+          @if (time.days > 0) {
+            <span class="digit">{{ time.daysFormatted }}{{ t('AUCTIONS.DETAIL.HUB.UNITS.DAYS') }}</span>:
+            <span class="digit">{{ time.hours }}{{ t('AUCTIONS.DETAIL.HUB.UNITS.HOURS') }}</span>:
+            <span class="digit">{{ time.minutes }}{{ t('AUCTIONS.DETAIL.HUB.UNITS.MINUTES') }}</span>
+          } @else {
+            <span class="digit">{{ time.hours }}{{ t('AUCTIONS.DETAIL.HUB.UNITS.HOURS') }}</span>:
+            <span class="digit">{{ time.minutes }}{{ t('AUCTIONS.DETAIL.HUB.UNITS.MINUTES') }}</span>:
+            <span class="digit">{{ time.seconds }}{{ t('AUCTIONS.DETAIL.HUB.UNITS.SECONDS') }}</span>
+          }
+        </div>
+      </div>
+    }
+    @if (isEnded()) {
+      <div class="timer-box ended">
+        <span class="ended-text">{{ t('AUCTIONS.DETAIL.HUB.ENDED') }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Price Box -->
+  <div class="price-section" [class.flash]="priceFlash()">
+    <span class="price-label">{{ t('AUCTIONS.DETAIL.HUB.CURRENT_PRICE') }}</span>
+    <div class="price-value">
+      {{ currentDisplayPrice() | price }}
+    </div>
+    <div class="bid-count-sub text-muted">
+      {{ t('AUCTIONS.DETAIL.HUB.BID_COUNT') }} <strong>{{ bidCount() }}</strong>
+    </div>
+  </div>
+
+  <!-- Status Alert Banners -->
+  <div class="status-alert-container">
+    <!-- Guest CTA -->
+    @if (isGuest() && isActive()) {
+      <div class="alert alert-info">
+        <div class="alert-icon">
+          <lucide-icon [img]="lockIcon" [size]="20" aria-hidden="true" />
+        </div>
+        <div class="alert-content">
+          <strong>{{ t('AUCTIONS.DETAIL.HUB.GUEST_TITLE') }}</strong>
+          <p>{{ t('AUCTIONS.DETAIL.HUB.GUEST_SUBTITLE') }}</p>
+          <div class="cta-actions">
+            <a href="/auth/login" (click)="goToLogin($event)" class="btn btn-sm btn-primary">{{ t('NAVBAR.LOGIN') }}</a>
+            <a href="/auth/register" (click)="goToRegister($event)" class="btn btn-sm btn-outline">{{
+              t('NAVBAR.SIGN_UP')
+            }}</a>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Owner Notice -->
+    @if (isOwner()) {
+      <div class="alert alert-warning">
+        <div class="alert-icon">
+          <lucide-icon [img]="infoIcon" [size]="20" aria-hidden="true" />
+        </div>
+        <div class="alert-content">
+          <strong>{{ t('AUCTIONS.DETAIL.HUB.OWNER_TITLE') }}</strong>
+          <p>{{ t('AUCTIONS.DETAIL.HUB.OWNER_SUBTITLE') }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Leading Banner -->
+    @if (!isGuest() && !isOwner() && isLeading() && isActive()) {
+      <div class="alert alert-success">
+        <div class="alert-icon">
+          <lucide-icon [img]="checkIcon" [size]="20" aria-hidden="true" />
+        </div>
+        <div class="alert-content">
+          <strong>{{ t('AUCTIONS.DETAIL.HUB.LEADING_TITLE') }}</strong>
+          <p>{{ t('AUCTIONS.DETAIL.HUB.LEADING_SUBTITLE') }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Outbid Banner -->
+    @if (!isGuest() && !isOwner() && hasBidded() && !isLeading() && isActive()) {
+      <div class="alert alert-danger">
+        <div class="alert-icon">
+          <lucide-icon [img]="alertTriangleIcon" [size]="20" aria-hidden="true" />
+        </div>
+        <div class="alert-content">
+          <strong>{{ t('AUCTIONS.DETAIL.HUB.OUTBID_TITLE') }}</strong>
+          <p>{{ t('AUCTIONS.DETAIL.HUB.OUTBID_SUBTITLE') }}</p>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Bidding Form (Only for logged-in non-owners when auction is active) -->
+  @if (!isGuest() && !isOwner() && isActive()) {
+    <div class="bidding-form">
+      <div class="quick-bids-label">{{ t('AUCTIONS.DETAIL.HUB.QUICK_BIDS_LABEL') }}</div>
+      <div class="quick-bids-grid">
+        @for (qb of quickBidIncrements(); track qb.amount) {
+          <app-button
+            variant="chip"
+            [active]="customAmountInput() === qb.amountUnits"
+            [disabled]="isLeading() || isPlacingBid()"
+            (clicked)="selectQuickBid(qb.amount)"
+          >
+            +{{ qb.diff | price }}
+          </app-button>
+        }
+      </div>
+
+      <!-- Custom amount input -->
+      <div class="custom-input-group">
+        <label for="bidAmount" class="input-label">{{
+          t('AUCTIONS.DETAIL.HUB.YOUR_BID_LABEL')
+        }}</label>
+        <div class="input-with-button">
+          <input
+            id="bidAmount"
+            type="number"
+            class="form-control bid-input"
+            step="0.01"
+            [placeholder]="t('AUCTIONS.DETAIL.HUB.INPUT_PLACEHOLDER', { min: minNextBidUnits() })"
+            [min]="minNextBidUnits()"
+            [ngModel]="customAmountInput() ?? minNextBidUnits()"
+            (ngModelChange)="customAmountInput.set($event)"
+            [disabled]="isLeading() || isPlacingBid()"
+          />
+          <app-button
+            variant="primary"
+            [disabled]="isLeading() || isPlacingBid() || isBidInvalid()"
+            [loading]="isPlacingBid()"
+            (clicked)="submitBid()"
+          >
+            {{ t('AUCTIONS.DETAIL.HUB.BID') }}
+          </app-button>
+        </div>
+        <small class="min-bid-hint">
+          {{ t('AUCTIONS.DETAIL.HUB.MIN_BID_HINT') }} <strong>{{ minNextBid() | price }}</strong>
+        </small>
+      </div>
+    </div>
+  }
+</div>
