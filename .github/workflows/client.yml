@@ -63,6 +63,10 @@ jobs:
         if: steps.filter.outputs.client == 'true'
         run: npm run lint
 
+      - name: Typecheck Client
+        if: steps.filter.outputs.client == 'true'
+        run: npm run typecheck
+
       - name: Test Client
         if: steps.filter.outputs.client == 'true'
         run: npm run test -- --watch=false

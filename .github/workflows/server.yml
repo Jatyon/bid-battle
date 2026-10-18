@@ -50,6 +50,10 @@ jobs:
         if: steps.filter.outputs.server == 'true'
         run: npm run lint
 
+      - name: Typecheck Server
+        if: steps.filter.outputs.server == 'true'
+        run: npm run typecheck
+
       - name: Unit Tests
         if: steps.filter.outputs.server == 'true'
         run: npm run test
