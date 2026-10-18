@@ -24,7 +24,7 @@ jobs:
         working-directory: ./server
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Check for server changes
         uses: dorny/paths-filter@v4
