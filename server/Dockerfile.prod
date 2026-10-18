@@ -1,24 +1,32 @@
 FROM node:22-alpine AS builder
+
 WORKDIR /usr/src/app
+
 COPY package*.json ./
 RUN npm ci
+
 COPY . .
 RUN npm run build
 
 FROM node:22-alpine
+
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
 
-RUN apk add --no-cache mysql-client
+RUN apk add --no-cache mysql-client dumb-init
 
 COPY package*.json ./
-
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/resources ./resources
 COPY entrypoint.prod.sh ./entrypoint.prod.sh
 
-RUN chmod +x entrypoint.prod.sh
+RUN mkdir -p uploads && chmod +x entrypoint.prod.sh && chown -R node:node /usr/src/app
 
+USER node
+
+EXPOSE 3000
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["sh", "entrypoint.prod.sh"]
