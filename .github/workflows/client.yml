@@ -21,10 +21,10 @@ jobs:
         working-directory: ./client
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Check for client changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -33,7 +33,7 @@ jobs:
 
       - name: Setup Node.js
         if: steps.filter.outputs.client == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -45,7 +45,7 @@ jobs:
 
       - name: Cache Playwright Browsers
         if: steps.filter.outputs.client == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -73,7 +73,7 @@ jobs:
 
       - name: Cache Angular build cache
         if: steps.filter.outputs.client == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: client/.angular/cache
           key: ${{ runner.os }}-angular-build-${{ hashFiles('client/package-lock.json') }}-${{ github.sha }}
