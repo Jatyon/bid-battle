@@ -9,6 +9,7 @@
     "test": "ng test",
     "serve:ssr:client": "node dist/client/server/server.mjs",
     "lint": "ng lint",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""
   },
