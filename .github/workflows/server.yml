@@ -3,27 +3,39 @@ name: Server CI
 on:
   push:
     branches: [main]
-    paths: ['server/**', '.github/workflows/server.yml']
+    paths:
+      - 'server/**'
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   server-ci:
+    name: server-ci
     runs-on: ubuntu-latest
-
     env:
       NODE_ENV: test
       RYUK_CONTAINER_PRIVILEGED: true
-
     defaults:
       run:
         working-directory: ./server
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for server changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+
       - name: Setup Node.js
+        if: steps.filter.outputs.server == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -31,16 +43,25 @@ jobs:
           cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
+        if: steps.filter.outputs.server == 'true'
         run: npm ci
 
       - name: Lint Server
+        if: steps.filter.outputs.server == 'true'
         run: npm run lint
 
       - name: Unit Tests
+        if: steps.filter.outputs.server == 'true'
         run: npm run test
 
       - name: E2E Tests
+        if: steps.filter.outputs.server == 'true'
         run: npm run test:e2e
 
       - name: Build Server
+        if: steps.filter.outputs.server == 'true'
         run: npm run build
+
+      - name: Log Skipped Status
+        if: steps.filter.outputs.server != 'true'
+        run: echo "No changes detected in server directory. Status check passed."

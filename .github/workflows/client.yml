@@ -3,20 +3,36 @@ name: Client CI
 on:
   push:
     branches: [main]
-    paths: ['client/**', '.github/workflows/client.yml']
+    paths:
+      - 'client/**'
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   client-ci:
+    name: client-ci
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./client
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for client changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            client:
+              - 'client/**'
 
       - name: Setup Node.js
+        if: steps.filter.outputs.client == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -24,16 +40,47 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
+        if: steps.filter.outputs.client == 'true'
         run: npm ci
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+      - name: Cache Playwright Browsers
+        if: steps.filter.outputs.client == 'true'
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('client/package-lock.json') }}
+
+      - name: Install Playwright Chromium with system dependencies
+        if: steps.filter.outputs.client == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system dependencies
+        if: steps.filter.outputs.client == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Lint Client
+        if: steps.filter.outputs.client == 'true'
         run: npm run lint
 
       - name: Test Client
+        if: steps.filter.outputs.client == 'true'
         run: npm run test -- --watch=false
 
-      - name: Build Client
+      - name: Cache Angular build cache
+        if: steps.filter.outputs.client == 'true'
+        uses: actions/cache@v4
+        with:
+          path: client/.angular/cache
+          key: ${{ runner.os }}-angular-build-${{ hashFiles('client/package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-angular-build-${{ hashFiles('client/package-lock.json') }}-
+            ${{ runner.os }}-angular-build-
+
+      - name: Build Client (Production)
+        if: steps.filter.outputs.client == 'true'
         run: npm run build -- --configuration=production
+
+      - name: Log Skipped Status
+        if: steps.filter.outputs.client != 'true'
+        run: echo "No changes detected in client directory. Status check passed."
