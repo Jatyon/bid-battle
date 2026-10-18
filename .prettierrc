@@ -1,5 +1,19 @@
 {
   "singleQuote": true,
   "trailingComma": "all",
-  "printWidth": 180
+  "printWidth": 180,
+  "overrides": [
+    {
+      "files": ["client/**/*"],
+      "options": {
+        "printWidth": 100
+      }
+    },
+    {
+      "files": ["*.html", "client/**/*.html"],
+      "options": {
+        "parser": "angular"
+      }
+    }
+  ]
 }
