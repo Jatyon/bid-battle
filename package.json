@@ -9,8 +9,21 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "husky"
+    "prepare": "husky",
+    "start:client": "npm --prefix client start",
+    "start:server": "npm --prefix server run start:dev",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "build": "npm run build:client && npm run build:server",
+    "test:client": "npm --prefix client test",
+    "test:server": "npm --prefix server test",
+    "test:e2e": "npm --prefix server run test:e2e",
+    "test": "npm run test:client && npm run test:server",
+    "lint:client": "npm --prefix client run lint",
+    "lint:server": "npm --prefix server run lint",
+    "lint": "npm run lint:client && npm run lint:server",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write ."
   },
   "repository": {
     "type": "git",
@@ -30,8 +43,5 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.9.10"
-  },
-  "dependencies": {
-    "socket.io-client": "^4.8.3"
   }
 }
