@@ -47,11 +47,17 @@ async function bootstrap() {
     const requestedPath = req.path;
     const normalizedPath = path.posix.normalize(requestedPath);
 
-    if (requestedPath.includes('\\') || normalizedPath !== requestedPath) return res.status(403).json({ statusCode: 403, message: 'Forbidden' });
+    if (requestedPath.includes('\\') || normalizedPath !== requestedPath) {
+      res.status(403).json({ statusCode: 403, message: 'Forbidden' });
+      return;
+    }
 
     const lastSegment = path.posix.basename(normalizedPath);
 
-    if (!lastSegment.includes('.')) return res.status(403).json({ statusCode: 403, message: 'Forbidden' });
+    if (!lastSegment.includes('.')) {
+      res.status(403).json({ statusCode: 403, message: 'Forbidden' });
+      return;
+    }
 
     next();
   });
