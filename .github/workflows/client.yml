@@ -45,7 +45,7 @@ jobs:
 
       - name: Cache Playwright Browsers
         if: steps.filter.outputs.client == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -73,7 +73,7 @@ jobs:
 
       - name: Cache Angular build cache
         if: steps.filter.outputs.client == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: client/.angular/cache
           key: ${{ runner.os }}-angular-build-${{ hashFiles('client/package-lock.json') }}-${{ github.sha }}
