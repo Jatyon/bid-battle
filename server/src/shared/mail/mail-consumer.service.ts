@@ -143,8 +143,7 @@ export class MailConsumerService extends WorkerHost implements OnModuleInit {
       this.logger.log(`Email sent to ${options.to}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Failed to send email to ${options.to}: ${errorMessage}`, errorStack);
+      this.logger.error(`Failed to send email to ${options.to}: ${errorMessage}`);
       throw error;
     }
   }
