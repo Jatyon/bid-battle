@@ -6,19 +6,38 @@ on:
     paths:
       - 'server/**'
       - '.github/workflows/server.yml'
+      - '.prettierrc'
   pull_request:
     branches: [main]
-    paths:
-      - 'server/**'
-      - '.github/workflows/server.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for server changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+              - '.github/workflows/server.yml'
+              - '.prettierrc'
+
   audit:
     name: Security Audit
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,6 +57,8 @@ jobs:
 
   lint:
     name: Lint & Style
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,6 +85,8 @@ jobs:
 
   unit-test:
     name: Unit Tests
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -87,6 +110,8 @@ jobs:
 
   e2e-test:
     name: E2E Tests (Testcontainers)
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     env:
       NODE_ENV: test
@@ -113,6 +138,8 @@ jobs:
 
   build:
     name: Build Server
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -133,3 +160,31 @@ jobs:
 
       - name: Build Server
         run: npm run build
+
+  server-ci:
+    name: server-ci
+    needs: [changes, audit, lint, unit-test, e2e-test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate Server CI Status
+        run: |
+          if [ "${{ needs.changes.outputs.server }}" != "true" ]; then
+            echo "No changes detected in server directory. Status check passed (skipped)."
+            exit 0
+          fi
+
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.unit-test.result }}" != "success" ] || \
+             [ "${{ needs.e2e-test.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ]; then
+            echo "One or more required server checks failed!"
+            echo "Lint: ${{ needs.lint.result }}"
+            echo "Unit Test: ${{ needs.unit-test.result }}"
+            echo "E2E Test: ${{ needs.e2e-test.result }}"
+            echo "Build: ${{ needs.build.result }}"
+            exit 1
+          fi
+
+          echo "All server checks passed successfully!"
+          exit 0

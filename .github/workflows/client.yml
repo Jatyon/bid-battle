@@ -6,19 +6,38 @@ on:
     paths:
       - 'client/**'
       - '.github/workflows/client.yml'
+      - '.prettierrc'
   pull_request:
     branches: [main]
-    paths:
-      - 'client/**'
-      - '.github/workflows/client.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      client: ${{ steps.filter.outputs.client }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for client changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            client:
+              - 'client/**'
+              - '.github/workflows/client.yml'
+              - '.prettierrc'
+
   audit:
     name: Security Audit
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,6 +57,8 @@ jobs:
 
   lint:
     name: Lint & Style
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,6 +85,8 @@ jobs:
 
   test:
     name: Unit Tests
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -102,6 +125,8 @@ jobs:
 
   build:
     name: Build Client
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -131,3 +156,29 @@ jobs:
 
       - name: Build Client (Production)
         run: npm run build -- --configuration=production
+
+  client-ci:
+    name: client-ci
+    needs: [changes, audit, lint, test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate Client CI Status
+        run: |
+          if [ "${{ needs.changes.outputs.client }}" != "true" ]; then
+            echo "No changes detected in client directory. Status check passed (skipped)."
+            exit 0
+          fi
+
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ]; then
+            echo "One or more required client checks failed!"
+            echo "Lint: ${{ needs.lint.result }}"
+            echo "Test: ${{ needs.test.result }}"
+            echo "Build: ${{ needs.build.result }}"
+            exit 1
+          fi
+
+          echo "All client checks passed successfully!"
+          exit 0
