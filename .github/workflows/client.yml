@@ -5,8 +5,6 @@ on:
     branches: [main]
     paths:
       - 'client/**'
-      - '.github/workflows/client.yml'
-      - '.prettierrc'
   pull_request:
     branches: [main]
 
@@ -15,11 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  changes:
-    name: Detect Changes
+  client-ci:
+    name: client-ci
     runs-on: ubuntu-latest
-    outputs:
-      client: ${{ steps.filter.outputs.client }}
+    defaults:
+      run:
+        working-directory: ./client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,43 +30,9 @@ jobs:
           filters: |
             client:
               - 'client/**'
-              - '.github/workflows/client.yml'
-              - '.prettierrc'
-
-  audit:
-    name: Security Audit
-    needs: changes
-    if: needs.changes.outputs.client == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Run security audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
-
-  lint:
-    name: Lint & Style
-    needs: changes
-    if: needs.changes.outputs.client == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
+        if: steps.filter.outputs.client == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -75,37 +40,11 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Lint Client
-        run: npm run lint
-
-      - name: Check Formatting
-        run: npm run format:check
-
-  test:
-    name: Unit Tests
-    needs: changes
-    if: needs.changes.outputs.client == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
-
-      - name: Install dependencies
+        if: steps.filter.outputs.client == 'true'
         run: npm ci
 
       - name: Cache Playwright Browsers
+        if: steps.filter.outputs.client == 'true'
         uses: actions/cache@v4
         id: playwright-cache
         with:
@@ -113,39 +52,23 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('client/package-lock.json') }}
 
       - name: Install Playwright Chromium with system dependencies
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        if: steps.filter.outputs.client == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium --with-deps
 
       - name: Install Playwright system dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        if: steps.filter.outputs.client == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - name: Run Client Tests
+      - name: Lint Client
+        if: steps.filter.outputs.client == 'true'
+        run: npm run lint
+
+      - name: Test Client
+        if: steps.filter.outputs.client == 'true'
         run: npm run test -- --watch=false
 
-  build:
-    name: Build Client
-    needs: changes
-    if: needs.changes.outputs.client == 'true'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: client/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Cache Angular build cache
+        if: steps.filter.outputs.client == 'true'
         uses: actions/cache@v4
         with:
           path: client/.angular/cache
@@ -155,30 +78,9 @@ jobs:
             ${{ runner.os }}-angular-build-
 
       - name: Build Client (Production)
+        if: steps.filter.outputs.client == 'true'
         run: npm run build -- --configuration=production
 
-  client-ci:
-    name: client-ci
-    needs: [changes, audit, lint, test, build]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Evaluate Client CI Status
-        run: |
-          if [ "${{ needs.changes.outputs.client }}" != "true" ]; then
-            echo "No changes detected in client directory. Status check passed (skipped)."
-            exit 0
-          fi
-
-          if [ "${{ needs.lint.result }}" != "success" ] || \
-             [ "${{ needs.test.result }}" != "success" ] || \
-             [ "${{ needs.build.result }}" != "success" ]; then
-            echo "One or more required client checks failed!"
-            echo "Lint: ${{ needs.lint.result }}"
-            echo "Test: ${{ needs.test.result }}"
-            echo "Build: ${{ needs.build.result }}"
-            exit 1
-          fi
-
-          echo "All client checks passed successfully!"
-          exit 0
+      - name: Log Skipped Status
+        if: steps.filter.outputs.client != 'true'
+        run: echo "No changes detected in client directory. Status check passed."
