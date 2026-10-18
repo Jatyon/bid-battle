@@ -13,6 +13,10 @@
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""
   },
   "private": true,
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "packageManager": "npm@11.6.1",
   "dependencies": {
     "@angular/common": "^21.1.0",

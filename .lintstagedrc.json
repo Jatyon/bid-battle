@@ -2,5 +2,5 @@
   "client/**/*.{ts,html}": ["npx --prefix client eslint --config client/eslint.config.js --fix", "prettier --write"],
   "client/**/*.scss": ["prettier --write"],
   "server/**/*.ts": ["npx --prefix server eslint --config server/eslint.config.mjs --fix", "prettier --write"],
-  "*.{json,md,yml,yaml}": ["prettier --write"]
+  "**/*.{json,md,yml,yaml}": ["prettier --write"]
 }
