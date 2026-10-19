@@ -105,10 +105,9 @@ flowchart TD
 
 ```text
 bid-battle/
-├── .github/                   # GitHub Actions workflows, Dependabot & PR/Issue templates
+├── .github/                   # GitHub Actions workflows & PR/Issue templates
 │   ├── workflows/             # client.yml, server.yml, commitlint.yml
 │   ├── ISSUE_TEMPLATE/        # Standardized bug report & feature request templates
-│   ├── dependabot.yml         # Automated dependency updates schedule
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── .husky/                    # Git hooks (pre-commit, commit-msg)
 ├── client/                    # Angular 21 SSR Application
@@ -305,8 +304,6 @@ Automated GitHub Actions pipelines ensure stability across every pull request an
    - Linting, TypeScript type-checking (`tsc --noEmit`), Jest unit tests, Testcontainers E2E tests, and compilation.
 3. **Commitlint CI (`commitlint.yml`)**:
    - Validates all commit messages in Pull Requests against Conventional Commits.
-4. **Dependabot (`dependabot.yml`)**:
-   - Automated weekly dependency and CVE vulnerability scanning for npm packages and GitHub Actions.
 
 ---
 
